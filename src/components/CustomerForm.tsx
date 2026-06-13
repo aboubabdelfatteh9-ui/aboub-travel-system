@@ -1,0 +1,968 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect } from 'react';
+import { Customer, Trip, Companion } from '../types';
+import { Sparkles, UserPlus, Phone, Calendar, MapPin, Users, PlaneTakeoff, Info, Building2, Trash2, Plus, DollarSign, ListPlus, ShieldAlert } from 'lucide-react';
+
+interface CustomerFormProps {
+  trips: Trip[];
+  onAddCustomer: (customer: Omit<Customer, 'id' | 'registrationDate' | 'invoiceNumber'>) => void;
+}
+
+// Simple age calculator helper
+export const calculateAge = (birthDateString: string): number => {
+  if (!birthDateString) return 0;
+  const today = new Date();
+  const birthDate = new Date(birthDateString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : 0;
+};
+
+// Rich lookup table based on the customer's published ads
+export const getRoomOptionsForTrip = (tId: string, basePrice: number) => {
+  if (tId === 'trip-soviva-tunisia') {
+    return [
+      { value: 'soviva_standard', label: 'فندق Soviva Resort - فطور صباحي + عشاء (45,000 دج/شخص)', price: 45000 },
+      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (30,000 دج)', price: 30000 },
+      { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
+    ];
+  }
+  if (tId === 'trip-family-tunisia') {
+    return [
+      { value: 'five_six', label: 'شقة خماسية أو سداسية (24,000 دج/شخص)', price: 24000 },
+      { value: 'quad', label: 'شقة رباعية (28,000 دج/شخص)', price: 28000 },
+      { value: 'triple', label: 'شقة ثلاثية (30,000 دج/شخص)', price: 30000 },
+      { value: 'double', label: 'شقة ثنائية (33,500 دج/شخص)', price: 33500 },
+      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (مقعد فقط - 10,000 دج)', price: 10000 },
+      { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
+    ];
+  }
+  if (tId === 'trip-jijel-beach') {
+    return [
+      { value: 'jijel_apt_5', label: 'شقة مجهزة - عائلية لـ 5 أفراد (12,900 دج/شخص)', price: 12900 },
+      { value: 'jijel_apt_4', label: 'شقة مجهزة - عائلية لـ 4 أفراد (13,500 دج/شخص)', price: 13505 },
+      { value: 'jijel_apt_3', label: 'شقة مجهزة - عائلية لـ 3 أفراد (14,500 دج/شخص)', price: 14500 },
+      { value: 'jijel_apt_2', label: 'شقة مجهزة - عائلية لـ 2 أفراد (17,500 دج/شخص)', price: 17500 },
+      { value: 'jijel_hotel', label: 'إقامة فندقية (ثنائي/ثلاثي/رباعي) مع فطور صباحي (25,000 دج/شخص)', price: 25000 },
+      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (مقعد فقط - 10,000 دج)', price: 10000 },
+      { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
+    ];
+  }
+  if (tId === 'trip-istanbul-8d') {
+    return [
+      { value: 'istanbul_adult_double_triple', label: 'شخص بالغ - غرفة ثنائية أو ثلاثية (129,000 دج/شخص)', price: 129000 },
+      { value: 'istanbul_single', label: 'شخص واحد بمفرده - غرفة فردية (169,000 دج/شخص)', price: 169000 },
+      { value: 'istanbul_child_3_11', label: 'طفل بين 3 إلى 11 سنة (99,000 دج/شخص)', price: 99000 },
+      { value: 'istanbul_child_under_2', label: 'طفل أقل من سنتين (18,000 دج/شخص)', price: 18000 }
+    ];
+  }
+  if (tId === 'trip-center-algeria') {
+    return [
+      { value: 'mergad_quad_five', label: 'مرقد - غرفة رباعية أو خماسية (12,500 دج/شخص)', price: 12500 },
+      { value: 'mergad_triple', label: 'مرقد - غرفة ثلاثية (14,500 دج/شخص)', price: 14500 },
+      { value: 'mergad_double', label: 'مرقد - غرفة ثنائية (15,500 دج/شخص)', price: 15500 },
+      { value: 'hotel_stay', label: 'إقامة فندقية راقية (23,000 دج/شخص)', price: 23000 },
+      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (مقعد فقط - 10,000 دج)', price: 10000 },
+      { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
+    ];
+  }
+
+  // Fallback for custom trips added inside the dashboard
+  return [
+    { value: 'standard', label: `عرض قياسي موحد (${basePrice.toLocaleString('ar-DZ')} دج/شخص)`, price: basePrice },
+    { value: 'double', label: `غرفة ثنائية مزدوجة (+10%) (${Math.round(basePrice * 1.1).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.1) },
+    { value: 'suite', label: `جناح سويت ملكي فاخر (+30%) (${Math.round(basePrice * 1.3).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.3) }
+  ];
+};
+
+export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer }) => {
+  // 1. Leader (Main responsible person) Form State
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    birthDate: '',
+    birthPlace: '',
+    phone: '',
+    tripId: trips[0]?.id || '',
+    notes: '',
+    roomType: '',
+    pricePerPerson: 0,
+    role: 'tourist' as 'tourist' | 'organizer' | 'driver',
+    paymentStatus: 'paid' as 'paid' | 'partial' | 'unpaid',
+  });
+
+  // 2. Added Companions State
+  const [companions, setCompanions] = useState<Companion[]>([]);
+
+  // Booking Type Selection State
+  const [bookingType, setBookingType] = useState<'individual' | 'family'>('individual');
+
+  // 3. New Companion In-progress Form State
+  const [companionForm, setCompanionForm] = useState({
+    firstName: '',
+    lastName: '',
+    birthDate: '',
+    birthPlace: '',
+    role: 'tourist' as 'tourist' | 'organizer' | 'driver',
+    roomType: '',
+    relationship: 'wife', // wife | son | daughter | companion
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [companionError, setCompanionError] = useState<string>('');
+  const [customTotalPrice, setCustomTotalPrice] = useState<string>('');
+
+  const activeSelectedTrip = trips.find(t => t.id === formData.tripId) || trips[0];
+  const activeOptions = activeSelectedTrip ? getRoomOptionsForTrip(activeSelectedTrip.id, activeSelectedTrip.price) : [];
+
+  // Helper inside to determine room price for helper
+  const getCompanionRoomPrice = (roomTypeLabel: string, roleVal: string) => {
+    if (roleVal === 'organizer' || roleVal === 'driver') return 0;
+    const matched = activeOptions.find(o => o.label === roomTypeLabel);
+    return matched ? matched.price : (activeSelectedTrip ? activeSelectedTrip.price : 0);
+  };
+
+  // Sync apartment selection options and defaults on trip change for lead and companion
+  useEffect(() => {
+    if (trips.length > 0) {
+      const selectedTripId = formData.tripId || trips[0].id;
+      const tripObj = trips.find(t => t.id === selectedTripId) || trips[0];
+      const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price);
+      
+      setFormData(prev => {
+        const matches = opts.find(o => o.label === prev.roomType);
+        const resolvedRoomType = matches ? prev.roomType : (opts[0]?.label || '');
+        const standardPrice = matches ? matches.price : (opts[0]?.price || tripObj.price);
+        const resolvedPrice = (prev.role === 'organizer' || prev.role === 'driver') ? 0 : standardPrice;
+
+        return {
+          ...prev,
+          tripId: selectedTripId,
+          roomType: resolvedRoomType,
+          pricePerPerson: resolvedPrice
+        };
+      });
+
+      // Also adjust pending companion default room type
+      setCompanionForm(prev => ({
+        ...prev,
+        roomType: opts[0]?.label || ''
+      }));
+    }
+  }, [trips, formData.tripId]);
+
+  // Set the companion's default Last Name to match the father's/leader's Last Name when they type it
+  useEffect(() => {
+    if (formData.lastName && !companionForm.lastName) {
+      setCompanionForm(prev => ({
+        ...prev,
+        lastName: formData.lastName
+      }));
+    }
+  }, [formData.lastName]);
+
+  // Auto calculate companion room recommendations based on their age input
+  useEffect(() => {
+    if (companionForm.birthDate && activeSelectedTrip) {
+      const computedAge = calculateAge(companionForm.birthDate);
+      const opts = activeOptions;
+      let recommendedOpt = null;
+
+      if (formData.tripId === 'trip-istanbul-8d') {
+        if (computedAge < 2) {
+          recommendedOpt = opts.find(o => o.value === 'istanbul_child_under_2');
+        } else if (computedAge >= 3 && computedAge <= 11) {
+          recommendedOpt = opts.find(o => o.value === 'istanbul_child_3_11');
+        } else {
+          recommendedOpt = opts.find(o => o.value === 'istanbul_adult_double_triple');
+        }
+      } else if (['trip-center-algeria', 'trip-jijel-beach', 'trip-family-tunisia', 'trip-soviva-tunisia'].includes(formData.tripId)) {
+        if (computedAge < 2) {
+          recommendedOpt = opts.find(o => o.value === 'child_under_2');
+        } else if (computedAge >= 3 && computedAge <= 10) {
+          recommendedOpt = opts.find(o => o.value === 'child_3_10');
+        } else {
+          if (formData.tripId === 'trip-center-algeria') {
+            recommendedOpt = opts.find(o => o.value === 'mergad_quad_five');
+          } else if (formData.tripId === 'trip-jijel-beach') {
+            recommendedOpt = opts.find(o => o.value === 'jijel_apt_5');
+          } else if (formData.tripId === 'trip-family-tunisia') {
+            recommendedOpt = opts.find(o => o.value === 'five_six');
+          } else if (formData.tripId === 'trip-soviva-tunisia') {
+            recommendedOpt = opts.find(o => o.value === 'soviva_standard');
+          }
+        }
+      }
+
+      if (recommendedOpt) {
+        setCompanionForm(prev => ({
+          ...prev,
+          roomType: recommendedOpt.label
+        }));
+      }
+    }
+  }, [companionForm.birthDate, formData.tripId]);
+
+  // Total Estimated Calculation
+  const estimatedTotalPrice = (() => {
+    const leadPrice = formData.pricePerPerson || 0;
+    if (bookingType === 'individual') {
+      return leadPrice;
+    }
+    const compsPrice = companions.reduce((sum, cmp) => {
+      return sum + getCompanionRoomPrice(cmp.roomType, cmp.role);
+    }, 0);
+    return leadPrice + compsPrice;
+  })();
+
+  // Resolve total amount being paid
+  const finalTotalPriceToSubmit = customTotalPrice !== '' ? (parseFloat(customTotalPrice) || 0) : estimatedTotalPrice;
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.firstName.trim()) newErrors.firstName = 'الرجاء إدخال اسم المسؤول';
+    if (!formData.lastName.trim()) newErrors.lastName = 'الرجاء إدخال اللقب الكلي';
+    if (!formData.birthDate) newErrors.birthDate = 'الرجاء إدخال تاريخ ميلاد المسؤول';
+    if (!formData.birthPlace.trim()) newErrors.birthPlace = 'الرجاء تحديد مكان الميلاد لرب العائلة';
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'الرجاء إدخال رقم هاتف التواصل';
+    } else if (!/^(05|06|07|02|03|04)[0-9]{8}$/.test(formData.phone.replace(/\s/g, ''))) {
+      newErrors.phone = 'يرجى إدخال رقم هاتف جزائري صحيح (مثال: 0550123456)';
+    }
+    if (!formData.tripId) newErrors.tripId = 'الرجاء اختيار برنامج سفر معين';
+    if (!formData.roomType) newErrors.roomType = 'الرجاء اختيار نوع الإقامة لرب العائلة';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAddCompanion = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setCompanionError('');
+
+    if (!companionForm.firstName.trim()) {
+      setCompanionError('الرجاء إدخال الاسم الأول للمرافق');
+      return;
+    }
+    if (!companionForm.lastName.trim()) {
+      setCompanionError('الرجاء إدخال اللقب للمرافق');
+      return;
+    }
+    if (!companionForm.birthDate) {
+      setCompanionError('الرجاء إدخال تاريخ ميلاد المرافق');
+      return;
+    }
+    if (!companionForm.birthPlace.trim()) {
+      setCompanionError('الرجاء إدخال مكان ميلاد المرافق');
+      return;
+    }
+
+    const calculatedCmpAge = calculateAge(companionForm.birthDate);
+    const newCmp: Companion = {
+      id: `comp-${Date.now()}`,
+      firstName: companionForm.firstName.trim(),
+      lastName: companionForm.lastName.trim(),
+      birthDate: companionForm.birthDate,
+      birthPlace: companionForm.birthPlace.trim(),
+      age: calculatedCmpAge,
+      role: companionForm.role,
+      roomType: companionForm.roomType || (activeOptions[0]?.label || ''),
+      relationship: companionForm.relationship,
+    };
+
+    setCompanions(prev => [...prev, newCmp]);
+
+    // Reset Companion form except common options
+    setCompanionForm({
+      firstName: '',
+      lastName: formData.lastName || '', // inherit father's surname immediately
+      birthDate: '',
+      birthPlace: '',
+      role: 'tourist',
+      roomType: activeOptions[0]?.label || '',
+      relationship: 'wife', // wife | son | daughter
+    });
+  };
+
+  const handleRemoveCompanion = (idToRemove: string) => {
+    setCompanions(prev => prev.filter(c => c.id !== idToRemove));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      const computedLeadAge = calculateAge(formData.birthDate);
+      const isLeadFree = formData.role === 'organizer' || formData.role === 'driver';
+      const actualLeadPrice = isLeadFree ? 0 : formData.pricePerPerson;
+
+      // Complete customer object as dynamic family holding companions
+      onAddCustomer({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        birthDate: formData.birthDate,
+        birthPlace: formData.birthPlace.trim(),
+        phone: formData.phone.trim(),
+        tripId: formData.tripId,
+        peopleCount: bookingType === 'individual' ? 1 : companions.length + 1, // Leader + companions
+        notes: formData.notes.trim(),
+        age: computedLeadAge,
+        roomType: formData.roomType,
+        pricePerPerson: actualLeadPrice,
+        totalPrice: finalTotalPriceToSubmit, // Unified aggregate paid amount
+        role: formData.role,
+        companions: bookingType === 'individual' ? [] : companions,
+        paymentStatus: formData.paymentStatus,
+        bookingType: bookingType,
+      });
+
+      // Clean Slate reset
+      const currentTripId = formData.tripId || trips[0]?.id || '';
+      const selected = trips.find(t => t.id === currentTripId);
+      const opts = selected ? getRoomOptionsForTrip(selected.id, selected.price) : [];
+      
+      setFormData({
+        firstName: '',
+        lastName: '',
+        birthDate: '',
+        birthPlace: '',
+        phone: '',
+        tripId: currentTripId,
+        notes: '',
+        roomType: opts[0]?.label || '',
+        pricePerPerson: opts[0]?.price || 0,
+        role: 'tourist',
+        paymentStatus: 'paid',
+      });
+      setBookingType('individual');
+      setCompanions([]);
+      setCustomTotalPrice('');
+      setErrors({});
+      setCompanionError('');
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: value,
+      };
+
+      // Recalculate options if trip changes or birthDate changes for principal parent
+      if (name === 'tripId' || name === 'birthDate') {
+        const selectedTripId = name === 'tripId' ? value : prev.tripId;
+        const currentBirthDate = name === 'birthDate' ? value : prev.birthDate;
+        
+        const selected = trips.find(t => t.id === selectedTripId);
+        if (selected) {
+          const opts = getRoomOptionsForTrip(selected.id, selected.price);
+          
+          let recommendedOpt = null;
+          if (currentBirthDate) {
+            const computedAge = calculateAge(currentBirthDate);
+            if (selectedTripId === 'trip-istanbul-8d') {
+              if (computedAge < 2) {
+                recommendedOpt = opts.find(o => o.value === 'istanbul_child_under_2');
+              } else if (computedAge >= 3 && computedAge <= 11) {
+                recommendedOpt = opts.find(o => o.value === 'istanbul_child_3_11');
+              } else {
+                recommendedOpt = opts.find(o => o.value === 'istanbul_adult_double_triple');
+              }
+            } else if (['trip-center-algeria', 'trip-jijel-beach', 'trip-family-tunisia', 'trip-soviva-tunisia'].includes(selectedTripId)) {
+              if (computedAge < 2) {
+                recommendedOpt = opts.find(o => o.value === 'child_under_2');
+              } else if (computedAge >= 3 && computedAge <= 10) {
+                recommendedOpt = opts.find(o => o.value === 'child_3_10');
+              } else {
+                if (selectedTripId === 'trip-center-algeria') {
+                  recommendedOpt = opts.find(o => o.value === 'mergad_quad_five');
+                } else if (selectedTripId === 'trip-jijel-beach') {
+                  recommendedOpt = opts.find(o => o.value === 'jijel_apt_5');
+                } else if (selectedTripId === 'trip-family-tunisia') {
+                  recommendedOpt = opts.find(o => o.value === 'five_six');
+                } else if (selectedTripId === 'trip-soviva-tunisia') {
+                  recommendedOpt = opts.find(o => o.value === 'soviva_standard');
+                }
+              }
+            }
+          }
+
+          if (recommendedOpt) {
+            updated.roomType = recommendedOpt.label;
+            updated.pricePerPerson = recommendedOpt.price;
+          } else {
+            const matches = opts.find(o => o.label === prev.roomType);
+            updated.roomType = matches ? prev.roomType : (opts[0]?.label || '');
+            updated.pricePerPerson = matches ? matches.price : (opts[0]?.price || selected.price);
+          }
+        }
+      }
+
+      // Sync pricing when roomType changes manually
+      if (name === 'roomType') {
+        const tripObj = trips.find(t => t.id === prev.tripId) || trips[0];
+        if (tripObj) {
+          const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price);
+          const matched = opts.find(o => o.label === value);
+          if (matched) {
+            updated.pricePerPerson = matched.price;
+          }
+        }
+      }
+
+      // If the role changes or anything else changes, force 0 if role is organizer or driver
+      if (updated.role === 'organizer' || updated.role === 'driver') {
+        updated.pricePerPerson = 0;
+      } else if (name === 'role' && value === 'tourist') {
+        const tripObj = trips.find(t => t.id === updated.tripId) || trips[0];
+        if (tripObj) {
+          const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price);
+          const matched = opts.find(o => o.label === updated.roomType);
+          updated.pricePerPerson = matched ? matched.price : tripObj.price;
+        }
+      }
+
+      return updated;
+    });
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
+  };
+
+  const handleCompanionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setCompanionForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const liveAge = formData.birthDate ? calculateAge(formData.birthDate) : null;
+  const companionAgePreview = companionForm.birthDate ? calculateAge(companionForm.birthDate) : null;
+
+  return (
+    <div className="bg-white border border-stone-200/80 rounded-2xl p-6 shadow-xs text-stone-850 relative overflow-hidden" dir="rtl">
+      
+      {/* Decorative premium atmosphere background */}
+      <div className="absolute top-0 left-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none -translate-x-12 -translate-y-12"></div>
+      
+      {/* Form Header */}
+      <div className="relative z-10 flex items-center justify-between border-b border-stone-100 pb-5 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-amber-500/10 text-amber-700 rounded-xl border border-amber-500/15 shadow-3xs">
+            <UserPlus size={18} id="icon-user-plus" />
+          </div>
+          <div>
+            <h2 className="font-sans font-extrabold text-zinc-900 text-sm md:text-base tracking-tight select-none leading-none">
+              {bookingType === 'individual' ? 'تسجيل حجز فردي جديد' : 'تسجيل حجز عائلي جديد'}
+            </h2>
+            <p className="text-[10px] text-stone-500 font-sans mt-2 leading-none">
+              {bookingType === 'individual' 
+                ? 'أنشئ ملف مسافر فردي مستقل مع وصل طباعة قياسي' 
+                : 'اربط العائلة بـ Family ID مشترك وتذكرة طباعة موحدة'}
+            </p>
+          </div>
+        </div>
+        
+        {/* Subtle status indicator */}
+        <div className="hidden sm:flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse"></span>
+          <span className="text-[10px] font-bold text-stone-605 text-stone-600">المكتب متصل بالكامل</span>
+        </div>
+      </div>
+
+      {/* Choice Selector Controls for Booking Type */}
+      <div className="relative z-10 mb-6 bg-stone-50 p-1 rounded-xl flex gap-1 border border-stone-200/60">
+        <button
+          type="button"
+          onClick={() => {
+            setBookingType('individual');
+            setCompanions([]);
+          }}
+          className={`flex-1 py-2.5 px-4 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            bookingType === 'individual'
+              ? 'bg-zinc-950 text-white shadow-sm shadow-zinc-950/10'
+              : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100'
+          }`}
+        >
+          <span className="text-sm">👤</span>
+          حجز فردي استثنائي
+        </button>
+        <button
+          type="button"
+          onClick={() => setBookingType('family')}
+          className={`flex-1 py-2.5 px-4 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            bookingType === 'family'
+              ? 'bg-zinc-950 text-white shadow-sm shadow-zinc-950/10'
+              : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100'
+          }`}
+        >
+          <span className="text-sm">👨‍👩‍👧‍👦</span>
+          حجز عائلي مشترك
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="relative z-10 space-y-6 font-sans text-right text-xs">
+        
+        {/* SECTION A: MAIN PASSSENGER OR HEAD OF FAMILY BOOKING (THE FATHER/LEADER) */}
+        <div className="bg-[#FAF8F5]/80 rounded-xl p-5 border border-stone-200/80 space-y-4 shadow-3xs transition-colors">
+          <h3 className="font-sans font-extrabold text-stone-800 pb-2.5 mb-1 text-xs flex items-center gap-2 border-b border-stone-200/60">
+            <Users size={14} className="text-amber-700 shrink-0" />
+            <span>
+              {bookingType === 'individual' ? '1. البيانات الشخصية للزبون الأساسي' : '1. بيانات رب العائلة والمسؤول الأساسي'}
+            </span>
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className="block text-[11px] font-bold text-stone-600 mb-1.5">
+                الاسم الأول <span className="text-amber-600">*</span>
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="مثال: يونس"
+                className={`w-full px-3.5 py-2.5 rounded-xl border font-bold text-stone-800 bg-white placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-xs ${
+                  errors.firstName ? 'border-rose-400 bg-rose-50/20' : 'border-stone-200'
+                }`}
+              />
+              {errors.firstName && <p className="text-[10px] text-rose-600 font-bold mt-1.5">⚠️ {errors.firstName}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="lastName" className="block text-[11px] font-bold text-stone-600 mb-1.5">
+                اللقب العائلي الكلي <span className="text-amber-600">*</span>
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="مثال: عبعوب"
+                className={`w-full px-3.5 py-2.5 rounded-xl border font-bold text-stone-800 bg-white placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-xs ${
+                  errors.lastName ? 'border-rose-400 bg-rose-50/20' : 'border-stone-200'
+                }`}
+              />
+              {errors.lastName && <p className="text-[10px] text-rose-600 font-bold mt-1.5">⚠️ {errors.lastName}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="birthDate" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+                <Calendar size={13} className="text-stone-400" />
+                <span>تاريخ ميلاد المسؤول</span> <span className="text-amber-600">*</span>
+              </label>
+              <input
+                type="date"
+                id="birthDate"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleChange}
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-right font-bold text-stone-800 bg-white focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-xs ${
+                  errors.birthDate ? 'border-rose-400 bg-rose-50/20' : 'border-stone-200'
+                }`}
+              />
+              {liveAge !== null && (
+                <div className="mt-1.5 text-[10px] font-bold text-amber-800 bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded-md inline-block">
+                  📅 السن المحتسب: {liveAge} سنة
+                </div>
+              )}
+              {errors.birthDate && <p className="text-[10px] text-rose-600 font-bold mt-1.5">⚠️ {errors.birthDate}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="birthPlace" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+                <MapPin size={13} className="text-stone-400" />
+                <span>مكان الولادة (المكتوب)</span> <span className="text-amber-600">*</span>
+              </label>
+              <input
+                type="text"
+                id="birthPlace"
+                name="birthPlace"
+                value={formData.birthPlace}
+                onChange={handleChange}
+                placeholder="مثال: تقرت"
+                className={`w-full px-3.5 py-2.5 rounded-xl border font-bold text-stone-800 bg-white placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-xs ${
+                  errors.birthPlace ? 'border-rose-400 bg-rose-50/20' : 'border-stone-200'
+                }`}
+              />
+              {errors.birthPlace && <p className="text-[10px] text-rose-600 font-bold mt-1.5">⚠️ {errors.birthPlace}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="phone" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+                <Phone size={13} className="text-stone-400" />
+                <span>رقم هاتف التواصل</span> <span className="text-amber-600">*</span>
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="مثال: 0550123456"
+                className={`w-full px-3.5 py-2.5 rounded-xl border font-mono font-bold text-stone-800 bg-white text-left placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-xs ${
+                  errors.phone ? 'border-rose-400 bg-rose-50/20' : 'border-stone-200'
+                }`}
+              />
+              {errors.phone && <p className="text-[10px] text-rose-600 font-bold mt-1.5">⚠️ {errors.phone}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-[11px] font-bold text-stone-600 mb-1.5">تأطير تذكرة السفر</label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-white font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-[11px] cursor-pointer"
+              >
+                <option value="tourist">👤 ركوب سياحي (Tourist)</option>
+                <option value="organizer">👔 مؤطر دائم (Organizer - مجاناً)</option>
+                <option value="driver">🚌 سائق مساعد (Driver - مجاناً)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Accommodation Selection For Lead */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div>
+              <label htmlFor="tripId" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+                <PlaneTakeoff size={13} className="text-stone-400" />
+                <span>برنامج الرحلة السياحية</span> <span className="text-amber-600">*</span>
+              </label>
+              <select
+                id="tripId"
+                name="tripId"
+                value={formData.tripId}
+                onChange={handleChange}
+                className={`w-full px-3.5 py-2.5 rounded-xl border font-bold text-stone-800 bg-white focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-[11px] cursor-pointer ${
+                  errors.tripId ? 'border-rose-400 bg-rose-50/15' : 'border-stone-200'
+                }`}
+              >
+                {trips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    ✈️ {trip.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="roomType" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+                <Building2 size={13} className="text-stone-400" />
+                <span>نوع وعرض إقامة المسؤول</span> <span className="text-amber-600">*</span>
+              </label>
+              <select
+                id="roomType"
+                name="roomType"
+                value={formData.roomType}
+                onChange={handleChange}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-white font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-[11px] cursor-pointer font-sans"
+              >
+                {activeOptions.map((opt, i) => (
+                  <option key={i} value={opt.label}>
+                    {opt.label} ({(opt.price).toLocaleString('ar-DZ')} د.ج)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION B: FAMILY MEMBERS / COMPANIONS ADDER */}
+        {bookingType === 'family' && (
+          <div className="bg-amber-500/[0.015] border border-stone-200/80 rounded-xl p-5 space-y-4">
+            <h3 className="font-sans font-extrabold text-stone-800 pb-2.5 mb-1 text-xs flex items-center gap-2 border-b border-stone-200/60">
+              <ListPlus size={14} className="text-amber-700 shrink-0" />
+              <span>2. تهيئة وتفصيل أفراد المجموعة والعائلة المرافقة</span>
+            </h3>
+
+            {/* Companions Sub-Form */}
+            <div className="grid grid-cols-2 gap-3 bg-[#FAF8F5]/80 p-4 rounded-xl border border-stone-200/50 shadow-3xs space-y-2">
+              
+              <div className="col-span-2 text-stone-500 font-medium text-[10px] flex items-start gap-1.5 leading-relaxed">
+                <Info size={13} className="text-amber-700 shrink-0 mt-0.5" />
+                <span>قم بإدراج تفاصيل العائلة فرداً فرداً ثم بادر بضغط الزر "إضافة هذا المسافر للمجموعة ➕" لتضمينه رسمياً في السجل.</span>
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="compRelationship" className="block text-[10px] font-bold text-stone-600 mb-1">صلة القرابة</label>
+                <select
+                  id="compRelationship"
+                  name="relationship"
+                  value={companionForm.relationship}
+                  onChange={handleCompanionChange}
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 text-xs focus:outline-none focus:ring-4 focus:ring-amber-500/10 cursor-pointer"
+                >
+                  <option value="الزوجـة">💍 الزوجـة</option>
+                  <option value="ابـن">👦 ابـن</option>
+                  <option value="ابنـة">👧 ابنـة</option>
+                  <option value="والـد">👴 والـد</option>
+                  <option value="والـدة">👵 والـدة</option>
+                  <option value="مرافـق آخر">👤 مرافـق آخر</option>
+                </select>
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="compRole" className="block text-[10px] font-bold text-stone-600 mb-1">الصفة والتفويض</label>
+                <select
+                  id="compRole"
+                  name="role"
+                  value={companionForm.role}
+                  onChange={handleCompanionChange}
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 text-xs focus:outline-none focus:ring-4 focus:ring-amber-500/10 cursor-pointer"
+                >
+                  <option value="tourist">👤 ركوب سياحي</option>
+                  <option value="organizer">👔 مؤطر (مجاناً)</option>
+                  <option value="driver">🚌 سائق (مجاناً)</option>
+                </select>
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="compFirstName" className="block text-[10px] font-bold text-stone-600 mb-1">الاسم الأول <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  id="compFirstName"
+                  name="firstName"
+                  value={companionForm.firstName}
+                  onChange={handleCompanionChange}
+                  placeholder="مثال: ريان"
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 text-xs"
+                />
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="compLastName" className="block text-[10px] font-bold text-stone-600 mb-1">اللقب الكلي <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  id="compLastName"
+                  name="lastName"
+                  value={companionForm.lastName}
+                  onChange={handleCompanionChange}
+                  placeholder="مثال: عبعوب"
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 text-xs"
+                />
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="compBirthDate" className="block text-[10px] font-bold text-stone-600 mb-1">تاريخ الميلاد <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  id="compBirthDate"
+                  name="birthDate"
+                  value={companionForm.birthDate}
+                  onChange={handleCompanionChange}
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 text-right focus:outline-none focus:ring-4 focus:ring-amber-500/10 text-[11px]"
+                />
+                {companionAgePreview !== null && (
+                  <span className="text-[9px] font-bold text-amber-800 mt-1 block bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 w-fit">
+                    السن: {companionAgePreview} سنة
+                  </span>
+                )}
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="compBirthPlace" className="block text-[10px] font-bold text-stone-600 mb-1">مكان الميلاد <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  id="compBirthPlace"
+                  name="birthPlace"
+                  value={companionForm.birthPlace}
+                  onChange={handleCompanionChange}
+                  placeholder="مكان الولادة"
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 text-xs"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label htmlFor="compRoomType" className="block text-[10px] font-bold text-stone-600 mb-1">إقامة وسكن الفرد المخصص</label>
+                <select
+                  id="compRoomType"
+                  name="roomType"
+                  value={companionForm.roomType}
+                  onChange={handleCompanionChange}
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 text-[11px] focus:outline-none focus:ring-4 focus:ring-amber-500/10 cursor-pointer font-sans"
+                >
+                  {activeOptions.map((opt, i) => (
+                    <option key={i} value={opt.label}>
+                      {opt.label} ({(opt.price).toLocaleString('ar-DZ')} د.ج)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {companionError && (
+                <div className="col-span-2 text-[10px] text-rose-600 bg-rose-50 border border-rose-200/50 p-2.5 rounded-lg flex items-center gap-1.5 font-bold">
+                  <ShieldAlert size={12} className="shrink-0 text-rose-600" />
+                  <span>{companionError}</span>
+                </div>
+              )}
+
+              <div className="col-span-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleAddCompanion}
+                  id="btn-add-companion-inside"
+                  className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-950 text-white font-extrabold rounded-lg flex items-center justify-center gap-1.5 text-[11px] cursor-pointer shadow-sm active:scale-[0.98] transition-all"
+                >
+                  <Plus size={14} />
+                  إرسال وإضافة هذا الفرد للقائمة العائلية
+                </button>
+              </div>
+
+            </div>
+
+            {/* Rendered Companions List */}
+            {companions.length > 0 && (
+              <div className="overflow-hidden border border-stone-200 rounded-lg bg-white shadow-3xs">
+                <table className="w-full text-right text-[10px] border-collapse">
+                  <thead>
+                    <tr className="bg-stone-50 text-stone-500 border-b border-stone-200 font-bold">
+                      <th className="py-2.5 px-3">القرابة</th>
+                      <th className="py-2.5 px-3">الاسم واللقب الكامل</th>
+                      <th className="py-2.5 px-3">السن والميلاد</th>
+                      <th className="py-2.5 px-3">نوع السكن/السعر</th>
+                      <th className="py-2.5 px-3 text-center">الإجراء</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100 font-bold text-stone-700">
+                    {companions.map((cmp) => {
+                      const roomPrice = getCompanionRoomPrice(cmp.roomType, cmp.role);
+                      return (
+                        <tr key={cmp.id} className="hover:bg-stone-50/50 transition-colors">
+                          <td className="py-2.5 px-3 font-extrabold text-amber-600">{cmp.relationship}</td>
+                          <td className="py-2.5 px-3 text-zinc-900">{cmp.firstName} {cmp.lastName}</td>
+                          <td className="py-2.5 px-3 font-mono text-stone-500">{cmp.age} سنة ({cmp.birthPlace})</td>
+                          <td className="py-2.5 px-3 text-stone-600">
+                            <span className="block truncate max-w-[125px] font-sans">{cmp.roomType}</span>
+                            <span className="font-extrabold text-emerald-600 font-mono text-[9px]">{roomPrice.toLocaleString('ar-DZ')} دج</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCompanion(cmp.id)}
+                              id={`btn-remove-companion-${cmp.id}`}
+                              className="text-stone-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer transition-colors"
+                              title="إزالة الفرد"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* SECTION C: BILLING STATUS & SUBMIT */}
+        <div className="bg-[#FAF8F5]/80 rounded-xl p-5 border border-stone-200/80 space-y-4 shadow-3xs transition-colors">
+          <h3 className="font-sans font-extrabold text-stone-800 pb-2.5 mb-1 text-xs flex items-center gap-2 border-b border-stone-200/60">
+            <DollarSign size={14} className="text-amber-700 shrink-0" />
+            <span>
+              {bookingType === 'individual' ? '2. المدفوعات وتأكيد حجز الفرد النهائي' : '3. المبالغ الإجمالية وحالة الدفع العائلية'}
+            </span>
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="customTotalPrice" className="block text-[11px] font-bold text-stone-600 mb-1.5">
+                {bookingType === 'individual' ? 'المبلغ المدفوع (د.ج)' : 'المبلغ المالي المفوتر الإجمالي المدفوع (د.ج)'} <span className="text-amber-600">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  id="customTotalPrice"
+                  name="customTotalPrice"
+                  value={customTotalPrice}
+                  onChange={(e) => setCustomTotalPrice(e.target.value)}
+                  placeholder={`التقدير التلقائي: ${estimatedTotalPrice.toLocaleString('ar-DZ')} دج`}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-white font-mono font-bold text-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 text-xs pl-12 text-right"
+                />
+                <span className="absolute left-3.5 top-3.5 text-[9px] text-stone-400 font-bold font-mono tracking-widest">DZD</span>
+              </div>
+              <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed font-sans">
+                في حال ترك الحقل فارغاً، سيعتمد النظام السعر القياسي المبرمج تلقائياً: <strong className="text-stone-700">{estimatedTotalPrice.toLocaleString('ar-DZ')} دج</strong>
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="paymentStatus" className="block text-[11px] font-bold text-stone-600 mb-1.5">الحالة الفعلية للدفع والتسوية</label>
+              <select
+                id="paymentStatus"
+                name="paymentStatus"
+                value={formData.paymentStatus}
+                onChange={handleChange}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-white font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 text-xs cursor-pointer"
+              >
+                <option value="paid">🟢 دفعة تامة ومكتملة (Paid)</option>
+                <option value="partial">🟡 عربون / دفعة مسبقة جزئية (Partial)</option>
+                <option value="unpaid">🔴 تأكيد بدون دفع (Unpaid)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-stone-200/60 flex justify-between items-center text-xs">
+            <span className="font-bold text-stone-500">إجمالي ركاب التذكرة:</span>
+            <span className="font-extrabold text-[#1C1917] bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full font-mono text-[11px]">
+              {bookingType === 'individual' ? 1 : companions.length + 1} مسافرين في السجل
+            </span>
+          </div>
+
+          {/* Optional Notes */}
+          <div>
+            <label htmlFor="notes" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+              <Info size={13} className="text-stone-400" />
+              <span>تعليمات وتفضيلات إضافية مرافقة للزبائن</span>
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={2}
+              placeholder={bookingType === 'individual' ? "مثال: يفضل المقاعد الأمامية بالحافلة السياحية..." : "مثال: السكن بجوار الغرف الأخرى للمجموعة، تفضيلات الغذاء..."}
+              className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white text-stone-800 text-xs focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all resize-none placeholder-stone-400"
+            />
+          </div>
+        </div>
+
+        {/* Form Actions */}
+        <button
+          type="submit"
+          id="btn-submit-family-booking"
+          className="w-full mt-2 flex items-center justify-center gap-2.5 py-4 bg-zinc-950 hover:bg-zinc-900 border border-amber-500/10 text-amber-400 font-extrabold text-center rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all cursor-pointer text-xs transform hover:-translate-y-0.5 active:translate-y-0 shadow-zinc-950/10"
+        >
+          <Sparkles size={16} />
+          <span>{bookingType === 'individual' ? 'تأكيد الحجز الفردي وطباعة الوصل ✈️' : 'تأكيد الحجز العائلي وطباعة الوصل ✈️'}</span>
+        </button>
+      </form>
+    </div>
+  );
+};
