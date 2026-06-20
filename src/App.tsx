@@ -57,18 +57,66 @@ const DEFAULT_EMPLOYEES: Employee[] = [
 
 export default function App() {
   // 1. STATE INITIALIZATION
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    try {
+      const cached = localStorage.getItem('aboub_customers');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [trips, setTrips] = useState<Trip[]>(() => {
+    try {
+      const cached = localStorage.getItem('aboub_trips');
+      return cached ? JSON.parse(cached) : defaultTrips;
+    } catch {
+      return defaultTrips;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState<'dashboard' | 'manifests' | 'trips' | 'options' | 'admin'>('dashboard');
   const [selectedPrintCustomer, setSelectedPrintCustomer] = useState<Customer | null>(null);
   const [selectedTripFilter, setSelectedTripFilter] = useState<string>('all');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   
   // CORPORATE ACCESS & TRACKING STATES
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [logs, setLogs] = useState<OperationLog[]>([]);
-  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(DEFAULT_EMPLOYEES[0]);
+  const [branches, setBranches] = useState<Branch[]>(() => {
+    try {
+      const cached = localStorage.getItem('aboub_branches');
+      return cached ? JSON.parse(cached) : DEFAULT_BRANCHES;
+    } catch {
+      return DEFAULT_BRANCHES;
+    }
+  });
+
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    try {
+      const cached = localStorage.getItem('aboub_employees');
+      return cached ? JSON.parse(cached) : DEFAULT_EMPLOYEES;
+    } catch {
+      return DEFAULT_EMPLOYEES;
+    }
+  });
+
+  const [logs, setLogs] = useState<OperationLog[]>(() => {
+    try {
+      const cached = localStorage.getItem('aboub_logs');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(() => {
+    try {
+      const cached = localStorage.getItem('aboub_current_employee');
+      return cached ? JSON.parse(cached) : DEFAULT_EMPLOYEES[0];
+    } catch {
+      return DEFAULT_EMPLOYEES[0];
+    }
+  });
+
   const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
 
   // Employee Management Form States
@@ -260,7 +308,25 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Helpers: Load dynamic datasets from backend
+  // Helpers: Load dynamic datasets from backend with fail-safe local storage fallback
+  const loadFromLocalStorageFallback = () => {
+    try {
+      const cachedCust = localStorage.getItem('aboub_customers');
+      const cachedTrips = localStorage.getItem('aboub_trips');
+      const cachedBranches = localStorage.getItem('aboub_branches');
+      const cachedEmployees = localStorage.getItem('aboub_employees');
+      const cachedLogs = localStorage.getItem('aboub_logs');
+
+      if (cachedCust) setCustomers(JSON.parse(cachedCust));
+      if (cachedTrips) setTrips(JSON.parse(cachedTrips));
+      if (cachedBranches) setBranches(JSON.parse(cachedBranches));
+      if (cachedEmployees) setEmployees(JSON.parse(cachedEmployees));
+      if (cachedLogs) setLogs(JSON.parse(cachedLogs));
+    } catch (e) {
+      console.error('Failed to load fallback localStorage data:', e);
+    }
+  };
+
   const fetchInitialData = async () => {
     try {
       const res = await fetch('/api/data');
@@ -275,11 +341,53 @@ export default function App() {
         }
       } else if (res.status === 401) {
         setCurrentEmployee(null);
+      } else {
+        loadFromLocalStorageFallback();
       }
     } catch (e) {
-      console.error('Failed fetching server database:', e);
+      console.error('Failed fetching server database, falling back to local cache:', e);
+      loadFromLocalStorageFallback();
     }
   };
+
+  // Passive synchronization hooks to automatically persist application state
+  useEffect(() => {
+    if (customers.length > 0) {
+      localStorage.setItem('aboub_customers', JSON.stringify(customers));
+    }
+  }, [customers]);
+
+  useEffect(() => {
+    if (trips.length > 0) {
+      localStorage.setItem('aboub_trips', JSON.stringify(trips));
+    }
+  }, [trips]);
+
+  useEffect(() => {
+    if (branches.length > 0) {
+      localStorage.setItem('aboub_branches', JSON.stringify(branches));
+    }
+  }, [branches]);
+
+  useEffect(() => {
+    if (employees.length > 0) {
+      localStorage.setItem('aboub_employees', JSON.stringify(employees));
+    }
+  }, [employees]);
+
+  useEffect(() => {
+    if (logs.length > 0) {
+      localStorage.setItem('aboub_logs', JSON.stringify(logs));
+    }
+  }, [logs]);
+
+  useEffect(() => {
+    if (currentEmployee) {
+      localStorage.setItem('aboub_current_employee', JSON.stringify(currentEmployee));
+    } else {
+      localStorage.removeItem('aboub_current_employee');
+    }
+  }, [currentEmployee]);
 
   // 3. LOAD DATA & SESSION STATE FROM API (PROTECTED AUTO-RECOVERY ROUTE)
   useEffect(() => {
@@ -291,9 +399,17 @@ export default function App() {
           if (result.success && result.employee) {
             setCurrentEmployee(result.employee);
           }
+        } else {
+          // If the backend has failed (like on Vercel deployment), keep the default local admin active
+          if (!currentEmployee) {
+            setCurrentEmployee(DEFAULT_EMPLOYEES[0]);
+          }
         }
       } catch (e) {
-        console.error('Session recovery failed:', e);
+        console.error('Session recovery failed, maintaining default session:', e);
+        if (!currentEmployee) {
+          setCurrentEmployee(DEFAULT_EMPLOYEES[0]);
+        }
       }
     };
     inspectSession();
@@ -319,15 +435,7 @@ export default function App() {
   };
 
   // 4.5 WRITE DATA TO LOCAL STORAGE ON STATE CHANGE
-  const saveCustomersToStorage = (updatedCustomers: Customer[]) => {
-    setCustomers(updatedCustomers);
-    localStorage.setItem('aboub_customers', JSON.stringify(updatedCustomers));
-  };
-
-  const saveTripsToStorage = (updatedTrips: Trip[]) => {
-    setTrips(updatedTrips);
-    localStorage.setItem('aboub_trips', JSON.stringify(updatedTrips));
-  };
+  // Automatically handled by the standard passive observer effects
 
   // 5. HELPER ACTION: TOAST MESSAGES
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
@@ -397,7 +505,39 @@ export default function App() {
         showToast(`تم تسجيل الزبون ${newCust.firstName} ${newCust.lastName} بنجاح كحجز جديد!`, 'success');
       }
     } catch (e) {
-      showToast('خطأ في الاتصال بقاعدة بيانات المسافرين', 'error');
+      // Local fallback for Vercel/Static environment
+      const generatedId = `customer-${Date.now()}`;
+      const nextSeq = String(customers.length + 1).padStart(4, '0');
+      const invoiceNumber = `AB-2026-${nextSeq}`;
+      const completeCustomer: Customer = {
+        ...newCust,
+        id: generatedId,
+        registrationDate: new Date().toISOString(),
+        invoiceNumber: invoiceNumber,
+        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchId: currentEmployee?.branchId || 'branch-main',
+        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+      } as Customer;
+      
+      const updatedCustomers = [...customers, completeCustomer];
+      setCustomers(updatedCustomers);
+
+      let tripName = 'غير معروفة';
+      const trip = trips.find(t => t.id === newCust.tripId);
+      if (trip) tripName = trip.name;
+
+      const newLog: OperationLog = {
+        id: `log-${Date.now()}`,
+        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+        actionType: 'add_customer',
+        details: `تم تسجيل حجز جديد بنجاح للزبون: ${completeCustomer.firstName} ${completeCustomer.lastName} (رقم الحجز: ${invoiceNumber}) لرحلة "${tripName}" (حفظ محلي)`,
+        timestamp: new Date().toISOString()
+      };
+      setLogs(prev => [newLog, ...prev]);
+      showToast(`تم تسجيل الزبون ${newCust.firstName} ${newCust.lastName} بنجاح كحجز محلي!`, 'success');
     }
   };
 
@@ -418,7 +558,21 @@ export default function App() {
         showToast(`تم تعديل بيانات الزبون ${updatedCust.firstName} بنجاح وحفظها.`, 'success');
       }
     } catch (e) {
-      showToast('عفواً، فشل الاتصال بالخادم لتعديل السجلات', 'error');
+      // Local fallback
+      const updated = customers.map(c => c.id === updatedCust.id ? updatedCust : c);
+      setCustomers(updated);
+      
+      const newLog: OperationLog = {
+        id: `log-${Date.now()}`,
+        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+        actionType: 'update_customer',
+        details: `تحديث بيانات حجز الزبون: ${updatedCust.firstName} ${updatedCust.lastName} (رقم الحجز: ${updatedCust.invoiceNumber}) (حفظ محلي)`,
+        timestamp: new Date().toISOString()
+      };
+      setLogs(prev => [newLog, ...prev]);
+      showToast(`تم تعديل بيانات الزبون ${updatedCust.firstName} بنجاح وحفظها (محلي).`, 'success');
     }
   };
 
@@ -435,7 +589,24 @@ export default function App() {
         showToast(`تم حذف حجز الزبون بنجاح من سجلات بوابة فروع وكالة عبعوب.`, 'info');
       }
     } catch (e) {
-      showToast('خطأ في الاتصال بالخادم لمسح الملف', 'error');
+      // Local fallback
+      const customer = customers.find(c => c.id === id);
+      if (!customer) {
+        showToast('الزبون غير مسجل بالنظام', 'error');
+        return;
+      }
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      const newLog: OperationLog = {
+        id: `log-${Date.now()}`,
+        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+        actionType: 'delete_customer',
+        details: `تم إلغاء وحذف حجز الزبون بالكامل: ${customer.firstName} ${customer.lastName} (رقم الحجز: ${customer.invoiceNumber}) (حذف محلي)`,
+        timestamp: new Date().toISOString()
+      };
+      setLogs(prev => [newLog, ...prev]);
+      showToast(`تم حذف حجز الزبون بنجاح من السجلات (محلي).`, 'info');
     }
   };
 
@@ -509,7 +680,40 @@ export default function App() {
         showToast(`تمت إضافة برنامج رحلة سياحية جديدة بنجاح!`, 'success');
       }
     } catch (err) {
-      showToast('فشل ربط برنامج الرحلات بالخادم', 'error');
+      // Local fallback
+      const generatedId = `trip-${Date.now()}`;
+      const createdTrip: Trip = {
+        id: generatedId,
+        name: newTripData.name,
+        destination: newTripData.destination,
+        price: Number(newTripData.price),
+        duration: newTripData.duration,
+        date: newTripData.date,
+        dates: newTripData.dates || [],
+        status: 'active'
+      };
+      setTrips(prev => [...prev, createdTrip]);
+      
+      const newLog: OperationLog = {
+        id: `log-${Date.now()}`,
+        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+        actionType: 'add_trip',
+        details: `إنشاء برنامج رحلة سياحية جديدة: "${createdTrip.name}" الموجهة إلى ${createdTrip.destination} (حفظ محلي)`,
+        timestamp: new Date().toISOString()
+      };
+      setLogs(prev => [newLog, ...prev]);
+      
+      setNewTripData({
+        name: '',
+        destination: '',
+        price: 50000,
+        duration: '8 أيام / 7 ليالٍ',
+        date: '',
+        dates: [],
+      });
+      showToast(`تمت إضافة برنامج رحلة سياحية جديدة بنجاح! (محلي)`, 'success');
     }
   };
 
@@ -531,7 +735,25 @@ export default function App() {
         showToast('تمت إزالة برنامج الرحلة بنجاح وعزل وعصف سجلاته.', 'success');
       }
     } catch (err) {
-      showToast('خطأ في الاتصال بالبوابة لحذف الرحلة', 'error');
+      // Local fallback
+      const targetTrip = trips.find(t => t.id === tripId);
+      if (!targetTrip) {
+        showToast('البرنامج السياحي غير متوفر', 'error');
+        return;
+      }
+      setTrips(prev => prev.filter(t => t.id !== tripId));
+      
+      const newLog: OperationLog = {
+        id: `log-${Date.now()}`,
+        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+        actionType: 'delete_trip',
+        details: `إزالة وإلغاء برنامج الرحلة السياحية: "${targetTrip.name}" (حذف محلي)`,
+        timestamp: new Date().toISOString()
+      };
+      setLogs(prev => [newLog, ...prev]);
+      showToast('تمت إزالة برنامج الرحلة بنجاح وعزل سجلاته (محلي).', 'success');
     }
   };
 
@@ -559,7 +781,21 @@ export default function App() {
         showToast(`تم تعديل وتحديث بيانات برنامج الرحلة بنجاح!`, 'success');
       }
     } catch (err) {
-      showToast('خطأ في قنوات الاتصال بالخادم لتحديث الرحلة', 'error');
+      // Local fallback
+      setTrips(prev => prev.map(t => t.id === editingTrip.id ? editingTrip : t));
+      
+      const newLog: OperationLog = {
+        id: `log-${Date.now()}`,
+        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+        actionType: 'update_trip',
+        details: `تعديل روزنامة وبيانات رحلة: "${editingTrip.name}" (حفظ محلي)`,
+        timestamp: new Date().toISOString()
+      };
+      setLogs(prev => [newLog, ...prev]);
+      setEditingTrip(null);
+      showToast(`تم تعديل وتحديث بيانات برنامج الرحلة بنجاح! (محلي)`, 'success');
     }
   };
 
