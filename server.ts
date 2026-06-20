@@ -91,7 +91,17 @@ function readLocalDb() {
   try {
     if (fs.existsSync(DB_FILE_PATH)) {
       const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.trips)) {
+        const missingDefaults = initialLocalDb.trips.filter(
+          (dt: any) => !parsed.trips.some((pt: any) => pt.id === dt.id)
+        );
+        if (missingDefaults.length > 0) {
+          parsed.trips = [...parsed.trips, ...missingDefaults];
+          writeLocalDb(parsed);
+        }
+      }
+      return parsed;
     } else {
       fs.writeFileSync(DB_FILE_PATH, JSON.stringify(initialLocalDb, null, 2), 'utf-8');
     }
@@ -348,7 +358,16 @@ app.post('/api/trips', requireAuth, async (req: AuthenticatedRequest, res) => {
     duration: req.body.duration,
     date: req.body.date,
     dates: req.body.dates || [],
-    status: 'active' as const
+    status: 'active' as const,
+    departurePlaceNotes: req.body.departurePlaceNotes || '',
+    isProfessional: !!req.body.isProfessional,
+    priceSingle: req.body.priceSingle ? Number(req.body.priceSingle) : undefined,
+    priceDouble: req.body.priceDouble ? Number(req.body.priceDouble) : undefined,
+    priceTriple: req.body.priceTriple ? Number(req.body.priceTriple) : undefined,
+    priceQuadruple: req.body.priceQuadruple ? Number(req.body.priceQuadruple) : undefined,
+    priceQuintuple: req.body.priceQuintuple ? Number(req.body.priceQuintuple) : undefined,
+    priceSextuple: req.body.priceSextuple ? Number(req.body.priceSextuple) : undefined,
+    priceChild: req.body.priceChild ? Number(req.body.priceChild) : undefined,
   };
   db.trips.push(createdTrip);
 

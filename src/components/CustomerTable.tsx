@@ -142,7 +142,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
   });
 
   const editingTripObj = editingCustomer ? (trips.find(t => t.id === editingCustomer.tripId) || trips[0]) : null;
-  const editingRoomOptions = editingTripObj ? getRoomOptionsForTrip(editingTripObj.id, editingTripObj.price) : [];
+  const editingRoomOptions = editingTripObj ? getRoomOptionsForTrip(editingTripObj.id, editingTripObj.price, editingTripObj) : [];
 
   return (
     <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs space-y-6" dir="rtl">

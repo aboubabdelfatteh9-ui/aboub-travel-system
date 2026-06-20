@@ -500,9 +500,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                         <MapPin size={11} className="text-blue-600" />
                         الشارع 01، حي عياد تبسبست، تقرت، الجزائر
                       </span>
-                      <span className="flex items-center gap-1.5 font-mono">
+                      <span className="flex items-center gap-1.5 font-sans font-bold">
                         <Phone size={11} className="text-blue-600" />
-                        +213 (0) 29 67 11 01 / +213 (0) 661 12 34 56
+                        0667910148 / 0696789633
                       </span>
                       <span className="flex items-center gap-1.5 font-mono">
                         <Mail size={11} className="text-blue-600" />

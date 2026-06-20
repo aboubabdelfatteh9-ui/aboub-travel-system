@@ -80,4 +80,13 @@ export interface Trip {
   date: string;
   dates?: string[]; // تواريخ الانطلاق المتعددة للرحلة
   status: 'active' | 'completed' | 'upcoming';
+  departurePlaceNotes?: string; // تفاصيل مكان الانطلاق ونقاط التجمع والوصول
+  isProfessional?: boolean; // هل هي رحلة احترافية (لها تفاصيل أسعار) أم عادية (سعر موحد)
+  priceSingle?: number; // سعر الغرفة الفردية
+  priceDouble?: number; // سعر الغرفة الثنائية
+  priceTriple?: number; // سعر الغرفة الثلاثية
+  priceQuadruple?: number; // سعر الغرفة الرباعية
+  priceQuintuple?: number; // سعر الغرفة الخماسية
+  priceSextuple?: number; // سعر الغرفة السداسية
+  priceChild?: number; // سعر المقعد للأطفال
 }

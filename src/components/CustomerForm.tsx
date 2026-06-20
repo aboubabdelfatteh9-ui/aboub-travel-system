@@ -26,7 +26,69 @@ export const calculateAge = (birthDateString: string): number => {
 };
 
 // Rich lookup table based on the customer's published ads
-export const getRoomOptionsForTrip = (tId: string, basePrice: number) => {
+export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: Trip) => {
+  // If the trip object contains specific room pricing, prioritize those!
+  if (tripObj && (tripObj.isProfessional || tripObj.priceSingle !== undefined || tripObj.priceDouble !== undefined || tripObj.priceTriple !== undefined || tripObj.priceQuadruple !== undefined || tripObj.priceQuintuple !== undefined || tripObj.priceSextuple !== undefined || tripObj.priceChild !== undefined)) {
+    const customOpts = [];
+    if (tripObj.priceDouble !== undefined) {
+      customOpts.push({
+        value: 'double',
+        label: `غرفة ثنائية Double (${tripObj.priceDouble.toLocaleString('ar-DZ')} دج/شخص)`,
+        price: tripObj.priceDouble
+      });
+    }
+    if (tripObj.priceTriple !== undefined) {
+      customOpts.push({
+        value: 'triple',
+        label: `غرفة ثلاثية Triple (${tripObj.priceTriple.toLocaleString('ar-DZ')} دج/شخص)`,
+        price: tripObj.priceTriple
+      });
+    }
+    if (tripObj.priceQuadruple !== undefined) {
+      customOpts.push({
+        value: 'quadruple',
+        label: `غرفة رباعية Quadruple (${tripObj.priceQuadruple.toLocaleString('ar-DZ')} دج/شخص)`,
+        price: tripObj.priceQuadruple
+      });
+    }
+    if (tripObj.priceQuintuple !== undefined) {
+      customOpts.push({
+        value: 'quintuple',
+        label: `غرفة خماسية Quintuple (${tripObj.priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`,
+        price: tripObj.priceQuintuple
+      });
+    }
+    if (tripObj.priceSextuple !== undefined) {
+      customOpts.push({
+        value: 'sextuple',
+        label: `غرفة سداسية Sextuple (${tripObj.priceSextuple.toLocaleString('ar-DZ')} دج/شخص)`,
+        price: tripObj.priceSextuple
+      });
+    }
+    if (tripObj.priceSingle !== undefined) {
+      customOpts.push({
+        value: 'single',
+        label: `غرفة فردية Single (${tripObj.priceSingle.toLocaleString('ar-DZ')} دج/شخص)`,
+        price: tripObj.priceSingle
+      });
+    }
+    if (tripObj.priceChild !== undefined) {
+      customOpts.push({
+        value: 'child_custom',
+        label: `سعر الأطفال Child (${tripObj.priceChild.toLocaleString('ar-DZ')} دج)`,
+        price: tripObj.priceChild
+      });
+    }
+    
+    // Always append child under 2 free
+    customOpts.push({
+      value: 'child_under_2_custom',
+      label: 'طفل أقل من سنتين (مجاناً - 0 دج)',
+      price: 0
+    });
+    return customOpts;
+  }
+
   if (tId === 'trip-soviva-tunisia') {
     return [
       { value: 'soviva_standard', label: 'فندق Soviva Resort - فطور صباحي + عشاء (45,000 دج/شخص)', price: 45000 },
@@ -129,7 +191,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
   const [customTotalPrice, setCustomTotalPrice] = useState<string>('');
 
   const activeSelectedTrip = trips.find(t => t.id === formData.tripId) || trips[0];
-  const activeOptions = activeSelectedTrip ? getRoomOptionsForTrip(activeSelectedTrip.id, activeSelectedTrip.price) : [];
+  const activeOptions = activeSelectedTrip ? getRoomOptionsForTrip(activeSelectedTrip.id, activeSelectedTrip.price, activeSelectedTrip) : [];
 
   // Helper inside to determine room price for helper
   const getCompanionRoomPrice = (roomTypeLabel: string, roleVal: string) => {
@@ -143,7 +205,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
     if (trips.length > 0) {
       const selectedTripId = formData.tripId || trips[0].id;
       const tripObj = trips.find(t => t.id === selectedTripId) || trips[0];
-      const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price);
+      const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price, tripObj);
       
       setFormData(prev => {
         const matches = opts.find(o => o.label === prev.roomType);
@@ -345,7 +407,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       // Clean Slate reset
       const currentTripId = formData.tripId || trips[0]?.id || '';
       const selected = trips.find(t => t.id === currentTripId);
-      const opts = selected ? getRoomOptionsForTrip(selected.id, selected.price) : [];
+      const opts = selected ? getRoomOptionsForTrip(selected.id, selected.price, selected) : [];
       
       setFormData({
         firstName: '',
@@ -385,7 +447,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         
         const selected = trips.find(t => t.id === selectedTripId);
         if (selected) {
-          const opts = getRoomOptionsForTrip(selected.id, selected.price);
+          const opts = getRoomOptionsForTrip(selected.id, selected.price, selected);
           
           let recommendedOpt = null;
           if (currentBirthDate) {
@@ -432,7 +494,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       if (name === 'roomType') {
         const tripObj = trips.find(t => t.id === prev.tripId) || trips[0];
         if (tripObj) {
-          const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price);
+          const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price, tripObj);
           const matched = opts.find(o => o.label === value);
           if (matched) {
             updated.pricePerPerson = matched.price;
@@ -446,7 +508,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       } else if (name === 'role' && value === 'tourist') {
         const tripObj = trips.find(t => t.id === updated.tripId) || trips[0];
         if (tripObj) {
-          const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price);
+          const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price, tripObj);
           const matched = opts.find(o => o.label === updated.roomType);
           updated.pricePerPerson = matched ? matched.price : tripObj.price;
         }
@@ -730,6 +792,14 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
               </select>
             </div>
           </div>
+
+          {/* Display active selected custom trip notes right during form entry */}
+          {activeSelectedTrip && activeSelectedTrip.departurePlaceNotes && (
+            <div className="mt-3 bg-zinc-50 border border-zinc-200/60 p-3 rounded-xl flex items-start gap-2 text-[10px] text-zinc-600 leading-relaxed font-sans text-right">
+              <span className="text-amber-600 font-extrabold text-[11px] mt-0.5 shrink-0">💡 خط السير ونقاط الانطلاق:</span>
+              <p className="whitespace-pre-line flex-1">{activeSelectedTrip.departurePlaceNotes}</p>
+            </div>
+          )}
         </div>
 
         {/* SECTION B: FAMILY MEMBERS / COMPANIONS ADDER */}
