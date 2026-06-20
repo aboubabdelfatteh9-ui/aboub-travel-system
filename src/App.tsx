@@ -69,7 +69,20 @@ export default function App() {
   const [trips, setTrips] = useState<Trip[]>(() => {
     try {
       const cached = localStorage.getItem('aboub_trips');
-      return cached ? JSON.parse(cached) : defaultTrips;
+      if (cached) {
+        const parsed: Trip[] = JSON.parse(cached);
+        // Find default trips not currently in local cache (like Sharm El Sheikh added recently)
+        const missingDefaults = defaultTrips.filter(
+          dt => !parsed.some(pt => pt.id === dt.id)
+        );
+        if (missingDefaults.length > 0) {
+          const merged = [...parsed, ...missingDefaults];
+          localStorage.setItem('aboub_trips', JSON.stringify(merged));
+          return merged;
+        }
+        return parsed;
+      }
+      return defaultTrips;
     } catch {
       return defaultTrips;
     }
@@ -318,7 +331,25 @@ export default function App() {
       const cachedLogs = localStorage.getItem('aboub_logs');
 
       if (cachedCust) setCustomers(JSON.parse(cachedCust));
-      if (cachedTrips) setTrips(JSON.parse(cachedTrips));
+      
+      if (cachedTrips) {
+        const parsed: Trip[] = JSON.parse(cachedTrips);
+        // Sync any missing default itineraries
+        const missingDefaults = defaultTrips.filter(
+          dt => !parsed.some(pt => pt.id === dt.id)
+        );
+        if (missingDefaults.length > 0) {
+          const merged = [...parsed, ...missingDefaults];
+          setTrips(merged);
+          localStorage.setItem('aboub_trips', JSON.stringify(merged));
+        } else {
+          setTrips(parsed);
+        }
+      } else {
+        setTrips(defaultTrips);
+        localStorage.setItem('aboub_trips', JSON.stringify(defaultTrips));
+      }
+
       if (cachedBranches) setBranches(JSON.parse(cachedBranches));
       if (cachedEmployees) setEmployees(JSON.parse(cachedEmployees));
       if (cachedLogs) setLogs(JSON.parse(cachedLogs));
