@@ -87,20 +87,231 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
   };
 
   // Trigger PDF Download
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
     const printArea = document.getElementById('a4-print-ticket-container');
     if (!printArea) return;
     
     setIsGenerating(true);
 
+    // Helpers to rewrite modern CSS oklch / oklab color syntax to standard compatible HSLA/RGBA
+    const convertOklchToHsl = (oklchStr: string): string => {
+      try {
+        const match = oklchStr.match(/oklch\(([^)]+)\)/);
+        const content = match ? match[1] : oklchStr;
+        
+        if (content.includes('from') || content.includes('var')) {
+          return 'hsl(215, 60%, 50%)'; // default blue
+        }
+        
+        const cleanContent = content.replace(/,/g, ' ').trim().replace(/\s+/g, ' ');
+        const parts = cleanContent.split('/');
+        const coords = parts[0].trim().split(' ');
+        const alphaPart = parts[1] ? parts[1].trim() : null;
+        
+        if (coords.length < 3) return 'hsl(215, 60%, 50%)';
+        
+        let l = parseFloat(coords[0]);
+        if (coords[0].includes('%')) l = l / 100;
+        
+        let c = parseFloat(coords[1]);
+        if (coords[1].includes('%')) c = c / 100;
+        
+        let h = parseFloat(coords[2]);
+        if (isNaN(h)) h = 0;
+        
+        let s = Math.min(100, Math.max(5, Math.round(c * 250)));
+        let lPct = Math.min(100, Math.max(0, Math.round(l * 100)));
+        
+        if (alphaPart) {
+          return `hsla(${Math.round(h)}, ${s}%, ${lPct}%, ${alphaPart})`;
+        }
+        return `hsl(${Math.round(h)}, ${s}%, ${lPct}%)`;
+      } catch (err) {
+        console.error('Error converting oklch:', err);
+        return 'hsl(215, 60%, 50%)';
+      }
+    };
+
+    const convertOklabToRgb = (oklabStr: string): string => {
+      try {
+        const match = oklabStr.match(/oklab\(([^)]+)\)/);
+        const content = match ? match[1] : oklabStr;
+        
+        if (content.includes('from') || content.includes('var')) {
+          return 'rgb(120, 120, 120)'; // default neutral gray fallback
+        }
+        
+        const cleanContent = content.replace(/,/g, ' ').trim().replace(/\s+/g, ' ');
+        const parts = cleanContent.split('/');
+        const coords = parts[0].trim().split(' ');
+        const alphaPart = parts[1] ? parts[1].trim() : null;
+        
+        if (coords.length < 3) return 'rgb(120, 120, 120)';
+        
+        let l = parseFloat(coords[0]);
+        if (coords[0].includes('%')) l = l / 100;
+        
+        let a = parseFloat(coords[1]);
+        let b = parseFloat(coords[2]);
+        
+        // Fast linear approximation from OKLab to RGB
+        let r = l + 0.396 * a + 0.215 * b;
+        let g = l - 0.105 * a - 0.063 * b;
+        let bl = l - 0.089 * a - 1.29 * b;
+        
+        let rByte = Math.min(255, Math.max(0, Math.round(r * 255)));
+        let gByte = Math.min(255, Math.max(0, Math.round(g * 255)));
+        let bByte = Math.min(255, Math.max(0, Math.round(bl * 255)));
+        
+        if (alphaPart) {
+          return `rgba(${rByte}, ${gByte}, ${bByte}, ${alphaPart})`;
+        }
+        return `rgb(${rByte}, ${gByte}, ${bByte})`;
+      } catch (err) {
+        console.error('Error converting oklab:', err);
+        return 'rgb(120, 120, 120)';
+      }
+    };
+
+    const replaceUnsupportedColors = (str: string): string => {
+      if (typeof str !== 'string') return str;
+      let result = str;
+      
+      // Replace oklch(...)
+      result = result.replace(/oklch\([^)]+\)/g, (match) => {
+        return convertOklchToHsl(match);
+      });
+      
+      // Replace oklab(...)
+      result = result.replace(/oklab\([^)]+\)/g, (match) => {
+        return convertOklabToRgb(match);
+      });
+      
+      return result;
+    };
+
+    // 1. Temporarily rewrite style elements to replace unsupported CSS Level 4 modern colors before capturing
+    const styleElements = Array.from(document.querySelectorAll('style'));
+    const originalStyleContentsByElement = styleElements.map(el => ({
+      element: el,
+      originalText: el.textContent || ''
+    }));
+
+    styleElements.forEach(el => {
+      const text = el.textContent || '';
+      if (text.includes('oklch') || text.includes('oklab')) {
+        el.textContent = replaceUnsupportedColors(text);
+      }
+    });
+
+    // 2. Temporarily retrieve, rewrite, and inject external stylesheets (e.g., from link tags)
+    const linkElements = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+    const tempStyleElements: HTMLStyleElement[] = [];
+    const deactivatedLinks: HTMLLinkElement[] = [];
+
+    for (const link of linkElements) {
+      try {
+        const href = link.href;
+        const isSameOrigin = href.startsWith('/') || href.startsWith(window.location.origin);
+        if (isSameOrigin) {
+          const res = await fetch(href);
+          if (res.ok) {
+            const cssText = await res.text();
+            if (cssText.includes('oklch') || cssText.includes('oklab')) {
+              const processedCss = replaceUnsupportedColors(cssText);
+              const tempStyle = document.createElement('style');
+              tempStyle.setAttribute('data-temp-print-style', 'true');
+              tempStyle.textContent = processedCss;
+              document.head.appendChild(tempStyle);
+              tempStyleElements.push(tempStyle);
+              
+              link.disabled = true;
+              deactivatedLinks.push(link);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Could not preprocess external stylesheet:', link.href, e);
+      }
+    }
+
+    // Recursively rewrite inline style attributes inside print area to avoid html2canvas failures
+    const originalInlineStyles = new Map<HTMLElement, string | null>();
+    const rewriteInlineStyles = (elem: HTMLElement) => {
+      const styleAttr = elem.getAttribute('style');
+      if (styleAttr && (styleAttr.includes('oklch') || styleAttr.includes('oklab'))) {
+        originalInlineStyles.set(elem, styleAttr);
+        elem.setAttribute('style', replaceUnsupportedColors(styleAttr));
+      }
+      Array.from(elem.children).forEach(child => {
+        rewriteInlineStyles(child as HTMLElement);
+      });
+    };
+
+    rewriteInlineStyles(printArea);
+
+    // Save and override window.getComputedStyle to intercept oklch/oklab evaluations when html2canvas calls it
+    const originalGetComputedStyle = window.getComputedStyle;
+    window.getComputedStyle = function (elt: Element, pseudoElt?: string | null): CSSStyleDeclaration {
+      const style = originalGetComputedStyle(elt, pseudoElt);
+      return new Proxy(style, {
+        get(target, prop, receiver) {
+          const val = Reflect.get(target, prop, receiver);
+          if (typeof val === 'function') {
+            if (prop === 'getPropertyValue') {
+              return function(propertyName: string) {
+                const originalVal = target.getPropertyValue(propertyName);
+                if (typeof originalVal === 'string' && (originalVal.includes('oklch') || originalVal.includes('oklab'))) {
+                  return replaceUnsupportedColors(originalVal);
+                }
+                return originalVal;
+              };
+            }
+            return val.bind(target);
+          }
+          if (typeof val === 'string' && (val.includes('oklch') || val.includes('oklab'))) {
+            return replaceUnsupportedColors(val);
+          }
+          return val;
+        }
+      }) as any;
+    };
+
+    const cleanupAllPreprocessedStyles = () => {
+      // Restore window.getComputedStyle immediately
+      window.getComputedStyle = originalGetComputedStyle;
+
+      // Restore style Elements
+      originalStyleContentsByElement.forEach(item => {
+        item.element.textContent = item.originalText;
+      });
+
+      // Restore inline styles
+      originalInlineStyles.forEach((originalText, elem) => {
+        if (originalText === null) {
+          elem.removeAttribute('style');
+        } else {
+          elem.setAttribute('style', originalText);
+        }
+      });
+
+      // Remove temp inline style tags created for links & re-enable links
+      tempStyleElements.forEach(el => el.remove());
+      deactivatedLinks.forEach(link => {
+        link.disabled = false;
+      });
+    };
+
     // Hide control buttons on capturing, scale up resolution for Arabic font readability
     html2canvas(printArea, {
-      scale: 3, 
+      scale: 2, 
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
     })
       .then((canvas) => {
+        cleanupAllPreprocessedStyles();
+
         const imgData = canvas.toDataURL('image/png');
         
         // Standard A4 proportions (210 x 297 mm)
@@ -115,13 +326,33 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        pdf.save(`وصل_حجز_عائلي_عبعوب_${customer.lastName}_${customer.invoiceNumber}.pdf`);
+
+        const filename = `receipt_${customer.lastName}_${customer.invoiceNumber || 'ticket'}.pdf`;
+        try {
+          pdf.save(filename);
+        } catch (saveError) {
+          console.warn('Standard pdf.save() failed, using dynamic local blob url download:', saveError);
+          const blobOutput = pdf.output('blob');
+          const blobUrl = URL.createObjectURL(blobOutput);
+          const downloadAnchor = document.createElement('a');
+          downloadAnchor.href = blobUrl;
+          downloadAnchor.download = filename;
+          document.body.appendChild(downloadAnchor);
+          downloadAnchor.click();
+          document.body.removeChild(downloadAnchor);
+        }
         setIsGenerating(false);
       })
       .catch((err) => {
+        cleanupAllPreprocessedStyles();
+
         console.error('Error generating PDF:', err);
         setIsGenerating(false);
-        alert('حدث خطأ أثناء توليد ملف الـ PDF. يرجى المحاولة مجدداً أو استخدام ميزة الطباعة المباشرة.');
+        try {
+          alert('حدث خطأ أثناء حفظ الوصل كـ PDF. يرجى استخدام زر "الطباعة الفورية المباشرة" كبديل سريع ومضمون.');
+        } catch (e) {
+          console.warn('Alert was blocked or failed:', e);
+        }
       });
   };
 
@@ -215,19 +446,6 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
           </div>
 
           <div className="space-y-3 pt-4 border-t border-slate-200">
-            {/* Download PDF button */}
-            <button
-              onClick={downloadPDF}
-              id="btn-download-pdf-modal"
-              disabled={isGenerating}
-              className={`w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all shadow active:scale-95 cursor-pointer ${
-                isGenerating ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
-            >
-              <Download size={14} />
-              {isGenerating ? 'جاري التوليد...' : 'تحميل كملف PDF'}
-            </button>
-
             {/* Direct Print button */}
             <button
               onClick={triggerNativePrint}

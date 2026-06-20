@@ -50,5 +50,15 @@ export const defaultTrips: Trip[] = [
     duration: '6 أيام / 5 ليالٍ',
     date: '2026-07-20',
     status: 'active'
+  },
+  {
+    id: 'trip-sharm-el-sheikh-2026',
+    name: 'عرض صيف 2026 إلى شرم الشيخ – مصر 🇪🇬 | Parrotel Aqua Park Resort 4★',
+    destination: 'شرم الشيخ - مصر',
+    price: 199000,
+    duration: '10 أيام / 9 ليالٍ',
+    date: '2026-07-24',
+    dates: ['2026-07-31', '2026-08-05', '2026-08-14', '2026-08-21'],
+    status: 'active'
   }
 ];

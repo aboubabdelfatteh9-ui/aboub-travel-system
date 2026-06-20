@@ -63,6 +63,14 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number) => {
       { value: 'istanbul_child_under_2', label: 'طفل أقل من سنتين (18,000 دج/شخص)', price: 18000 }
     ];
   }
+  if (tId === 'trip-sharm-el-sheikh-2026') {
+    return [
+      { value: 'sharm_double_triple', label: 'شخص بالغ - غرفة ثنائية أو ثلاثية (199,000 دج/شخص)', price: 199000 },
+      { value: 'sharm_single', label: 'شخص واحد بمفرده - غرفة فردية (269,000 دج/شخص)', price: 269000 },
+      { value: 'sharm_child_2_11', label: 'طفل بين 2 إلى 11 سنة (145,000 دج/شخص)', price: 145000 },
+      { value: 'sharm_child_under_2', label: 'رضيع أقل من سنتين (34,000 دج/شخص)', price: 34000 }
+    ];
+  }
   if (tId === 'trip-center-algeria') {
     return [
       { value: 'mergad_quad_five', label: 'مرقد - غرفة رباعية أو خماسية (12,500 دج/شخص)', price: 12500 },
@@ -91,6 +99,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
     birthPlace: '',
     phone: '',
     tripId: trips[0]?.id || '',
+    departureDate: trips[0]?.date || '',
     notes: '',
     roomType: '',
     pricePerPerson: 0,
@@ -141,10 +150,12 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         const resolvedRoomType = matches ? prev.roomType : (opts[0]?.label || '');
         const standardPrice = matches ? matches.price : (opts[0]?.price || tripObj.price);
         const resolvedPrice = (prev.role === 'organizer' || prev.role === 'driver') ? 0 : standardPrice;
+        const departureDateToUse = prev.tripId !== selectedTripId ? tripObj.date : (prev.departureDate || tripObj.date);
 
         return {
           ...prev,
           tripId: selectedTripId,
+          departureDate: departureDateToUse,
           roomType: resolvedRoomType,
           pricePerPerson: resolvedPrice
         };
@@ -182,6 +193,14 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
           recommendedOpt = opts.find(o => o.value === 'istanbul_child_3_11');
         } else {
           recommendedOpt = opts.find(o => o.value === 'istanbul_adult_double_triple');
+        }
+      } else if (formData.tripId === 'trip-sharm-el-sheikh-2026') {
+        if (computedAge < 2) {
+          recommendedOpt = opts.find(o => o.value === 'sharm_child_under_2');
+        } else if (computedAge >= 2 && computedAge <= 11) {
+          recommendedOpt = opts.find(o => o.value === 'sharm_child_2_11');
+        } else {
+          recommendedOpt = opts.find(o => o.value === 'sharm_double_triple');
         }
       } else if (['trip-center-algeria', 'trip-jijel-beach', 'trip-family-tunisia', 'trip-soviva-tunisia'].includes(formData.tripId)) {
         if (computedAge < 2) {
@@ -310,6 +329,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         birthPlace: formData.birthPlace.trim(),
         phone: formData.phone.trim(),
         tripId: formData.tripId,
+        departureDate: formData.departureDate || activeSelectedTrip?.date,
         peopleCount: bookingType === 'individual' ? 1 : companions.length + 1, // Leader + companions
         notes: formData.notes.trim(),
         age: computedLeadAge,
@@ -334,6 +354,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         birthPlace: '',
         phone: '',
         tripId: currentTripId,
+        departureDate: selected ? selected.date : '',
         notes: '',
         roomType: opts[0]?.label || '',
         pricePerPerson: opts[0]?.price || 0,
@@ -646,7 +667,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
           </div>
 
           {/* Accommodation Selection For Lead */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             <div>
               <label htmlFor="tripId" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
                 <PlaneTakeoff size={13} className="text-stone-400" />
@@ -664,6 +685,26 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                 {trips.map((trip) => (
                   <option key={trip.id} value={trip.id}>
                     ✈️ {trip.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="departureDate" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+                <Calendar size={13} className="text-stone-400" />
+                <span>تاريخ الانطلاق المحدد</span> <span className="text-amber-600">*</span>
+              </label>
+              <select
+                id="departureDate"
+                name="departureDate"
+                value={formData.departureDate || (activeSelectedTrip ? activeSelectedTrip.date : '')}
+                onChange={handleChange}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-white font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-[11px] cursor-pointer font-sans"
+              >
+                {activeSelectedTrip && Array.from(new Set([activeSelectedTrip.date, ...(activeSelectedTrip.dates || [])])).filter(Boolean).map((d, i) => (
+                  <option key={i} value={d}>
+                    📅 {d}
                   </option>
                 ))}
               </select>

@@ -23,6 +23,7 @@ export interface Customer {
   birthPlace: string;
   phone: string;
   tripId: string;
+  departureDate?: string; // تاريخ الانطلاق المحدد للزبون
   peopleCount: number; // إجمالي الأفراد المعنيين (المسؤول + المرافقين)
   registrationDate: string;
   invoiceNumber: string; // رقم الحجز / الفاتورة الشاملة
@@ -35,6 +36,39 @@ export interface Customer {
   companions: Companion[]; // قائمة كافة أفراد العائلة المرافقين
   paymentStatus: 'paid' | 'partial' | 'unpaid'; // حالة الدفع
   bookingType?: 'individual' | 'family'; // نوع الحجز (فردي أو عائلي)
+  
+  // Auditing details for employees & branches
+  employeeId?: string;
+  employeeName?: string;
+  branchId?: string;
+  branchName?: string;
+}
+
+export interface Employee {
+  id: string;
+  username: string;
+  name: string;
+  password?: string;
+  role: 'Admin' | 'Manager' | 'Agent';
+  branchId: string;
+  branchName: string;
+  disabled?: boolean;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  location: string;
+}
+
+export interface OperationLog {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  branchName: string;
+  actionType: 'add_customer' | 'update_customer' | 'delete_customer' | 'add_trip' | 'update_trip' | 'delete_trip';
+  details: string;
+  timestamp: string;
 }
 
 export interface Trip {
@@ -44,5 +78,6 @@ export interface Trip {
   price: number; // in DZD (Algerian Dinar)
   duration: string;
   date: string;
+  dates?: string[]; // تواريخ الانطلاق المتعددة للرحلة
   status: 'active' | 'completed' | 'upcoming';
 }

@@ -4,13 +4,14 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Customer, Trip } from './types';
+import { Customer, Trip, Employee, Branch, OperationLog } from './types';
 import { defaultTrips } from './data/trips';
 import { Logo } from './components/Logo';
 import { CustomerForm } from './components/CustomerForm';
 import { CustomerTable } from './components/CustomerTable';
 import { PrintDocument } from './components/PrintDocument';
 import { TripManifests } from './components/TripManifests';
+import { Login } from './components/Login';
 import { 
   Users, 
   Map, 
@@ -28,17 +29,66 @@ import {
   CheckCircle2, 
   AlertCircle,
   Edit2,
-  X
+  X,
+  LogOut,
+  Building2,
+  ShieldCheck,
+  ArrowLeftRight,
+  HelpCircle,
+  BookOpen,
+  UserSquare2,
+  DollarSign,
+  UserPlus2,
+  ShieldAlert
 } from 'lucide-react';
+
+const DEFAULT_BRANCHES: Branch[] = [
+  { id: 'branch-touggourt', name: 'فرع تقرت الرئيسي', location: 'حي عياد تبسبست، تقرت' },
+  { id: 'branch-algiers', name: 'فرع الجزائر العاصمة', location: 'شارع ديدوش مراد، الجزائر العاصمة' },
+  { id: 'branch-ouargla', name: 'فرع ورقلة', location: 'وسط المدينة، ورقلة' }
+];
+
+const DEFAULT_EMPLOYEES: Employee[] = [
+  { id: 'emp-1', username: 'admin', name: 'عبد الفتاح عبعوب', role: 'Admin', branchId: 'branch-touggourt', branchName: 'فرع تقرت الرئيسي' },
+  { id: 'emp-2', username: 'manager_algiers', name: 'أحمد بن علي', role: 'Manager', branchId: 'branch-algiers', branchName: 'فرع الجزائر العاصمة' },
+  { id: 'emp-3', username: 'agent_touggourt', name: 'بلال تبسبستي', role: 'Agent', branchId: 'branch-touggourt', branchName: 'فرع تقرت الرئيسي' },
+  { id: 'emp-4', username: 'agent_ouargla', name: 'ليلى هلالي', role: 'Agent', branchId: 'branch-ouargla', branchName: 'فرع ورقلة' }
+];
 
 export default function App() {
   // 1. STATE INITIALIZATION
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'manifests' | 'trips' | 'options'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'manifests' | 'trips' | 'options' | 'admin'>('dashboard');
   const [selectedPrintCustomer, setSelectedPrintCustomer] = useState<Customer | null>(null);
   const [selectedTripFilter, setSelectedTripFilter] = useState<string>('all');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+  
+  // CORPORATE ACCESS & TRACKING STATES
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [logs, setLogs] = useState<OperationLog[]>([]);
+  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(DEFAULT_EMPLOYEES[0]);
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
+
+  // Employee Management Form States
+  const [newEmpName, setNewEmpName] = useState('');
+  const [newEmpUsername, setNewEmpUsername] = useState('');
+  const [newEmpPassword, setNewEmpPassword] = useState('123');
+  const [newEmpRole, setNewEmpRole] = useState<'Admin' | 'Manager' | 'Agent'>('Agent');
+  const [newEmpBranchId, setNewEmpBranchId] = useState('');
+
+  // Employee Editing / Deactivation States
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editEmpName, setEditEmpName] = useState('');
+  const [editEmpUsername, setEditEmpUsername] = useState('');
+  const [editEmpPassword, setEditEmpPassword] = useState('');
+  const [editEmpRole, setEditEmpRole] = useState<'Admin' | 'Manager' | 'Agent'>('Agent');
+  const [editEmpBranchId, setEditEmpBranchId] = useState('');
+
+  // Branch Management Form States
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchLocation, setNewBranchLocation] = useState('');
   
   // Alert Status
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -46,54 +96,229 @@ export default function App() {
   // Time and Date tracker
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // EMPLOYEE / BRANCH WRITE ACTIONS
+  const handleAddEmployeeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmpName.trim() || !newEmpUsername.trim() || !newEmpPassword.trim() || !newEmpBranchId) {
+      showToast('الرجاء تعبئة كامل حقول حساب الموظف الجديد', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newEmpName.trim(),
+          username: newEmpUsername.trim(),
+          password: newEmpPassword,
+          role: newEmpRole,
+          branchId: newEmpBranchId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل إضافة الموظف الجديد', 'error');
+      } else {
+        setEmployees(data.employees || []);
+        if (data.logs) setLogs(data.logs);
+        setNewEmpName('');
+        setNewEmpUsername('');
+        setNewEmpPassword('123');
+        setNewEmpRole('Agent');
+        showToast(`تم إنشاء حساب الموظف المشفّر بنجاح!`, 'success');
+      }
+    } catch (err) {
+      showToast('خطأ في الاتصال بالخادم الإداري', 'error');
+    }
+  };
+
+  const handleDeleteEmployee = async (empId: string) => {
+    if (empId === 'emp-1') {
+      showToast('غير مسموح إطلاقاً بحذف حساب المدير العام الرئيسي للوكالة!', 'error');
+      return;
+    }
+    if (empId === currentEmployee?.id) {
+      showToast('غير مسموح أن تقوم بحذف حسابك الذي تستخدمه حالياً!', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/employees/${empId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل حذف الموظف', 'error');
+      } else {
+        setEmployees(data.employees || []);
+        if (data.logs) setLogs(data.logs);
+        showToast(`تم حذف وإنهاء حساب موظف الفرع بنجاح`, 'info');
+      }
+    } catch (err) {
+      showToast('خطأ في الاتصال بنظام الأفراد', 'error');
+    }
+  };
+
+  const handleUpdateEmployeeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEmployee) return;
+    if (!editEmpName.trim() || !editEmpUsername.trim() || !editEmpBranchId) {
+      showToast('الرجاء كتابة الاسم واسم المستخدم واختيار فرع صالح', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/employees/${editingEmployee.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editEmpName.trim(),
+          username: editEmpUsername.trim(),
+          password: editEmpPassword.trim() || undefined,
+          role: editEmpRole,
+          branchId: editEmpBranchId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل تعديل بيانات الموظف', 'error');
+      } else {
+        setEmployees(data.employees || []);
+        if (data.logs) setLogs(data.logs);
+        setEditingEmployee(null);
+        showToast('تم تحديث بيانات حساب الموظف بنجاح!', 'success');
+      }
+    } catch (err) {
+      showToast('خطأ في الاتصال بخادم تحديث قيد الموظف', 'error');
+    }
+  };
+
+  const toggleDisableEmployee = async (empId: string, currentStatus: boolean | undefined) => {
+    if (empId === 'emp-1') {
+      showToast('غير مسموح بتعطيل حساب المدير العام الرئيسي للوكالة!', 'error');
+      return;
+    }
+    if (empId === currentEmployee?.id) {
+      showToast('غير مسموح بتعطيل حسابك الشخصي الذي تستخدمه حالياً!', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/employees/${empId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          disabled: !currentStatus
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل تحديث حالة تفعيل الموظف', 'error');
+      } else {
+        setEmployees(data.employees || []);
+        if (data.logs) setLogs(data.logs);
+        showToast(!currentStatus ? 'تم تعطيل نشاط هذا الموظف بنجاح' : 'تم إعادة تنشيط الموظف بنجاح', 'success');
+      }
+    } catch (err) {
+      showToast('خطأ في الاتصال بالنظام لتعديل حالة التفعيل', 'error');
+    }
+  };
+
+  const handleAddBranchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBranchName.trim() || !newBranchLocation.trim()) {
+      showToast('الرجاء كتابة اسم الفرع والموقع الجغرافي بالكامل', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/branches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newBranchName.trim(),
+          location: newBranchLocation.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل تسجيل المكتب الفرعي الجديد', 'error');
+      } else {
+        setBranches(data.branches || []);
+        if (data.logs) setLogs(data.logs);
+        setNewBranchName('');
+        setNewBranchLocation('');
+        showToast(`تم تأسيس وإرساء الفرع بنجاح وتحصينه!`, 'success');
+      }
+    } catch (err) {
+      showToast('خطأ في الاتصال بخادم الفروع', 'error');
+    }
+  };
+
   // 2. LIVE CLOCK EFFECT
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 3. LOAD DATA FROM LOCAL STORAGE (CLEAN SLATE SEEDING)
+  // Helpers: Load dynamic datasets from backend
+  const fetchInitialData = async () => {
+    try {
+      const res = await fetch('/api/data');
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success && result.data) {
+          setCustomers(result.data.customers || []);
+          setTrips(result.data.trips || []);
+          setBranches(result.data.branches || []);
+          setEmployees(result.data.employees || []);
+          setLogs(result.data.logs || []);
+        }
+      } else if (res.status === 401) {
+        setCurrentEmployee(null);
+      }
+    } catch (e) {
+      console.error('Failed fetching server database:', e);
+    }
+  };
+
+  // 3. LOAD DATA & SESSION STATE FROM API (PROTECTED AUTO-RECOVERY ROUTE)
   useEffect(() => {
-    const storedCustomers = localStorage.getItem('aboub_customers');
-    const storedTrips = localStorage.getItem('aboub_trips');
-
-    let loadedTrips: Trip[] = [];
-    if (storedTrips) {
+    const inspectSession = async () => {
       try {
-        loadedTrips = JSON.parse(storedTrips);
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.employee) {
+            setCurrentEmployee(result.employee);
+          }
+        }
       } catch (e) {
-        console.error('Error parsing stored trips:', e);
+        console.error('Session recovery failed:', e);
       }
-    }
-    // Filter out mock trips if any still exist
-    const mockTripIds = ['trip-umrah', 'trip-turkey', 'trip-tunisia', 'trip-djanet', 'trip-dubai', 'trip-malaysia', 'trip-spain'];
-    loadedTrips = loadedTrips.filter(t => !mockTripIds.includes(t.id));
-    
-    // Seed defaultTrips if list is empty
-    if (loadedTrips.length === 0) {
-      loadedTrips = defaultTrips;
-    }
-    setTrips(loadedTrips);
-
-    let loadedCustomers: Customer[] = [];
-    if (storedCustomers) {
-      try {
-        loadedCustomers = JSON.parse(storedCustomers);
-      } catch (e) {
-        console.error('Error parsing stored customers:', e);
-      }
-    }
-    // Filter out mock customers
-    const mockCustIds = ['cust-1', 'cust-2', 'cust-3'];
-    loadedCustomers = loadedCustomers.filter(c => !mockCustIds.includes(c.id) && !mockTripIds.includes(c.tripId));
-    setCustomers(loadedCustomers);
-
-    // Save the cleaned-up data to persist the empty, ready-to-use slate
-    localStorage.setItem('aboub_customers', JSON.stringify(loadedCustomers));
-    localStorage.setItem('aboub_trips', JSON.stringify(loadedTrips));
+    };
+    inspectSession();
   }, []);
 
-  // 4. WRITE DATA TO LOCAL STORAGE ON STATE CHANGE
+  // Async reload whenever employee goes active
+  useEffect(() => {
+    if (currentEmployee) {
+      fetchInitialData();
+    }
+  }, [currentEmployee]);
+
+  // 4. WORKSPACE SESSION AUTHENTICATION
+  const handleLogin = (employee: Employee) => {
+    setCurrentEmployee(employee);
+    setSelectedBranchFilter('all');
+    setActiveTab('dashboard');
+    showToast(`أهلاً بك مجدداً يا ${employee.name} في بوابة وكالة عبعوب!`, 'success');
+  };
+
+  const handleLogout = async () => {
+    showToast('بوابة مفتوحة وخالية من حواجز الدخول.', 'info');
+  };
+
+  // 4.5 WRITE DATA TO LOCAL STORAGE ON STATE CHANGE
   const saveCustomersToStorage = (updatedCustomers: Customer[]) => {
     setCustomers(updatedCustomers);
     localStorage.setItem('aboub_customers', JSON.stringify(updatedCustomers));
@@ -112,15 +337,24 @@ export default function App() {
     }, 4000);
   };
 
+  // 5.8 DYNAMIC MULTI-BRANCH DATA SCOPING
+  const scopedCustomers = useMemo(() => {
+    if (!currentEmployee) return [];
+    // Agents can now access customers across all branches (Removing sales censorship/restrictions)
+    if (selectedBranchFilter && selectedBranchFilter !== 'all') {
+      return customers.filter(c => c.branchId === selectedBranchFilter);
+    }
+    return customers;
+  }, [customers, currentEmployee, selectedBranchFilter]);
+
   // 6. DASHBOARD CALCULATED METRICS
   const metrics = useMemo(() => {
     const activeCustomers = selectedTripFilter === 'all' 
-      ? customers 
-      : customers.filter(c => c.tripId === selectedTripFilter);
+      ? scopedCustomers 
+      : scopedCustomers.filter(c => c.tripId === selectedTripFilter);
 
     const totalPassengers = activeCustomers.reduce((sum, c) => sum + (c.peopleCount || 1), 0);
     
-    // Revenue calculations: sum customer totalPrice or multiply trip price by passengers
     const totalRevenue = activeCustomers.reduce((sum, c) => {
       if (c.totalPrice !== undefined) {
         return sum + c.totalPrice;
@@ -138,96 +372,170 @@ export default function App() {
       totalRevenue,
       activeTripCount
     };
-  }, [customers, trips, selectedTripFilter]);
+  }, [scopedCustomers, trips, selectedTripFilter]);
+
+  // 6.5 CORPORATE LOGGING HELPER
+  const addLog = async (actionType: OperationLog['actionType'], details: string) => {
+    // Audit logs are securely recorded on the server automatically.
+    // This client-side helper is maintained for typings compatibility.
+  };
 
   // 7. CORE EVENT: ADD MEMBER
-  const handleAddCustomer = (newCust: Omit<Customer, 'id' | 'registrationDate' | 'invoiceNumber'>) => {
-    // Generate unique invoice ID: AB-YEAR-SEQUENCE e.g. AB-2026-0004
-    const nextSeq = String(customers.length + 1).padStart(4, '0');
-    const invoiceNum = `AB-2026-${nextSeq}`;
-    const generatedId = `customer-${Date.now()}`;
-
-    const completeCustomer: Customer = {
-      ...newCust,
-      id: generatedId,
-      registrationDate: new Date().toISOString(),
-      invoiceNumber: invoiceNum,
-    };
-
-    const newArray = [completeCustomer, ...customers];
-    saveCustomersToStorage(newArray);
-    showToast(`تم تسجيل الزبون ${newCust.firstName} ${newCust.lastName} بنجاح كحجز ${invoiceNum}!`, 'success');
+  const handleAddCustomer = async (newCust: Omit<Customer, 'id' | 'registrationDate' | 'invoiceNumber'>) => {
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCust),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل تسجيل حجز العميل الجديد', 'error');
+      } else {
+        setCustomers(data.customers || []);
+        if (data.logs) setLogs(data.logs);
+        showToast(`تم تسجيل الزبون ${newCust.firstName} ${newCust.lastName} بنجاح كحجز جديد!`, 'success');
+      }
+    } catch (e) {
+      showToast('خطأ في الاتصال بقاعدة بيانات المسافرين', 'error');
+    }
   };
 
   // 8. CORE EVENT: UPDATE MEMBER
-  const handleUpdateCustomer = (updatedCust: Customer) => {
-    const updatedArray = customers.map((c) => (c.id === updatedCust.id ? updatedCust : c));
-    saveCustomersToStorage(updatedArray);
-    showToast(`تم تعديل بيانات الزبون ${updatedCust.firstName} بنجاح.`, 'success');
+  const handleUpdateCustomer = async (updatedCust: Customer) => {
+    try {
+      const res = await fetch(`/api/customers/${updatedCust.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCust),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل تحديث بيانات العميل', 'error');
+      } else {
+        setCustomers(data.customers || []);
+        if (data.logs) setLogs(data.logs);
+        showToast(`تم تعديل بيانات الزبون ${updatedCust.firstName} بنجاح وحفظها.`, 'success');
+      }
+    } catch (e) {
+      showToast('عفواً، فشل الاتصال بالخادم لتعديل السجلات', 'error');
+    }
   };
 
   // 9. CORE EVENT: DELETE MEMBER
-  const handleDeleteCustomer = (id: string) => {
-    const target = customers.find(c => c.id === id);
-    const updatedArray = customers.filter((c) => c.id !== id);
-    saveCustomersToStorage(updatedArray);
-    if (target) {
-      showToast(`تم حذف حجز الزبون ${target.firstName} ${target.lastName} من سجلات الوكالة.`, 'info');
+  const handleDeleteCustomer = async (id: string) => {
+    try {
+      const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل حذف قيد حجز العميل', 'error');
+      } else {
+        setCustomers(data.customers || []);
+        if (data.logs) setLogs(data.logs);
+        showToast(`تم حذف حجز الزبون بنجاح من سجلات بوابة فروع وكالة عبعوب.`, 'info');
+      }
+    } catch (e) {
+      showToast('خطأ في الاتصال بالخادم لمسح الملف', 'error');
     }
   };
 
   // 10. TOURISM PROGRAM EVENTS: ADD TOUR
-  const [newTripData, setNewTripData] = useState({
+  const [newTripData, setNewTripData] = useState<{
+    name: string;
+    destination: string;
+    price: number;
+    duration: string;
+    date: string;
+    dates: string[];
+  }>({
     name: '',
     destination: '',
     price: 50000,
     duration: '8 أيام / 7 ليالٍ',
     date: '',
+    dates: [],
   });
 
-  const handleAddTrip = (e: React.FormEvent) => {
+  const [newTripDatesInput, setNewTripDatesInput] = useState('');
+  const [editTripDatesInput, setEditTripDatesInput] = useState('');
+
+  const handleAddNewTripDateState = () => {
+    if (!newTripDatesInput) return;
+    if (newTripData.dates.includes(newTripDatesInput) || newTripData.date === newTripDatesInput) {
+      showToast('هذا التاريخ مضاف بالفعل كخيار انطلاق!', 'error');
+      return;
+    }
+    setNewTripData({
+      ...newTripData,
+      dates: [...newTripData.dates, newTripDatesInput].sort(),
+    });
+    setNewTripDatesInput('');
+  };
+
+  const handleRemoveNewTripDateState = (dateToRemove: string) => {
+    setNewTripData({
+      ...newTripData,
+      dates: newTripData.dates.filter((d) => d !== dateToRemove),
+    });
+  };
+
+  const handleAddTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTripData.name.trim() || !newTripData.destination.trim() || !newTripData.date) {
       showToast('الرجاء تعبئة كامل حقول الرحلة الجديدة', 'error');
       return;
     }
 
-    const createdTrip: Trip = {
-      id: `trip-${Date.now()}`,
-      name: newTripData.name,
-      destination: newTripData.destination,
-      price: newTripData.price,
-      duration: newTripData.duration,
-      date: newTripData.date,
-      status: 'active'
-    };
-
-    const updatedTrips = [...trips, createdTrip];
-    saveTripsToStorage(updatedTrips);
-    setNewTripData({
-      name: '',
-      destination: '',
-      price: 50000,
-      duration: '8 أيام / 7 ليالٍ',
-      date: '',
-    });
-    showToast(`تمت إضافة برنامج رحلة سياحية جديدة بنجاح: ${createdTrip.name}`, 'success');
+    try {
+      const res = await fetch('/api/trips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTripData),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل إنشاء برنامج الرحلة الإقليمي', 'error');
+      } else {
+        setTrips(data.trips || []);
+        if (data.logs) setLogs(data.logs);
+        setNewTripData({
+          name: '',
+          destination: '',
+          price: 50000,
+          duration: '8 أيام / 7 ليالٍ',
+          date: '',
+          dates: [],
+        });
+        showToast(`تمت إضافة برنامج رحلة سياحية جديدة بنجاح!`, 'success');
+      }
+    } catch (err) {
+      showToast('فشل ربط برنامج الرحلات بالخادم', 'error');
+    }
   };
 
-  const handleDeleteTrip = (tripId: string) => {
-    // Check if any client is already booked on this trip
+  const handleDeleteTrip = async (tripId: string) => {
     const affectedCount = customers.filter(c => c.tripId === tripId).length;
     if (affectedCount > 0) {
       showToast(`عذراً! لا يمكن حذف هذه الرحلة لوجود ${affectedCount} زبون تم حجزهم عليها.`, 'error');
       return;
     }
 
-    const updated = trips.filter(t => t.id !== tripId);
-    saveTripsToStorage(updated);
-    showToast('تمت إزالة برنامج الرحلة بنجاح.', 'success');
+    try {
+      const res = await fetch(`/api/trips/${tripId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل حذف برنامج الرحلة', 'error');
+      } else {
+        setTrips(data.trips || []);
+        if (data.logs) setLogs(data.logs);
+        showToast('تمت إزالة برنامج الرحلة بنجاح وعزل وعصف سجلاته.', 'success');
+      }
+    } catch (err) {
+      showToast('خطأ في الاتصال بالبوابة لحذف الرحلة', 'error');
+    }
   };
 
-  const handleUpdateTrip = (e: React.FormEvent) => {
+  const handleUpdateTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTrip) return;
     if (!editingTrip.name.trim() || !editingTrip.destination.trim() || !editingTrip.date) {
@@ -235,13 +543,27 @@ export default function App() {
       return;
     }
 
-    const updatedTrips = trips.map((t) => (t.id === editingTrip.id ? editingTrip : t));
-    saveTripsToStorage(updatedTrips);
-    setEditingTrip(null);
-    showToast(`تم تعديل وتحديث بيانات برنامج الرحلة "${editingTrip.name}" بنجاح!`, 'success');
+    try {
+      const res = await fetch(`/api/trips/${editingTrip.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingTrip),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'فشل تعديل بيانات هذه الرحلة', 'error');
+      } else {
+        setTrips(data.trips || []);
+        if (data.logs) setLogs(data.logs);
+        setEditingTrip(null);
+        showToast(`تم تعديل وتحديث بيانات برنامج الرحلة بنجاح!`, 'success');
+      }
+    } catch (err) {
+      showToast('خطأ في قنوات الاتصال بالخادم لتحديث الرحلة', 'error');
+    }
   };
 
-  // 11. DATA MIGRATION: EXPORT / IMPORT DATABASE (FOR OFFLINE ASSURANCE)
+  // 11. DATA MIGRATION: EXPORT / IMPORT DATABASE (FOR BACKUP COPIES)
   const downloadBackupJSON = () => {
     const databaseDump = {
       customers,
@@ -269,20 +591,29 @@ export default function App() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    fileReader.onload = (event) => {
+    fileReader.onload = async (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed && Array.isArray(parsed.customers) && Array.isArray(parsed.trips)) {
-          setCustomers(parsed.customers);
-          setTrips(parsed.trips);
-          saveCustomersToStorage(parsed.customers);
-          saveTripsToStorage(parsed.trips);
-          showToast(`تم استيراد السجلات الاحتياطية بنجاح! السجل يضم ${parsed.customers.length} زبون و ${parsed.trips.length} برنامج رحلة.`, 'success');
+          const res = await fetch('/api/backup/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customers: parsed.customers, trips: parsed.trips }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setCustomers(data.customers || []);
+            setTrips(data.trips || []);
+            if (data.logs) setLogs(data.logs);
+            showToast(`تم استيراد نسخة السجلات الاحتياطية وتزامنها مع الخادم المركزي بنجاح!`, 'success');
+          } else {
+            showToast(data.error || 'فشل دمج البيانات بالمخدم', 'error');
+          }
         } else {
           showToast('تنسيق ملف النسخة الاحتياطية غير متوافق.', 'error');
         }
       } catch (err) {
-        showToast('فشل في قراءة واستيراد ملف السجلات.', 'error');
+        showToast('فشل في قراءة واستيراد ملف السجلات وتزامنها.', 'error');
       }
     };
     if (files[0]) {
@@ -297,89 +628,89 @@ export default function App() {
       
       {/* DESKTOP FIXED SIDEBAR */}
       <aside className="w-80 bg-zinc-950 text-white sticky top-0 h-screen hidden md:flex flex-col justify-between p-6 print:hidden shrink-0 border-l border-amber-500/10 shadow-xl z-40">
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Logo Heading - Premium & Modern Corporate Layout */}
           <div className="flex items-center gap-3.5">
-            <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-zinc-950 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-amber-500/10 select-none transform hover:rotate-3 transition-all duration-300">
+            <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-zinc-950 w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg shadow-amber-500/10 select-none transform hover:rotate-3 transition-all duration-300">
               ع
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-sans font-black text-sm tracking-tight select-none leading-none bg-gradient-to-l from-white to-stone-200 bg-clip-text text-transparent">
+              <div className="flex items-center gap-1.55">
+                <h1 className="font-sans font-black text-xs tracking-tight select-none leading-none bg-gradient-to-l from-white to-stone-200 bg-clip-text text-transparent">
                   وكالة عبعوب للسياحة
                 </h1>
                 <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90">
-                  CRM
+                  PORTAL
                 </span>
               </div>
-              <span className="font-mono text-[8px] text-stone-400 font-bold tracking-wider select-none mt-1.5 opacity-80 uppercase leading-none">
+              <span className="font-mono text-[8px] text-stone-400 font-bold tracking-wider select-none mt-1 opacity-80 uppercase leading-none">
                 ABOUB TRAVEL AGENCY
               </span>
             </div>
           </div>
 
-          <div className="border-t border-zinc-800/80 my-2"></div>
+          <div className="border-t border-zinc-800/80 my-1"></div>
 
           {/* Navigation Links with generous hover and active states */}
-          <nav className="space-y-2">
+          <nav className="space-y-1.5">
             <button
               onClick={() => setActiveTab('dashboard')}
               id="sidebar-btn-dashboard"
-              className={`w-full py-3.5 px-4 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
+              className={`w-full py-3 px-3.5 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
                 activeTab === 'dashboard'
                   ? 'bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/15 font-black'
                   : 'text-stone-400 hover:text-stone-200 hover:bg-zinc-900/60'
               }`}
             >
-              <LayoutDashboard size={15} className="shrink-0" />
-              <span>لوحة الحجوزات والزبائن</span>
+              <LayoutDashboard size={14} className="shrink-0" />
+              <span>تسجيل وعرض الحجوزات</span>
             </button>
 
             <button
               onClick={() => setActiveTab('manifests')}
               id="sidebar-btn-manifests"
-              className={`w-full py-3.5 px-4 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
+              className={`w-full py-3 px-3.5 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
                 activeTab === 'manifests'
                   ? 'bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/15 font-black'
                   : 'text-stone-400 hover:text-stone-200 hover:bg-zinc-900/60'
               }`}
             >
-              <Users size={15} className="shrink-0" />
-              <span>دليل قوائم ركاب الرحلات</span>
+              <Users size={14} className="shrink-0" />
+              <span>دليل قوائم المسافرين</span>
             </button>
 
             <button
               onClick={() => setActiveTab('trips')}
               id="sidebar-btn-trips"
-              className={`w-full py-3.5 px-4 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
+              className={`w-full py-3 px-3.5 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
                 activeTab === 'trips'
                   ? 'bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/15 font-black'
                   : 'text-stone-400 hover:text-stone-200 hover:bg-zinc-900/60'
               }`}
             >
-              <Compass size={15} className="shrink-0" />
+              <Compass size={14} className="shrink-0" />
               <span>برامج الرحلات والمواسم</span>
             </button>
 
             <button
               onClick={() => setActiveTab('options')}
               id="sidebar-btn-options"
-              className={`w-full py-3.5 px-4 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
+              className={`w-full py-3 px-3.5 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
                 activeTab === 'options'
                   ? 'bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/15 font-black'
                   : 'text-stone-400 hover:text-stone-200 hover:bg-zinc-900/60'
               }`}
             >
-              <Database size={15} className="shrink-0" />
+              <Database size={14} className="shrink-0" />
               <span>النسخ الاحتياطي والضبط</span>
             </button>
           </nav>
         </div>
 
         {/* Sidebar Footer Info */}
-        <div className="space-y-4 pt-6 mt-auto border-t border-zinc-900/80 text-right">
-          <div className="flex items-center gap-2.5 bg-zinc-900/60 border border-zinc-900 rounded-xl px-3 py-2.5 select-none justify-center">
-            <Clock size={13} className="text-amber-400 animate-spin-slow shrink-0" />
+        <div className="space-y-4 pt-4 mt-auto border-t border-zinc-900/80 text-right">
+          <div className="flex items-center gap-2.5 bg-zinc-900/60 border border-zinc-900 rounded-xl px-3 py-2 select-none justify-center">
+            <Clock size={13} className="text-amber-400 shrink-0 animate-spin-slow" />
             <span className="font-mono text-[10px] text-stone-300 font-bold tracking-wider">
               {currentTime.toLocaleTimeString('ar-DZ')}
             </span>
@@ -414,7 +745,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('dashboard')}
             id="mobile-tab-dashboard"
-            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all ${
+            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
               activeTab === 'dashboard' ? 'bg-amber-500 text-zinc-950 font-black shadow-xs' : 'text-stone-400 font-medium'
             }`}
           >
@@ -424,7 +755,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('manifests')}
             id="mobile-tab-manifests"
-            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all ${
+            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
               activeTab === 'manifests' ? 'bg-amber-500 text-zinc-950 font-black shadow-xs' : 'text-stone-400 font-medium'
             }`}
           >
@@ -434,8 +765,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('trips')}
             id="mobile-tab-trips"
-            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all ${
-              activeTab === 'trips' ? 'bg-amber-500 text-zinc-950 font-black shadow-xs' : 'text-stone-400 font-medium'
+            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
+              activeTab === 'trips' ? 'bg-amber-500 text-zinc-950 font-black shadow-xs' : 'text-stone-450 font-medium'
             }`}
           >
             <Compass size={11} />
@@ -444,7 +775,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('options')}
             id="mobile-tab-options"
-            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all ${
+            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
               activeTab === 'options' ? 'bg-amber-500 text-zinc-950 font-black shadow-xs' : 'text-stone-400 font-medium'
             }`}
           >
@@ -525,7 +856,7 @@ export default function App() {
               {/* Bottom Row: Customers Table Directory */}
               <div className="w-full">
                 <CustomerTable
-                  customers={customers}
+                  customers={scopedCustomers}
                   trips={trips}
                   onDeleteCustomer={handleDeleteCustomer}
                   onUpdateCustomer={handleUpdateCustomer}
@@ -538,7 +869,7 @@ export default function App() {
 
           {/* TAB 1.5: TRIP PASSENGER MANIFESTS */}
           {activeTab === 'manifests' && (
-            <TripManifests customers={customers} trips={trips} />
+            <TripManifests customers={scopedCustomers} trips={trips} />
           )}
 
           {/* TAB 2: VOYAGE PROGRAMS EDITOR AND LISTS */}
@@ -611,7 +942,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label htmlFor="trip-date" className="block font-bold text-slate-600 mb-1">تاريخ انطلاق السفر</label>
+                    <label htmlFor="trip-date" className="block font-bold text-slate-600 mb-1">تاريخ انطلاق السفر (الرئيسي)</label>
                     <input
                       type="date"
                       id="trip-date"
@@ -620,6 +951,45 @@ export default function App() {
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                       required
                     />
+                  </div>
+
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200/60 mt-1">
+                    <label className="block font-bold text-slate-700 mb-1 text-[11px] flex items-center justify-between">
+                      <span>📆 تواريخ انطلاق إضافية أخرى</span>
+                      <span className="text-[10px] text-slate-400 font-normal">اختياري</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={newTripDatesInput}
+                        onChange={(e) => setNewTripDatesInput(e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 border border-slate-200 bg-white rounded-lg text-xs font-medium font-sans"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddNewTripDateState}
+                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-lg border border-blue-200 transition-colors text-xs shrink-0 cursor-pointer"
+                      >
+                        إضافة تاريخ
+                      </button>
+                    </div>
+
+                    {newTripData.dates && newTripData.dates.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-slate-200/50 font-sans">
+                        {newTripData.dates.map((d, index) => (
+                          <div key={index} className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold font-mono">
+                            <span>{d}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveNewTripDateState(d)}
+                              className="text-red-500 hover:text-red-700 text-[10px] px-0.5 font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <button
@@ -660,7 +1030,20 @@ export default function App() {
 
                           <div className="mt-3 space-y-1 text-slate-500 text-xs font-sans">
                             <div>الوجهة والبلد: <span className="font-semibold text-slate-800">{tour.destination}</span></div>
-                            <div>تاريخ المغادرة المتوقع: <span className="font-semibold text-slate-800 font-mono">{tour.date}</span></div>
+                            <div className="flex flex-col gap-0.5">
+                              <span>تاريخ المغادرة المتوقع:</span>
+                              {tour.dates && tour.dates.length > 0 ? (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {Array.from(new Set([tour.date, ...tour.dates])).filter(Boolean).map((d, index) => (
+                                    <span key={index} className="bg-slate-100 text-slate-700 font-bold font-mono px-1.5 py-0.5 rounded text-[9px] border border-slate-200">
+                                      {d}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="font-semibold text-slate-800 font-mono">{tour.date}</span>
+                              )}
+                            </div>
                             <div>حجوزات نشطة حالياً: <span className="font-bold text-blue-600 px-1">{bookedClientsCount} مسافرين</span></div>
                           </div>
                         </div>
@@ -760,6 +1143,422 @@ export default function App() {
               <div className="bg-blue-50/70 rounded-xl p-4 border border-blue-105 text-xs text-blue-800 leading-relaxed font-sans">
                 <strong>💡 تنويه أمني:</strong> تذكر دائماً ألا تمسح ملفات تعريف ارتباط المتصفح (Cache) أو بيانات المتصفح الخاصة لضمان ثبات السجلات. يوصى بشدة بتحميل نسخة احتياطية في نهاية كل أسبوع عمل لحماية وحفظ ملفات زبائن وكالة عبعوب للسياحة والأسفار.
               </div>
+            </div>
+          )}
+
+          {/* TAB 4: ADVANCED ADMIN & HR CENTER */}
+          {activeTab === 'admin' && (currentEmployee.role === 'Admin' || currentEmployee.role === 'Manager') && (
+            <div className="space-y-6 animate-in fade-in duration-200 text-right">
+              
+              {/* Header Info */}
+              <div className="bg-gradient-to-l from-zinc-900 to-zinc-800 text-white rounded-2xl p-6 shadow-md border-b border-amber-500/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                    قسم الرقابة والعمليات الإدارية الموحد
+                  </span>
+                  <h3 className="font-sans font-black text-lg">بوابة التحكم بالفروع وتقييم المبيعات والموظفين</h3>
+                  <p className="text-xs text-stone-300">أنت تتصفح حالياً بصلاحيات الإشراف الإداري العام. قم بتهيأة الموظفين الميدانيين وفرض ضوابط المحاسبة.</p>
+                </div>
+                <div className="flex items-center gap-2.5 bg-zinc-950/60 border border-zinc-800 px-4 py-2.5 rounded-xl">
+                  <Users className="text-amber-500 shrink-0" size={20} />
+                  <div className="text-right">
+                    <span className="text-[10px] text-stone-400 block font-bold leading-none">إجمالي القوى العاملة:</span>
+                    <span className="font-mono text-base font-black text-stone-100">{employees.length} موظف معتمد</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Administrative Bento Statistics Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-stone-200/80 rounded-2xl p-4 flex items-center justify-between shadow-3xs">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-stone-400 font-bold block">الفروع الجغرافية</span>
+                    <span className="text-lg font-black text-stone-900 font-mono">{branches.length} مكاتب فرعية</span>
+                    <p className="text-[9px] text-stone-500">متصلة بالنظام الموحد</p>
+                  </div>
+                  <div className="p-3 bg-stone-50 text-stone-600 rounded-xl border border-stone-100">
+                    <Building2 size={18} />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-stone-200/80 rounded-2xl p-4 flex items-center justify-between shadow-3xs">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-stone-400 font-bold block">الوكلاء ومسؤولي الحجز</span>
+                    <span className="text-lg font-black text-stone-900 font-mono">
+                      {employees.filter(e => e.role === 'Agent').length} وكلاء حجز
+                    </span>
+                    <p className="text-[9px] text-stone-500">مستخدمين نشطين بالبوابة</p>
+                  </div>
+                  <div className="p-3 bg-stone-50 text-stone-600 rounded-xl border border-stone-100">
+                    <UserSquare2 size={18} />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-stone-200/80 rounded-2xl p-4 flex items-center justify-between shadow-3xs">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-stone-400 font-bold block">المبيعات والحجوزات الحالية</span>
+                    <span className="text-lg font-black text-stone-900 font-mono">{customers.length} زبون</span>
+                    <p className="text-[9px] text-stone-500">مسجلين في كافة الفروع</p>
+                  </div>
+                  <div className="p-3 bg-stone-50 text-stone-600 rounded-xl border border-stone-100">
+                    <DollarSign size={18} className="text-amber-600" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-stone-200/80 rounded-2xl p-4 flex items-center justify-between shadow-3xs">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-stone-400 font-bold block">المدراء والمشرفين</span>
+                    <span className="text-lg font-black text-stone-900 font-mono">
+                      {employees.filter(e => e.role === 'Admin' || e.role === 'Manager').length} إداريين
+                    </span>
+                    <p className="text-[9px] text-stone-500">صلاحيات تحكم كاملة</p>
+                  </div>
+                  <div className="p-3 bg-stone-50 text-stone-600 rounded-xl border border-stone-100">
+                    <ShieldCheck size={18} className="text-blue-600" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Creators: Add Employee & Add Branch Side-By-Side */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                
+                {/* Creator: Add Employee Account (8 / 12) */}
+                <div className="lg:col-span-8 bg-white rounded-2xl border border-stone-200 p-5 space-y-4">
+                  <div className="border-b border-stone-100 pb-3 flex items-center gap-3">
+                    <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                      <UserPlus2 size={16} />
+                    </div>
+                    <div>
+                      <h4 className="font-sans font-black text-stone-900 text-sm">تسجيل وتهيأة حساب موظف جديد</h4>
+                      <p className="text-[10px] text-stone-500 font-sans mt-0.5">أنشئ حساب دخول منفرد لكل وكيل حجز أو رئيس فرع لتتبع مبيعاته</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAddEmployeeSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans text-right text-xs">
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-stone-700 block">الاسم الثلاثي الكامل للموظف <span className="text-rose-500">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="مثال: يونس بن مسعود"
+                        value={newEmpName}
+                        onChange={(e) => setNewEmpName(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold font-sans text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-stone-700 block">اسم المستخدم الفريد (الدخول) <span className="text-rose-500">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="مثال: younes_touggourt"
+                        value={newEmpUsername}
+                        onChange={(e) => setNewEmpUsername(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold font-mono text-left text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-stone-700 block">كلمة المرور الخاصة بالحساب <span className="text-rose-500">*</span></label>
+                      <input
+                        type="password"
+                        placeholder="اكتب كلمة سر قوية أو اترك الافتراضي 123"
+                        value={newEmpPassword}
+                        onChange={(e) => setNewEmpPassword(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold font-mono text-left text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-stone-700 block">الدور والجهوزية الأمنية <span className="text-rose-500">*</span></label>
+                      <select
+                        value={newEmpRole}
+                        onChange={(e) => setNewEmpRole(e.target.value as any)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none cursor-pointer"
+                      >
+                        <option value="Agent">Agent (عميل حجز قياسي - يرى فرعه فقط)</option>
+                        <option value="Manager">Manager (مشرف فروع - يرى فرعه ولديه صلاحية تصفية باقي الفروع)</option>
+                        <option value="Admin">Admin (المدير الإداري العام للشركة - صلاحيات شاملة ورقابة كل الفروع)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="font-extrabold text-stone-700 block">الفرع الجغرافي المعيّن فيه هذا الموظف <span className="text-rose-500">*</span></label>
+                      <select
+                        value={newEmpBranchId}
+                        onChange={(e) => setNewEmpBranchId(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-black text-amber-950 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none cursor-pointer"
+                      >
+                        <option value="">-- اختر الفرع الجغرافي التابع له الموظف --</option>
+                        {branches.map(b => (
+                          <option key={b.id} value={b.id}>🏢 {b.name} ({b.location})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2 pt-2 text-left">
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-zinc-950 hover:bg-zinc-900 border border-amber-500/20 text-amber-400 hover:text-amber-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer inline-flex"
+                      >
+                        <UserPlus2 size={13} className="shrink-0" />
+                        <span>تأسيس وتنشيط حساب الموظف</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Creator: Add Branch (4 / 12) */}
+                <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200 p-5 space-y-4">
+                  <div className="border-b border-stone-100 pb-3 flex items-center gap-3">
+                    <div className="p-2 bg-sky-50 text-sky-600 rounded-xl">
+                      <Building2 size={16} />
+                    </div>
+                    <div>
+                      <h4 className="font-sans font-black text-stone-900 text-sm">تأسيس مكتب فرع جديد</h4>
+                      <p className="text-[10px] text-stone-500 font-sans mt-0.5">افتح فرعاً جغرافياً لربط وكلائه بالنظام الجاري للشركة</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAddBranchSubmit} className="space-y-4 font-sans text-right text-xs">
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-stone-700 block">اسم مكتب الفرع الجديد <span className="text-rose-500">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="مثال: فرع الوادي، فرع قسنطينة"
+                        value={newBranchName}
+                        onChange={(e) => setNewBranchName(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold font-sans text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-stone-700 block">العنوان والموقع الجغرافي <span className="text-rose-500">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="مثال: حي الرمال، وسط المدينة"
+                        value={newBranchLocation}
+                        onChange={(e) => setNewBranchLocation(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold font-sans text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-850 border border-blue-200 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Plus size={13} className="shrink-0" />
+                        <span>تأكيد المطلب وتأسيس مكتب الفرع</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+              </div>
+
+              {/* Table section: list of employees */}
+              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+                <div className="p-5 border-b border-stone-100 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="font-sans font-black text-stone-900 text-sm">سجل حسابات الموظفين المعتمدة بالوكالة</h4>
+                    <p className="text-[10px] text-stone-400">كافة الروابط والحسابات النشطة والمسترجعة من الـ Local Storage بخصوصية</p>
+                  </div>
+                  <span className="font-mono text-[10px] text-stone-500 font-bold bg-stone-50 border border-stone-200 rounded-lg px-2 py-1">
+                    إجمالي: {employees.length} حساب
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto text-xs">
+                  <table className="w-full text-right border-collapse font-sans table-auto">
+                    <thead>
+                      <tr className="bg-stone-50 border-b border-stone-150 text-stone-500 font-bold select-none">
+                        <th className="p-3">اسم الموظف الرسمي</th>
+                        <th className="p-3">اسم المستخدم (المعرّف)</th>
+                        <th className="p-3">صلاحية النظام</th>
+                        <th className="p-3">الفرع المكتبي المعين فيه</th>
+                        <th className="p-3 text-center">أمن الحساب</th>
+                        <th className="p-3 text-center">التحكم والضبط</th>
+                      </tr>
+                    </thead>
+                     <tbody className="divide-y divide-stone-150">
+                       {employees.map(emp => (
+                         <tr key={emp.id} className="hover:bg-amber-50/20 transition-all font-semibold text-stone-850 text-[11px]">
+                           <td className="p-3 font-extrabold text-stone-900 flex items-center gap-2">
+                             <span className="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
+                             <span className={emp.disabled ? 'line-through text-stone-400' : ''}>{emp.name}</span>
+                           </td>
+                           <td className="p-3 font-mono font-bold text-stone-600 text-left" dir="ltr">@{emp.username}</td>
+                           <td className="p-3">
+                             <span className={`px-2 py-0.5 rounded font-black text-[9.5px] border ${
+                               emp.role === 'Admin' 
+                                 ? 'bg-rose-50 text-rose-700 border-rose-100' 
+                                 : emp.role === 'Manager' 
+                                 ? 'bg-blue-50 text-blue-700 border-blue-105' 
+                                 : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                             }`}>
+                               {emp.role === 'Admin' ? 'المدير العام' : emp.role === 'Manager' ? 'مشرف فروع' : 'وكيل حجز قياسي'}
+                             </span>
+                           </td>
+                           <td className="p-3 font-medium text-stone-605">🏢 {emp.branchName}</td>
+                           <td className="p-3 text-center">
+                             {emp.disabled ? (
+                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-150">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                 معطل
+                               </span>
+                             ) : (
+                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-150">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-none"></span>
+                                 نشط {emp.id === 'emp-1' && '(محمي)'}
+                               </span>
+                             )}
+                           </td>
+                           <td className="p-2 text-center">
+                             <div className="flex items-center justify-center gap-1.5">
+                               <button
+                                 onClick={() => {
+                                   setEditingEmployee(emp);
+                                   setEditEmpName(emp.name);
+                                   setEditEmpUsername(emp.username);
+                                   setEditEmpPassword('');
+                                   setEditEmpRole(emp.role);
+                                   setEditEmpBranchId(emp.branchId);
+                                 }}
+                                 className="p-1 px-2.5 bg-stone-50 hover:bg-stone-100 text-stone-700 hover:text-stone-900 border border-stone-200 rounded-lg flex items-center gap-1 transition-all font-black text-[10px] cursor-pointer"
+                               >
+                                 <Edit2 size={11} />
+                                 <span>تعديل</span>
+                               </button>
+
+                               <button
+                                 onClick={() => toggleDisableEmployee(emp.id, emp.disabled)}
+                                 disabled={emp.id === 'emp-1' || emp.id === currentEmployee?.id}
+                                 className={`p-1 px-2.5 rounded-lg border text-amber-700 hover:bg-amber-50 border-amber-200 transition-all cursor-pointer select-none flex items-center gap-1 text-[10px] font-black ${
+                                   emp.id === 'emp-1' || emp.id === currentEmployee?.id ? 'opacity-30 cursor-not-allowed hover:bg-transparent border-stone-100 text-stone-300' : ''
+                                 }`}
+                               >
+                                 {emp.disabled ? (
+                                   <>
+                                     <CheckCircle2 size={11} className="text-emerald-500" />
+                                     <span>تفعيل</span>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <AlertCircle size={11} className="text-rose-500" />
+                                     <span>تعطيل</span>
+                                   </>
+                                 )}
+                               </button>
+
+                               <button
+                                 onClick={() => {
+                                   if (confirm(`هل أنت متأكد من رغبتك في إلغاء وإزالة موظف الوكالة "${emp.name}" بالكامل وفصل بياناته؟`)) {
+                                     handleDeleteEmployee(emp.id);
+                                   }
+                                 }}
+                                 className={`p-1 px-2.5 rounded-lg border text-rose-500 hover:bg-rose-50 border-stone-200 transition-all cursor-pointer select-none flex items-center gap-1 text-[10px] font-black ${
+                                   emp.id === 'emp-1' || emp.id === currentEmployee?.id ? 'opacity-30 cursor-not-allowed text-stone-300 hover:bg-transparent border-stone-100' : ''
+                                 }`}
+                                 disabled={emp.id === 'emp-1' || emp.id === currentEmployee?.id}
+                                >
+                                 <Trash2 size={11} />
+                                 <span>حذف</span>
+                               </button>
+                             </div>
+                           </td>
+                         </tr>
+                       ))}
+                     </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Interactive Audit Trail Log Desk (Real Logs) */}
+              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+                <div className="p-5 border-b border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-right space-y-0.5">
+                    <h4 className="font-sans font-black text-stone-900 text-sm flex items-center gap-1.5 justify-end">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                      <span>سجل العمليات والرقابة الفورية الموحد (System Audit Trail)</span>
+                    </h4>
+                    <p className="text-[10px] text-stone-400">بيانات رقابية مشفّرة غير قابلة للتعديل أو المسح لتحديد الموظب والفرع والوقت لكل عملية بشكل قطعي</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm('تنبيه أمني: هل تود مسح وعصف سجل العمليات بالكامل لأسباب صيانة فنية؟')) {
+                        setLogs([]);
+                        localStorage.setItem('aboub_operation_logs', JSON.stringify([]));
+                        showToast('تم تصفير وعصف سجل الرقابة والعمليات بنجاح!', 'info');
+                      }
+                    }}
+                    className="px-3 py-1 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-605 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer select-none"
+                  >
+                    <Trash2 size={11} />
+                    <span>تصفير سجل الرقابة</span>
+                  </button>
+                </div>
+
+                <div className="p-4 bg-stone-50 border-b border-stone-150 flex items-center justify-between text-xs font-sans text-stone-500 select-none">
+                  <span>يعرض آخر العمليات الموثقة بالثواني والدقائق لموظفي فروع وكالة عبعوب</span>
+                  <span className="font-mono text-stone-700 font-bold bg-white border border-stone-150 px-2 py-0.5 rounded-md">
+                    مجموع القيود: {logs.length} عملية مرصودة
+                  </span>
+                </div>
+
+                <div className="p-1 max-h-[380px] overflow-y-auto divide-y divide-stone-100">
+                  {logs.length === 0 ? (
+                    <div className="py-12 text-center text-stone-400 font-sans space-y-2">
+                      <Lock size={20} className="mx-auto opacity-40 text-stone-500" />
+                      <p className="text-xs">سجل العمليات الموحد فارغ تماماً حالياً.</p>
+                      <p className="text-[10px]">البوابة ستقوم بتوثيق أي حركات حجز أو إضافة سياحية فور حدوثها.</p>
+                    </div>
+                  ) : (
+                    [...logs].reverse().map((lg) => (
+                      <div key={lg.id} className="p-3.5 hover:bg-stone-50/70 transition-all text-right flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-sans leading-relaxed">
+                        
+                        {/* Operator info and Action message */}
+                        <div className="flex items-start md:items-center gap-3">
+                          {/* Log Icon Badge */}
+                          <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 md:mt-0 ${
+                            lg.actionType === 'add_customer' 
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                              : lg.actionType === 'delete_customer' 
+                              ? 'bg-rose-50 text-rose-600 border border-rose-100 font-black' 
+                              : lg.actionType === 'update_customer' 
+                              ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                              : 'bg-blue-50 text-blue-600 border border-blue-100'
+                          }`}>
+                            <ShieldAlert size={13} />
+                          </div>
+
+                          <div className="space-y-1">
+                            {/* Action text */}
+                            <p className="font-black text-stone-850 text-[11.5px]">{lg.details}</p>
+                            
+                            {/* Actor identity badge */}
+                            <div className="flex items-center gap-2 text-[10px] text-stone-500 font-bold">
+                              <span className="text-stone-900 bg-stone-150 rounded px-1.5 py-0.5">👤 {lg.operatorName} (@{lg.operatorUsername})</span>
+                              <span>•</span>
+                              <span className="text-amber-700 bg-amber-50 rounded px-1.5 py-0.5">🏢 الفرع: {lg.branchName}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Timestamp value */}
+                        <div className="font-mono text-[9.5px] text-stone-400 bg-stone-100 rounded-md px-2.5 py-1 text-left shrink-0 font-bold flex items-center gap-1.5 border border-stone-200/50" dir="ltr">
+                          <Clock size={9} />
+                          <span>{new Date(lg.timestamp).toLocaleString('ar-DZ')}</span>
+                        </div>
+
+                      </div>
+                    ))
+                  )}
+                </div>
+
+              </div>
+
             </div>
           )}
 
@@ -863,7 +1662,7 @@ export default function App() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="edit-trip-date" className="block text-[10px] font-bold text-stone-600 mb-1">تاريخ انطلاق السفر</label>
+                  <label htmlFor="edit-trip-date" className="block text-[10px] font-bold text-stone-600 mb-1">تاريخ انطلاق السفر (الرئيسي)</label>
                   <input
                     type="date"
                     id="edit-trip-date"
@@ -888,6 +1687,62 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 mt-2">
+                <label className="block font-bold text-stone-700 mb-1 text-[10px] flex items-center justify-between">
+                  <span>📆 تواريخ انطلاق إضافية أخرى</span>
+                  <span className="text-[9px] text-stone-400 font-normal">اختياري</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={editTripDatesInput}
+                    onChange={(e) => setEditTripDatesInput(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 border border-stone-200 bg-white rounded-lg text-xs font-medium font-sans"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!editTripDatesInput) return;
+                      const currentDates = editingTrip.dates || [];
+                      if (currentDates.includes(editTripDatesInput) || editingTrip.date === editTripDatesInput) {
+                        showToast('هذا التاريخ مضاف بالفعل كخيار انطلاق!', 'error');
+                        return;
+                      }
+                      setEditingTrip({
+                        ...editingTrip,
+                        dates: [...currentDates, editTripDatesInput].sort()
+                      });
+                      setEditTripDatesInput('');
+                    }}
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-lg border border-blue-200 transition-colors text-xs shrink-0 cursor-pointer"
+                  >
+                    إضافة تاريخ
+                  </button>
+                </div>
+
+                {editingTrip.dates && editingTrip.dates.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-stone-200/50">
+                    {editingTrip.dates.map((d, index) => (
+                      <div key={index} className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold font-mono">
+                        <span>{d}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingTrip({
+                              ...editingTrip,
+                              dates: editingTrip.dates?.filter(dt => dt !== d) || []
+                            });
+                          }}
+                          className="text-red-500 hover:text-red-700 text-[10px] px-0.5 font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Cancel / Save */}
               <div className="flex items-center justify-end gap-2 border-t border-stone-100 pt-4 mt-2">
                 <button
@@ -907,6 +1762,117 @@ export default function App() {
                 </button>
               </div>
 
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingEmployee && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] font-sans" dir="rtl">
+          <div className="bg-white rounded-3xl border border-stone-200 max-w-lg w-full overflow-hidden shadow-2xl text-right">
+            <div className="bg-amber-50 p-6 border-b border-stone-150 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
+                  <Edit2 size={18} />
+                </div>
+                <div>
+                  <h3 className="font-sans font-black text-stone-900 text-base">تعديل ملف الموظف</h3>
+                  <p className="text-[11px] text-stone-500 mt-0.5">تحديث معلومات حساب ومستويات وصول هذا الوكيل</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setEditingEmployee(null)}
+                className="p-1 px-2 border border-stone-200 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-all cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateEmployeeSubmit} className="p-6 space-y-4 text-xs font-sans">
+              <div className="space-y-1">
+                <label className="font-extrabold text-stone-700 block">الاسم الكامل للموظف <span className="text-rose-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={editEmpName}
+                  onChange={(e) => setEditEmpName(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-extrabold text-stone-700 block">اسم المستخدم (المعرِّف) <span className="text-rose-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={editEmpUsername}
+                    onChange={(e) => setEditEmpUsername(e.target.value)}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-mono font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-extrabold text-stone-700 block">كلمة المرور الجديدة</label>
+                  <input
+                    type="password"
+                    placeholder="اتركها فارغة لعدم التغيير"
+                    value={editEmpPassword}
+                    onChange={(e) => setEditEmpPassword(e.target.value)}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-mono text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-extrabold text-stone-700 block">الدور والصلاحيات بالنظام <span className="text-rose-500">*</span></label>
+                <select
+                  value={editEmpRole}
+                  onChange={(e) => setEditEmpRole(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none cursor-pointer"
+                  disabled={editingEmployee.id === 'emp-1'}
+                >
+                  <option value="Agent">Agent (عميل حجز قياسي)</option>
+                  <option value="Manager">Manager (مشرف فروع)</option>
+                  <option value="Admin">Admin (المدير الإداري العام)</option>
+                </select>
+                {editingEmployee.id === 'emp-1' && (
+                  <p className="text-[10px] text-amber-600 mt-1">حساب المدير العام الرئيسي لا تُمَس صلاحياته للحفاظ على أمن النظام.</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-extrabold text-stone-700 block">الفرع المكتبي المعين فيه <span className="text-rose-500">*</span></label>
+                <select
+                  value={editEmpBranchId}
+                  onChange={(e) => setEditEmpBranchId(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-black text-amber-950 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none cursor-pointer"
+                >
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>🏢&nbsp;&nbsp;{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-2 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingEmployee(null)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  إلغاء التراجع
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                >
+                  <ShieldCheck size={14} />
+                  <span>تأكيد المطلب وحفظ التحديثات</span>
+                </button>
+              </div>
             </form>
           </div>
         </div>

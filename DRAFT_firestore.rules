@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net & Default-Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- SHARED SECURE PRIMITIVES ---
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getEmployee(uid) {
+      return get(/databases/$(database)/documents/employees/$(uid)).data;
+    }
+
+    function isEmployeeExists(uid) {
+      return exists(/databases/$(database)/documents/employees/$(uid));
+    }
+
+    function getRole() {
+      return getEmployee(request.auth.uid).role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && isEmployeeExists(request.auth.uid) && getRole() == 'Admin';
+    }
+
+    function isManager() {
+      return isSignedIn() && isEmployeeExists(request.auth.uid) && getRole() == 'Manager';
+    }
+
+    function isAgent() {
+      return isSignedIn() && isEmployeeExists(request.auth.uid) && getRole() == 'Agent';
+    }
+
+    function isManagement() {
+      return isAdmin() || isManager();
+    }
+
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+       return request.resource.data;
+    }
+
+    function existing() {
+       return resource.data;
+    }
+
+    // --- ENTITY SPECIFIC VALIDATION HELPERS ---
+
+    function isValidEmployee(emp) {
+      return emp.keys().hasAll(['id', 'username', 'name', 'role', 'branchId', 'branchName']) &&
+             emp.keys().size() >= 6 &&
+             emp.id is string && emp.id.size() >= 3 && emp.id.size() <= 128 &&
+             emp.username is string && emp.username.size() >= 2 && emp.username.size() <= 50 &&
+             emp.name is string && emp.name.size() >= 2 && emp.name.size() <= 100 &&
+             (emp.role == 'Admin' || emp.role == 'Manager' || emp.role == 'Agent') &&
+             emp.branchId is string && emp.branchName is string;
+    }
+
+    function isValidBranch(branch) {
+      return branch.keys().hasAll(['id', 'name', 'location']) &&
+             branch.keys().size() == 3 &&
+             branch.id is string && branch.id.size() >= 3 &&
+             branch.name is string && branch.name.size() >= 2 &&
+             branch.location is string && branch.location.size() >= 2;
+    }
+
+    function isValidTrip(trip) {
+      return trip.keys().hasAll(['id', 'name', 'destination', 'price', 'duration', 'date', 'status']) &&
+             trip.keys().size() == 7 &&
+             trip.id is string &&
+             trip.name is string && trip.name.size() >= 3 &&
+             trip.destination is string && trip.destination.size() >= 2 &&
+             trip.price is number && trip.price >= 0 &&
+             trip.duration is string &&
+             trip.date is string &&
+             (trip.status == 'active' || trip.status == 'completed' || trip.status == 'upcoming');
+    }
+
+    function isValidCustomer(cust) {
+      return cust.keys().hasAll(['id', 'firstName', 'lastName', 'tripId', 'peopleCount', 'registrationDate', 'invoiceNumber', 'paymentStatus', 'companions']) &&
+             cust.id is string &&
+             cust.firstName is string && cust.firstName.size() >= 2 &&
+             cust.lastName is string && cust.lastName.size() >= 2 &&
+             cust.tripId is string &&
+             cust.peopleCount is number && cust.peopleCount > 0 &&
+             cust.registrationDate is string &&
+             cust.invoiceNumber is string &&
+             (cust.paymentStatus == 'paid' || cust.paymentStatus == 'partial' || cust.paymentStatus == 'unpaid') &&
+             cust.companions is list;
+    }
+
+    function isValidLog(log) {
+      return log.keys().hasAll(['id', 'employeeId', 'employeeName', 'branchName', 'actionType', 'details', 'timestamp']) &&
+             log.id is string &&
+             log.employeeId is string &&
+             log.employeeName is string &&
+             log.branchName is string &&
+             log.actionType is string &&
+             log.details is string &&
+             log.timestamp is string;
+    }
+
+    // --- COLLECTION MATCH BLOCKS ---
+
+    // 1. Employees: Only registered and active staff can read. Only management can write.
+    match /employees/{employeeId} {
+      allow read: if isSignedIn() && isEmployeeExists(request.auth.uid);
+      allow create: if isSignedIn() && isManagement() && isValidId(employeeId) && isValidEmployee(incoming());
+      
+      // Strict key & PII Isolation update check
+      allow update: if isSignedIn() && isManagement() && isValidId(employeeId) && isValidEmployee(incoming()) && (
+        // Prevent modifying someone's fundamental identity without being administrative
+        isAdmin() || (isManager() && existing().role != 'Admin' && incoming().role != 'Admin')
+      );
+      allow delete: if isSignedIn() && isAdmin() && employeeId != 'emp-1' && employeeId != request.auth.uid;
+    }
+
+    // 2. Branches: Authenticated staff can read. Only Management can create/edit.
+    match /branches/{branchId} {
+      allow read: if isSignedIn() && isEmployeeExists(request.auth.uid);
+      allow create, update: if isSignedIn() && isManagement() && isValidId(branchId) && isValidBranch(incoming());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // 3. Trips: Signed-in staff can read. Only Management can edit.
+    match /trips/{tripId} {
+      allow read: if isSignedIn() && isEmployeeExists(request.auth.uid);
+      allow create, update: if isSignedIn() && isManagement() && isValidId(tripId) && isValidTrip(incoming());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // 4. Customers: Signed-in staff can read & write (within standard workflows)
+    match /customers/{customerId} {
+      allow read: if isSignedIn() && isEmployeeExists(request.auth.uid);
+      allow create: if isSignedIn() && isEmployeeExists(request.auth.uid) && isValidId(customerId) && isValidCustomer(incoming());
+      allow update: if isSignedIn() && isEmployeeExists(request.auth.uid) && isValidId(customerId) && isValidCustomer(incoming()) && (
+        incoming().registrationDate == existing().registrationDate &&
+        incoming().invoiceNumber == existing().invoiceNumber
+      );
+      allow delete: if isSignedIn() && isManagement() && isValidId(customerId);
+    }
+
+    // 5. Operation Logs: Any active staff member can append a log. Only Admins can clear logs.
+    match /logs/{logId} {
+      allow read: if isSignedIn() && isEmployeeExists(request.auth.uid) && (isManagement() || existing().employeeId == request.auth.uid);
+      allow create: if isSignedIn() && isEmployeeExists(request.auth.uid) && isValidId(logId) && isValidLog(incoming());
+      allow update: if false; // Logs are immutable audit trails
+      allow delete: if isSignedIn() && isAdmin(); // Admin clear logs
+    }
+  }
+}

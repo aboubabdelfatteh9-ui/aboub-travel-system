@@ -1,0 +1,120 @@
+{
+  "branches": [
+    {
+      "id": "branch-main",
+      "name": "المركز الرئيسي للإدارة",
+      "location": "المركز الرئيسي"
+    }
+  ],
+  "employees": [
+    {
+      "id": "emp-admin",
+      "username": "admin",
+      "name": "عبد الفتاح عبعوب",
+      "role": "Admin",
+      "branchId": "branch-main",
+      "branchName": "المركز الرئيسي للإدارة",
+      "disabled": false
+    }
+  ],
+  "customers": [
+    {
+      "firstName": "Aboub",
+      "lastName": "Abdelfatteh20",
+      "birthDate": "2000-02-20",
+      "birthPlace": "تقرت",
+      "phone": "0696789633",
+      "tripId": "trip-soviva-tunisia",
+      "peopleCount": 1,
+      "notes": "",
+      "age": 26,
+      "roomType": "فندق Soviva Resort - فطور صباحي + عشاء (45,000 دج/شخص)",
+      "pricePerPerson": 45000,
+      "totalPrice": 45000,
+      "role": "tourist",
+      "companions": [],
+      "paymentStatus": "paid",
+      "bookingType": "individual",
+      "id": "customer-1781949205785",
+      "registrationDate": "2026-06-20T09:53:25.785Z",
+      "invoiceNumber": "AB-2026-0001",
+      "employeeId": "emp-admin",
+      "employeeName": "عبد الفتاح عبعوب",
+      "branchId": "branch-main",
+      "branchName": "المركز الرئيسي للإدارة"
+    }
+  ],
+  "trips": [
+    {
+      "id": "trip-soviva-tunisia",
+      "name": "عرض خاص – رحلة إلى تونس | Soviva Resort",
+      "destination": "سوسة / القنطاوي - تونس",
+      "price": 45000,
+      "duration": "7 أيام / 6 ليالي",
+      "date": "2026-07-01",
+      "status": "active"
+    },
+    {
+      "id": "trip-family-tunisia",
+      "name": "رحلة صيفية عائلية إلى تونس (شقق مجهزة ومكيفة)",
+      "destination": "سوسة، المنستير، الحمامات - تونس",
+      "price": 24000,
+      "duration": "7 أيام / 5 ليالي",
+      "date": "2026-07-10",
+      "status": "active"
+    },
+    {
+      "id": "trip-jijel-beach",
+      "name": "رحلة صيفية إلى جوهرة الشرق الجزائري - جيجل الساحرة والمناظر الطبيعية لبلاد كاب",
+      "destination": "جيجل وبجاية - الجزائر",
+      "price": 12900,
+      "duration": "6 أيام / 5 ليالٍ",
+      "date": "2026-07-15",
+      "status": "active"
+    },
+    {
+      "id": "trip-istanbul-8d",
+      "name": "رحلة مميزة إلى إسطنبول وجزر الأميرات البديعة (فندق 4 نجوم والخطوط التركية)",
+      "destination": "إسطنبول - تركيا",
+      "price": 135000,
+      "duration": "8 أيام / 7 ليالٍ",
+      "date": "2026-06-26",
+      "status": "active"
+    },
+    {
+      "id": "trip-center-algeria",
+      "name": "برنامج العائلات الرائع: الجزائر العاصمة – بومرداس – تيبازة",
+      "destination": "العاصمة، بومرداس وتيبازة - الجزائر",
+      "price": 12500,
+      "duration": "6 أيام / 5 ليالٍ",
+      "date": "2026-07-20",
+      "status": "active"
+    },
+    {
+      "id": "trip-sharm-el-sheikh-2026",
+      "name": "عرض صيف 2026 إلى شرم الشيخ – مصر 🇪🇬 | Parrotel Aqua Park Resort 4★",
+      "destination": "شرم الشيخ - مصر",
+      "price": 199000,
+      "duration": "10 أيام / 9 ليالٍ",
+      "date": "2026-07-24",
+      "dates": [
+        "2026-07-31",
+        "2026-08-05",
+        "2026-08-14",
+        "2026-08-21"
+      ],
+      "status": "active"
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-1781949205785",
+      "employeeId": "emp-admin",
+      "employeeName": "عبد الفتاح عبعوب",
+      "branchName": "المركز الرئيسي للإدارة",
+      "actionType": "add_customer",
+      "details": "تم تسجيل حجز جديد بنجاح للزبون: Aboub Abdelfatteh20 (رقم الحجز: AB-2026-0001) لرحلة \"عرض خاص – رحلة إلى تونس | Soviva Resort\"",
+      "timestamp": "2026-06-20T09:53:25.785Z"
+    }
+  ]
+}

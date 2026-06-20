@@ -1,0 +1,33 @@
+{
+  "employees": [
+    {
+      "id": "emp-1",
+      "username": "admin",
+      "name": "عبد الفتاح عبعوب",
+      "role": "Admin",
+      "branchId": "branch-main",
+      "branchName": "المركز الرئيسي للإدارة",
+      "password": "ca1be683b7cfcfc6bf32afe59bef3227:eb9da99460ba4cbae30709892c9c73a4b7f30b8c5c92cadfb5a98bf6571169ae7646ebb96575e8051750030052a468728a49dde7824d7f28b02a2dad9a3aa7d2"
+    }
+  ],
+  "branches": [
+    {
+      "id": "branch-main",
+      "name": "المركز الرئيسي للإدارة",
+      "location": "المركز الرئيسي"
+    }
+  ],
+  "trips": [],
+  "customers": [],
+  "logs": [
+    {
+      "id": "log-initial",
+      "employeeId": "system",
+      "employeeName": "أمين النظام",
+      "branchName": "المركز الرئيسي",
+      "actionType": "add_trip",
+      "details": "تم تهيئة النظام وتصفير قاعدة البيانات بنجاح للبدء في استخدام وإدخال الفروع والموظفين الحقيقيين.",
+      "timestamp": "2026-06-14T05:58:12Z"
+    }
+  ]
+}

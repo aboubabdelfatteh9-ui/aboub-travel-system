@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "Represents an internal travel agency employee / worker",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID matching their Firebase Auth UID" },
+        "username": { "type": "string", "description": "Unique username used for internal logging and identification" },
+        "name": { "type": "string", "description": "Display name of the employee" },
+        "role": { "type": "string", "enum": ["Admin", "Manager", "Agent"], "description": "The security role/privilege of this user" },
+        "branchId": { "type": "string", "description": "The ID of the branch office they work at" },
+        "branchName": { "type": "string", "description": "The human-readable name of their branch" },
+        "disabled": { "type": "boolean", "description": "Whether the employee account is disabled/deactivated" }
+      },
+      "required": ["id", "username", "name", "role", "branchId", "branchName"]
+    },
+    "Branch": {
+      "title": "Branch",
+      "description": "Represents a physical branch office or headquarters",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique branch ID" },
+        "name": { "type": "string", "description": "Name of the branch" },
+        "location": { "type": "string", "description": "Geographical location or city of the branch" }
+      },
+      "required": ["id", "name", "location"]
+    },
+    "Trip": {
+      "title": "Trip",
+      "description": "Represents a promotional travel tour program of the agency",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique trip ID" },
+        "name": { "type": "string", "description": "Headline name of the travel program" },
+        "destination": { "type": "string", "description": "Country / city destination of the trip" },
+        "price": { "type": "number", "description": "Price per customer in DZD (Algerian Dinars)" },
+        "duration": { "type": "string", "description": "E.g., 7 days / 6 nights" },
+        "date": { "type": "string", "description": "Scheduled departure date of the trip" },
+        "status": { "type": "string", "enum": ["active", "completed", "upcoming"], "description": "Travel activity status" }
+      },
+      "required": ["id", "name", "destination", "price", "duration", "date", "status"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Represents a combined booking or family register for a trip",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Combined customer booking identifier" },
+        "firstName": { "type": "string", "description": "Owner / representative main first name" },
+        "lastName": { "type": "string", "description": "Main last name / family name" },
+        "birthDate": { "type": "string" },
+        "birthPlace": { "type": "string" },
+        "phone": { "type": "string" },
+        "tripId": { "type": "string" },
+        "peopleCount": { "type": "number" },
+        "registrationDate": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "notes": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["paid", "partial", "unpaid"] },
+        "bookingType": { "type": "string", "enum": ["individual", "family"] },
+        "companions": { "type": "array", "description": "Details of family members and additional travellers" },
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "branchId": { "type": "string" },
+        "branchName": { "type": "string" }
+      },
+      "required": ["id", "firstName", "lastName", "tripId", "peopleCount", "registrationDate", "invoiceNumber", "paymentStatus", "companions"]
+    },
+    "OperationLog": {
+      "title": "OperationLog",
+      "description": "Activity logs auditing system actions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "branchName": { "type": "string" },
+        "actionType": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "employeeId", "employeeName", "branchName", "actionType", "details", "timestamp"]
+    }
+  },
+  "firestore": {
+    "employees/{id}": {
+      "schema": "Employee",
+      "description": "Private collection of travel agents and staff profiles"
+    },
+    "branches/{id}": {
+      "schema": "Branch",
+      "description": "Available office branches of Aboub Travel"
+    },
+    "trips/{id}": {
+      "schema": "Trip",
+      "description": "Available promotional travel programs"
+    },
+    "customers/{id}": {
+      "schema": "Customer",
+      "description": "Active reservations and family trip bookings"
+    },
+    "logs/{id}": {
+      "schema": "OperationLog",
+      "description": "Audit trails of agency system operations"
+    }
+  }
+}
