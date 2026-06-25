@@ -13,6 +13,16 @@ import { PrintDocument } from './components/PrintDocument';
 import { TripManifests } from './components/TripManifests';
 import { Login } from './components/Login';
 import { 
+  db, 
+  collection, 
+  onSnapshot, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  query, 
+  orderBy 
+} from './lib/firebase';
+import { 
   Users, 
   Map, 
   Wallet, 
@@ -167,31 +177,41 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newEmpName.trim(),
-          username: newEmpUsername.trim(),
-          password: newEmpPassword,
-          role: newEmpRole,
-          branchId: newEmpBranchId,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل إضافة الموظف الجديد', 'error');
-      } else {
-        setEmployees(data.employees || []);
-        if (data.logs) setLogs(data.logs);
-        setNewEmpName('');
-        setNewEmpUsername('');
-        setNewEmpPassword('123');
-        setNewEmpRole('Agent');
-        showToast(`تم إنشاء حساب الموظف المشفّر بنجاح!`, 'success');
-      }
+      const generatedId = `emp-${Date.now()}`;
+      const branchObj = branches.find(b => b.id === newEmpBranchId);
+      const branchName = branchObj ? branchObj.name : 'فرع غير معروف';
+      const newEmp: Employee = {
+        id: generatedId,
+        name: newEmpName.trim(),
+        username: newEmpUsername.trim().toLowerCase(),
+        password: newEmpPassword,
+        role: newEmpRole,
+        branchId: newEmpBranchId,
+        branchName: branchName,
+      };
+
+      await setDoc(doc(db, 'employees', generatedId), newEmp);
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'add_employee' as const,
+        details: `إنشاء حساب موظف جديد: ${newEmp.name} (اسم المستخدم: ${newEmp.username}) في ${branchName}`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      setNewEmpName('');
+      setNewEmpUsername('');
+      setNewEmpPassword('123');
+      setNewEmpRole('Agent');
+      showToast(`تم إنشاء حساب الموظف بنجاح!`, 'success');
     } catch (err) {
-      showToast('خطأ في الاتصال بالخادم الإداري', 'error');
+      console.error(err);
+      showToast('خطأ في الاتصال بقاعدة البيانات', 'error');
     }
   };
 
@@ -206,17 +226,29 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/employees/${empId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل حذف الموظف', 'error');
-      } else {
-        setEmployees(data.employees || []);
-        if (data.logs) setLogs(data.logs);
-        showToast(`تم حذف وإنهاء حساب موظف الفرع بنجاح`, 'info');
+      const targetEmp = employees.find(e => e.id === empId);
+      if (!targetEmp) {
+        showToast('الموظف غير متوفر في السجلات', 'error');
+        return;
       }
+      await deleteDoc(doc(db, 'employees', empId));
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'delete_employee' as const,
+        details: `حذف حساب الموظف: ${targetEmp.name} (اسم المستخدم: ${targetEmp.username})`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      showToast(`تم حذف وإنهاء حساب موظف الفرع بنجاح`, 'info');
     } catch (err) {
-      showToast('خطأ في الاتصال بنظام الأفراد', 'error');
+      console.error(err);
+      showToast('خطأ في الاتصال بقاعدة البيانات', 'error');
     }
   };
 
@@ -229,28 +261,38 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/employees/${editingEmployee.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editEmpName.trim(),
-          username: editEmpUsername.trim(),
-          password: editEmpPassword.trim() || undefined,
-          role: editEmpRole,
-          branchId: editEmpBranchId,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل تعديل بيانات الموظف', 'error');
-      } else {
-        setEmployees(data.employees || []);
-        if (data.logs) setLogs(data.logs);
-        setEditingEmployee(null);
-        showToast('تم تحديث بيانات حساب الموظف بنجاح!', 'success');
-      }
+      const branchObj = branches.find(b => b.id === editEmpBranchId);
+      const branchName = branchObj ? branchObj.name : 'فرع غير معروف';
+      
+      const updatedEmp: Employee = {
+        ...editingEmployee,
+        name: editEmpName.trim(),
+        username: editEmpUsername.trim().toLowerCase(),
+        password: editEmpPassword.trim() || editingEmployee.password,
+        role: editEmpRole,
+        branchId: editEmpBranchId,
+        branchName: branchName,
+      };
+
+      await setDoc(doc(db, 'employees', editingEmployee.id), updatedEmp);
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'update_employee' as const,
+        details: `تحديث بيانات الموظف: ${updatedEmp.name} (اسم المستخدم: ${updatedEmp.username})`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      setEditingEmployee(null);
+      showToast('تم تحديث بيانات حساب الموظف بنجاح!', 'success');
     } catch (err) {
-      showToast('خطأ في الاتصال بخادم تحديث قيد الموظف', 'error');
+      console.error(err);
+      showToast('خطأ في الاتصال بقاعدة البيانات', 'error');
     }
   };
 
@@ -265,23 +307,32 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/employees/${empId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          disabled: !currentStatus
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل تحديث حالة تفعيل الموظف', 'error');
-      } else {
-        setEmployees(data.employees || []);
-        if (data.logs) setLogs(data.logs);
-        showToast(!currentStatus ? 'تم تعطيل نشاط هذا الموظف بنجاح' : 'تم إعادة تنشيط الموظف بنجاح', 'success');
-      }
+      const targetEmp = employees.find(e => e.id === empId);
+      if (!targetEmp) return;
+
+      const updatedEmp = {
+        ...targetEmp,
+        disabled: !currentStatus
+      };
+
+      await setDoc(doc(db, 'employees', empId), updatedEmp);
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'update_employee' as const,
+        details: `${!currentStatus ? 'تعطيل' : 'تنشيط'} حساب الموظف: ${targetEmp.name}`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      showToast(!currentStatus ? 'تم تعطيل نشاط هذا الموظف بنجاح' : 'تم إعادة تنشيط الموظف بنجاح', 'success');
     } catch (err) {
-      showToast('خطأ في الاتصال بالنظام لتعديل حالة التفعيل', 'error');
+      console.error(err);
+      showToast('خطأ في تعديل حالة تفعيل الموظف بقاعدة البيانات', 'error');
     }
   };
 
@@ -293,26 +344,33 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/branches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newBranchName.trim(),
-          location: newBranchLocation.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل تسجيل المكتب الفرعي الجديد', 'error');
-      } else {
-        setBranches(data.branches || []);
-        if (data.logs) setLogs(data.logs);
-        setNewBranchName('');
-        setNewBranchLocation('');
-        showToast(`تم تأسيس وإرساء الفرع بنجاح وتحصينه!`, 'success');
-      }
+      const generatedId = `branch-${Date.now()}`;
+      const newBranch: Branch = {
+        id: generatedId,
+        name: newBranchName.trim(),
+        location: newBranchLocation.trim(),
+      };
+
+      await setDoc(doc(db, 'branches', generatedId), newBranch);
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'add_branch' as const,
+        details: `تأسيس وإرساء الفرع الجديد: ${newBranch.name} في ${newBranch.location}`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      setNewBranchName('');
+      setNewBranchLocation('');
+      showToast(`تم تأسيس وإرساء الفرع بنجاح وتحصينه!`, 'success');
     } catch (err) {
-      showToast('خطأ في الاتصال بخادم الفروع', 'error');
+      console.error(err);
+      showToast('خطأ في تأسيس الفرع بقاعدة البيانات', 'error');
     }
   };
 
@@ -486,20 +544,96 @@ export default function App() {
     inspectSession();
   }, []);
 
-  // Async reload whenever employee goes active + real-time interval polling
+  // Real-time Firestore Synchronization Hook (replaces old interval-based polling)
   useEffect(() => {
-    if (currentEmployee) {
-      fetchInitialData();
+    if (!currentEmployee) return;
 
-      // Poll server every 8 seconds so edits from other users show up in real-time
-      const interval = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-          fetchInitialData();
+    console.log('Registering real-time Firestore synchronizers...');
+
+    // 1. Listen to customers collection
+    const unsubscribeCustomers = onSnapshot(collection(db, 'customers'), (snap) => {
+      const list: Customer[] = [];
+      snap.forEach(docSnap => {
+        list.push(docSnap.data() as Customer);
+      });
+      setCustomers(list);
+    }, (error) => {
+      console.error('Error listening to customers:', error);
+    });
+
+    // 2. Listen to trips collection
+    const unsubscribeTrips = onSnapshot(collection(db, 'trips'), (snap) => {
+      const list: Trip[] = [];
+      snap.forEach(docSnap => {
+        list.push(docSnap.data() as Trip);
+      });
+      if (list.length > 0) {
+        // Sync any missing default itineraries
+        const missingDefaults = defaultTrips.filter(
+          dt => !list.some(pt => pt.id === dt.id)
+        );
+        if (missingDefaults.length > 0) {
+          const merged = [...list, ...missingDefaults];
+          setTrips(merged);
+        } else {
+          setTrips(list);
         }
-      }, 8000);
+      } else {
+        setTrips(defaultTrips);
+      }
+    }, (error) => {
+      console.error('Error listening to trips:', error);
+    });
 
-      return () => clearInterval(interval);
-    }
+    // 3. Listen to branches collection
+    const unsubscribeBranches = onSnapshot(collection(db, 'branches'), (snap) => {
+      const list: Branch[] = [];
+      snap.forEach(docSnap => {
+        list.push(docSnap.data() as Branch);
+      });
+      if (list.length > 0) {
+        setBranches(list);
+      } else {
+        setBranches(DEFAULT_BRANCHES);
+      }
+    }, (error) => {
+      console.error('Error listening to branches:', error);
+    });
+
+    // 4. Listen to employees collection
+    const unsubscribeEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
+      const list: Employee[] = [];
+      snap.forEach(docSnap => {
+        list.push(docSnap.data() as Employee);
+      });
+      if (list.length > 0) {
+        setEmployees(list);
+      } else {
+        setEmployees(DEFAULT_EMPLOYEES);
+      }
+    }, (error) => {
+      console.error('Error listening to employees:', error);
+    });
+
+    // 5. Listen to logs collection (limit to latest 150)
+    const logsQuery = query(collection(db, 'logs'), orderBy('timestamp', 'desc'));
+    const unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
+      const list: OperationLog[] = [];
+      snap.forEach(docSnap => {
+        list.push(docSnap.data() as OperationLog);
+      });
+      setLogs(list.slice(0, 150));
+    }, (error) => {
+      console.error('Error listening to logs:', error);
+    });
+
+    return () => {
+      unsubscribeCustomers();
+      unsubscribeTrips();
+      unsubscribeBranches();
+      unsubscribeEmployees();
+      unsubscribeLogs();
+    };
   }, [currentEmployee]);
 
   // 4. WORKSPACE SESSION AUTHENTICATION
@@ -571,21 +705,6 @@ export default function App() {
   // 7. CORE EVENT: ADD MEMBER
   const handleAddCustomer = async (newCust: Omit<Customer, 'id' | 'registrationDate' | 'invoiceNumber'>) => {
     try {
-      const res = await fetch('/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCust),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل تسجيل حجز العميل الجديد', 'error');
-      } else {
-        setCustomers(data.customers || []);
-        if (data.logs) setLogs(data.logs);
-        showToast(`تم تسجيل الزبون ${newCust.firstName} ${newCust.lastName} بنجاح كحجز جديد!`, 'success');
-      }
-    } catch (e) {
-      // Local fallback for Vercel/Static environment
       const generatedId = `customer-${Date.now()}`;
       const nextSeq = String(customers.length + 1).padStart(4, '0');
       const invoiceNumber = `AB-2026-${nextSeq}`;
@@ -594,99 +713,88 @@ export default function App() {
         id: generatedId,
         registrationDate: new Date().toISOString(),
         invoiceNumber: invoiceNumber,
-        employeeId: currentEmployee?.id || 'emp-admin',
+        employeeId: currentEmployee?.id || 'emp-1',
         employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-        branchId: currentEmployee?.branchId || 'branch-main',
-        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
+        branchId: currentEmployee?.branchId || 'branch-touggourt',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
       } as Customer;
-      
-      const updatedCustomers = [...customers, completeCustomer];
-      setCustomers(updatedCustomers);
+
+      // Write to Firestore in the cloud
+      await setDoc(doc(db, 'customers', generatedId), completeCustomer);
 
       let tripName = 'غير معروفة';
       const trip = trips.find(t => t.id === newCust.tripId);
       if (trip) tripName = trip.name;
 
-      const newLog: OperationLog = {
-        id: `log-${Date.now()}`,
-        employeeId: currentEmployee?.id || 'emp-admin',
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
         employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
-        actionType: 'add_customer',
-        details: `تم تسجيل حجز جديد بنجاح للزبون: ${completeCustomer.firstName} ${completeCustomer.lastName} (رقم الحجز: ${invoiceNumber}) لرحلة "${tripName}" (حفظ محلي)`,
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'add_customer' as const,
+        details: `تم تسجيل حجز جديد بنجاح للزبون: ${completeCustomer.firstName} ${completeCustomer.lastName} (رقم الحجز: ${invoiceNumber}) لرحلة "${tripName}"`,
         timestamp: new Date().toISOString()
       };
-      setLogs(prev => [newLog, ...prev]);
-      showToast(`تم تسجيل الزبون ${newCust.firstName} ${newCust.lastName} بنجاح كحجز محلي!`, 'success');
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      showToast(`تم تسجيل الزبون ${newCust.firstName} ${newCust.lastName} بنجاح كحجز جديد!`, 'success');
+    } catch (e) {
+      console.error('Failed to register customer to Firestore:', e);
+      showToast('فشل تسجيل حجز العميل الجديد في قاعدة البيانات', 'error');
     }
   };
 
   // 8. CORE EVENT: UPDATE MEMBER
   const handleUpdateCustomer = async (updatedCust: Customer) => {
     try {
-      const res = await fetch(`/api/customers/${updatedCust.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedCust),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل تحديث بيانات العميل', 'error');
-      } else {
-        setCustomers(data.customers || []);
-        if (data.logs) setLogs(data.logs);
-        showToast(`تم تعديل بيانات الزبون ${updatedCust.firstName} بنجاح وحفظها.`, 'success');
-      }
-    } catch (e) {
-      // Local fallback
-      const updated = customers.map(c => c.id === updatedCust.id ? updatedCust : c);
-      setCustomers(updated);
+      await setDoc(doc(db, 'customers', updatedCust.id), updatedCust);
       
-      const newLog: OperationLog = {
-        id: `log-${Date.now()}`,
-        employeeId: currentEmployee?.id || 'emp-admin',
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
         employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
-        actionType: 'update_customer',
-        details: `تحديث بيانات حجز الزبون: ${updatedCust.firstName} ${updatedCust.lastName} (رقم الحجز: ${updatedCust.invoiceNumber}) (حفظ محلي)`,
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'update_customer' as const,
+        details: `تحديث بيانات حجز الزبون: ${updatedCust.firstName} ${updatedCust.lastName} (رقم الحجز: ${updatedCust.invoiceNumber})`,
         timestamp: new Date().toISOString()
       };
-      setLogs(prev => [newLog, ...prev]);
-      showToast(`تم تعديل بيانات الزبون ${updatedCust.firstName} بنجاح وحفظها (محلي).`, 'success');
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      showToast(`تم تعديل بيانات الزبون ${updatedCust.firstName} بنجاح وحفظها.`, 'success');
+    } catch (e) {
+      console.error('Failed to update customer in Firestore:', e);
+      showToast('فشل تحديث بيانات العميل', 'error');
     }
   };
 
   // 9. CORE EVENT: DELETE MEMBER
   const handleDeleteCustomer = async (id: string) => {
     try {
-      const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل حذف قيد حجز العميل', 'error');
-      } else {
-        setCustomers(data.customers || []);
-        if (data.logs) setLogs(data.logs);
-        showToast(`تم حذف حجز الزبون بنجاح من سجلات بوابة فروع وكالة عبعوب.`, 'info');
-      }
-    } catch (e) {
-      // Local fallback
       const customer = customers.find(c => c.id === id);
       if (!customer) {
         showToast('الزبون غير مسجل بالنظام', 'error');
         return;
       }
-      setCustomers(prev => prev.filter(c => c.id !== id));
-      const newLog: OperationLog = {
-        id: `log-${Date.now()}`,
-        employeeId: currentEmployee?.id || 'emp-admin',
+      await deleteDoc(doc(db, 'customers', id));
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
         employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
-        actionType: 'delete_customer',
-        details: `تم إلغاء وحذف حجز الزبون بالكامل: ${customer.firstName} ${customer.lastName} (رقم الحجز: ${customer.invoiceNumber}) (حذف محلي)`,
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'delete_customer' as const,
+        details: `تم إلغاء وحذف حجز الزبون بالكامل: ${customer.firstName} ${customer.lastName} (رقم الحجز: ${customer.invoiceNumber})`,
         timestamp: new Date().toISOString()
       };
-      setLogs(prev => [newLog, ...prev]);
-      showToast(`تم حذف حجز الزبون بنجاح من السجلات (محلي).`, 'info');
+      await setDoc(doc(db, 'logs', logId), newLog);
+
+      showToast(`تم حذف حجز الزبون بنجاح من سجلات بوابة فروع وكالة عبعوب.`, 'info');
+    } catch (e) {
+      console.error('Failed to delete customer from Firestore:', e);
+      showToast('فشل حذف قيد حجز العميل', 'error');
     }
   };
 
@@ -756,38 +864,6 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/trips', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTripData),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل إنشاء برنامج الرحلة الإقليمي', 'error');
-      } else {
-        setTrips(data.trips || []);
-        if (data.logs) setLogs(data.logs);
-        setNewTripData({
-          name: '',
-          destination: '',
-          price: 50000,
-          duration: '8 أيام / 7 ليالٍ',
-          date: '',
-          dates: [],
-          departurePlaceNotes: '',
-          isProfessional: false,
-          priceSingle: undefined,
-          priceDouble: undefined,
-          priceTriple: undefined,
-          priceQuadruple: undefined,
-          priceQuintuple: undefined,
-          priceSextuple: undefined,
-          priceChild: undefined,
-        });
-        showToast(`تمت إضافة برنامج رحلة سياحية جديدة بنجاح!`, 'success');
-      }
-    } catch (err) {
-      // Local fallback
       const generatedId = `trip-${Date.now()}`;
       const createdTrip: Trip = {
         id: generatedId,
@@ -808,18 +884,20 @@ export default function App() {
         priceSextuple: newTripData.priceSextuple ? Number(newTripData.priceSextuple) : undefined,
         priceChild: newTripData.priceChild ? Number(newTripData.priceChild) : undefined,
       };
-      setTrips(prev => [...prev, createdTrip]);
+
+      await setDoc(doc(db, 'trips', generatedId), createdTrip);
       
-      const newLog: OperationLog = {
-        id: `log-${Date.now()}`,
-        employeeId: currentEmployee?.id || 'emp-admin',
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
         employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
-        actionType: 'add_trip',
-        details: `إنشاء برنامج رحلة سياحية جديدة: "${createdTrip.name}" الموجهة إلى ${createdTrip.destination} (حفظ محلي)`,
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'add_trip' as const,
+        details: `إنشاء برنامج رحلة سياحية جديدة: "${createdTrip.name}" الموجهة إلى ${createdTrip.destination}`,
         timestamp: new Date().toISOString()
       };
-      setLogs(prev => [newLog, ...prev]);
+      await setDoc(doc(db, 'logs', logId), newLog);
       
       setNewTripData({
         name: '',
@@ -838,7 +916,10 @@ export default function App() {
         priceSextuple: undefined,
         priceChild: undefined,
       });
-      showToast(`تمت إضافة برنامج رحلة سياحية جديدة بنجاح! (محلي)`, 'success');
+      showToast(`تمت إضافة برنامج رحلة سياحية جديدة بنجاح!`, 'success');
+    } catch (err) {
+      console.error('Failed to add trip:', err);
+      showToast('فشل إضافة الرحلة في قاعدة البيانات', 'error');
     }
   };
 
@@ -850,35 +931,28 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/trips/${tripId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل حذف برنامج الرحلة', 'error');
-      } else {
-        setTrips(data.trips || []);
-        if (data.logs) setLogs(data.logs);
-        showToast('تمت إزالة برنامج الرحلة بنجاح وعزل وعصف سجلاته.', 'success');
-      }
-    } catch (err) {
-      // Local fallback
       const targetTrip = trips.find(t => t.id === tripId);
       if (!targetTrip) {
         showToast('البرنامج السياحي غير متوفر', 'error');
         return;
       }
-      setTrips(prev => prev.filter(t => t.id !== tripId));
+      await deleteDoc(doc(db, 'trips', tripId));
       
-      const newLog: OperationLog = {
-        id: `log-${Date.now()}`,
-        employeeId: currentEmployee?.id || 'emp-admin',
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
         employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
-        actionType: 'delete_trip',
-        details: `إزالة وإلغاء برنامج الرحلة السياحية: "${targetTrip.name}" (حذف محلي)`,
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'delete_trip' as const,
+        details: `إزالة وإلغاء برنامج الرحلة السياحية: "${targetTrip.name}"`,
         timestamp: new Date().toISOString()
       };
-      setLogs(prev => [newLog, ...prev]);
-      showToast('تمت إزالة برنامج الرحلة بنجاح وعزل سجلاته (محلي).', 'success');
+      await setDoc(doc(db, 'logs', logId), newLog);
+      showToast('تمت إزالة برنامج الرحلة بنجاح.', 'success');
+    } catch (err) {
+      console.error('Failed to delete trip:', err);
+      showToast('فشل حذف الرحلة من قاعدة البيانات', 'error');
     }
   };
 
@@ -891,36 +965,24 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/trips/${editingTrip.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingTrip),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.error || 'فشل تعديل بيانات هذه الرحلة', 'error');
-      } else {
-        setTrips(data.trips || []);
-        if (data.logs) setLogs(data.logs);
-        setEditingTrip(null);
-        showToast(`تم تعديل وتحديث بيانات برنامج الرحلة بنجاح!`, 'success');
-      }
-    } catch (err) {
-      // Local fallback
-      setTrips(prev => prev.map(t => t.id === editingTrip.id ? editingTrip : t));
+      await setDoc(doc(db, 'trips', editingTrip.id), editingTrip);
       
-      const newLog: OperationLog = {
-        id: `log-${Date.now()}`,
-        employeeId: currentEmployee?.id || 'emp-admin',
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
         employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-        branchName: currentEmployee?.branchName || 'المركز الرئيسي للإدارة',
-        actionType: 'update_trip',
-        details: `تعديل روزنامة وبيانات رحلة: "${editingTrip.name}" (حفظ محلي)`,
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'update_trip' as const,
+        details: `تحديث بيانات برنامج الرحلة: "${editingTrip.name}"`,
         timestamp: new Date().toISOString()
       };
-      setLogs(prev => [newLog, ...prev]);
+      await setDoc(doc(db, 'logs', logId), newLog);
       setEditingTrip(null);
-      showToast(`تم تعديل وتحديث بيانات برنامج الرحلة بنجاح! (محلي)`, 'success');
+      showToast(`تم تعديل وتحديث بيانات برنامج الرحلة بنجاح!`, 'success');
+    } catch (err) {
+      console.error('Failed to update trip:', err);
+      showToast('فشل تعديل بيانات هذه الرحلة في قاعدة البيانات', 'error');
     }
   };
 

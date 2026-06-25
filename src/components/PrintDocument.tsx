@@ -767,10 +767,17 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
         @page {
           size: auto;
-          margin: 0mm;
+          margin: 0 !important;
         }
 
         @media print {
+          @page {
+            margin: 0 !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           body {
             visibility: hidden;
             background: white !important;
