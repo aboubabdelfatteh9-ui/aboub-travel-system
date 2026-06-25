@@ -470,7 +470,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
         </div>
 
         {/* Paper Container Preview (The actual A4 Ticket) */}
-        <div className="flex-1 overflow-auto max-h-[80vh] md:max-h-none border border-slate-250 rounded-xl bg-white shadow-inner flex justify-center">
+        <div className="flex-1 overflow-auto max-h-[80vh] md:max-h-none border border-slate-250 rounded-xl bg-white shadow-inner flex justify-center hide-scrollbar">
           
           <div
             id="a4-print-ticket-container"
@@ -530,14 +530,6 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                           فرع التسجيل: <span className="text-slate-800 font-semibold">{customer.branchName}</span>
                         </div>
                       )}
-                      {customer.employeeName && (
-                        <div>
-                          الموظف المعالج: <span className="text-slate-800 font-semibold">{customer.employeeName}</span>
-                        </div>
-                      )}
-                      <div>
-                        موقع الوكالة: <span className="font-mono text-slate-800 font-semibold">www.aboubtravel.dz</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -768,6 +760,15 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
       {/* Global CSS injected into print mode via direct print styles */}
       <style>{`
+        /* Hide scrollbars for preview pane on screen and print */
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none !important;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+
         @media print {
           body {
             visibility: hidden;
