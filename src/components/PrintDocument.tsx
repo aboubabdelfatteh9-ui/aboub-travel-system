@@ -64,8 +64,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
   });
 
   // Calculate potential departure date in Arabic
-  const formattedDepartureDate = trip.date !== 'غير محدد' 
-    ? new Date(trip.date).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' })
+  const departureDateToUse = customer.departureDate || trip.date;
+  const formattedDepartureDate = departureDateToUse !== 'غير محدد' && departureDateToUse
+    ? new Date(departureDateToUse).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'غير محدد';
 
   const ageComputed = customer.age || calculateAge(customer.birthDate);
@@ -362,9 +363,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 md:p-6 font-sans">
+    <div id="print-modal-overlay" className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 md:p-6 font-sans">
       {/* Printable page layout container */}
-      <div className="bg-slate-50 rounded-2xl max-w-5xl w-full p-6 shadow-xl relative flex flex-col md:flex-row gap-6 animate-in fade-in zoom-in-95 duration-200">
+      <div id="print-modal-content" className="bg-slate-50 rounded-2xl max-w-5xl w-full p-6 shadow-xl relative flex flex-col md:flex-row gap-6 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Controls Column (Hidden on print) */}
         <div className="md:w-1/4 flex flex-col justify-between gap-6 print:hidden text-right" dir="rtl">
@@ -477,7 +478,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             dir="rtl"
           >
             {/* DOCUMENT WATERMARK */}
-            <div className="absolute inset-0 opacity-[0.035] flex items-center justify-center pointer-events-none z-0">
+            <div className="absolute inset-0 opacity-[0.06] flex items-center justify-center pointer-events-none z-0">
               <Logo size={420} />
             </div>
 
@@ -524,6 +525,16 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                       <div>
                         تاريخ الإصدار: <span className="text-slate-800 font-semibold">{formattedDate}</span>
                       </div>
+                      {customer.branchName && (
+                        <div>
+                          فرع التسجيل: <span className="text-slate-800 font-semibold">{customer.branchName}</span>
+                        </div>
+                      )}
+                      {customer.employeeName && (
+                        <div>
+                          الموظف المعالج: <span className="text-slate-800 font-semibold">{customer.employeeName}</span>
+                        </div>
+                      )}
                       <div>
                         موقع الوكالة: <span className="font-mono text-slate-800 font-semibold">www.aboubtravel.dz</span>
                       </div>
@@ -564,9 +575,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block mb-0.5">تاريخ الميلاد والسن:</span>
+                      <span className="text-slate-400 block mb-0.5">تاريخ ومكان الميلاد:</span>
                       <strong className="text-slate-900">
-                        {customer.birthDate} ({ageComputed} سنة)
+                        {customer.birthDate} ({customer.birthPlace || 'غير محدد'}) - السن: {ageComputed} سنة
                       </strong>
                     </div>
 
@@ -593,7 +604,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                               <th className="py-1.5 px-3 w-16 text-center">الرقم</th>
                               <th className="py-1.5 px-3">صلة القرابة</th>
                               <th className="py-1.5 px-3">الاسم واللقب الكامل</th>
-                              <th className="py-1.5 px-3">تاريخ الميلاد والسن</th>
+                              <th className="py-1.5 px-3">تاريخ ومكان الميلاد (السن)</th>
                               <th className="py-1.5 px-3">نوع الإقامة المبرمجة</th>
                             </tr>
                           </thead>
@@ -603,7 +614,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                               <td className="py-1.5 px-3 text-center font-bold text-blue-800">1</td>
                               <td className="py-1.5 px-3 font-bold text-blue-800">رب العائلة (المسؤول)</td>
                               <td className="py-1.5 px-3 font-bold text-slate-900">{customer.firstName} {customer.lastName}</td>
-                              <td className="py-1.5 px-3">{customer.birthDate} ({ageComputed} سنة)</td>
+                              <td className="py-1.5 px-3">{customer.birthDate} ({customer.birthPlace || 'غير محدد'}) - {ageComputed} سنة</td>
                               <td className="py-1.5 px-3 text-slate-600">{customer.roomType || 'عرض قياسي موحد'}</td>
                             </tr>
 
@@ -613,7 +624,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                                 <td className="py-1.5 px-3 text-center text-slate-500">{index + 2}</td>
                                 <td className="py-1.5 px-3 font-bold text-blue-600">{cmp.relationship || 'مرافق'}</td>
                                 <td className="py-1.5 px-3 font-semibold text-slate-800">{cmp.firstName} {cmp.lastName}</td>
-                                <td className="py-1.5 px-3">{cmp.birthDate} ({calculateAge(cmp.birthDate)} سنة)</td>
+                                <td className="py-1.5 px-3">{cmp.birthDate} ({cmp.birthPlace || 'غير محدد'}) - {calculateAge(cmp.birthDate)} سنة</td>
                                 <td className="py-1.5 px-3 text-slate-500">{cmp.roomType || 'عرض قياسي موفر'}</td>
                               </tr>
                             ))}
@@ -664,6 +675,15 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                       <span className="text-slate-400 block mb-0.5">{isFamily ? "الإقامة الموحدة للرب:" : "الإقامة الموحدة للزبون:"}</span>
                       <strong className="text-slate-900">{customer.roomType || 'عرض قياسي موحد'}</strong>
                     </div>
+
+                    {trip.departurePlaceNotes && (
+                      <div className="col-span-2 mt-2 pt-2 border-t border-slate-200/50">
+                        <span className="text-slate-400 block mb-0.5">مكان المغادرة والتجمع ونقاط الانطلاق المحددة للرحلة:</span>
+                        <p className="text-slate-850 font-sans font-bold leading-relaxed bg-white/70 px-3 py-1.5 rounded border border-slate-200/50">
+                          {trip.departurePlaceNotes}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -749,27 +769,56 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
       {/* Global CSS injected into print mode via direct print styles */}
       <style>{`
         @media print {
-          body * {
+          body {
             visibility: hidden;
+            background: white !important;
           }
-          #a4-print-ticket-container, #a4-print-ticket-container * {
-            visibility: visible;
+          #print-modal-overlay, #print-modal-content, #a4-print-ticket-container, #a4-print-ticket-container * {
+            visibility: visible !important;
+          }
+          #print-modal-overlay {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: block !important;
+          }
+          #print-modal-content {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            display: block !important;
           }
           #a4-print-ticket-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 210mm;
-            height: 297mm;
-            padding: 15mm;
-            margin: 0;
-            box-shadow: none;
-            border: none;
+            position: relative !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            height: auto !important;
+            padding: 15mm !important;
+            margin: 0 auto !important;
+            border: none !important;
+            box-shadow: none !important;
             background: white !important;
+            box-sizing: border-box !important;
+          }
+          .print\:hidden {
+            display: none !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
         }
       `}</style>
