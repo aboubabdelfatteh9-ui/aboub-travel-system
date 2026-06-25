@@ -486,10 +486,19 @@ export default function App() {
     inspectSession();
   }, []);
 
-  // Async reload whenever employee goes active
+  // Async reload whenever employee goes active + real-time interval polling
   useEffect(() => {
     if (currentEmployee) {
       fetchInitialData();
+
+      // Poll server every 8 seconds so edits from other users show up in real-time
+      const interval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          fetchInitialData();
+        }
+      }, 8000);
+
+      return () => clearInterval(interval);
     }
   }, [currentEmployee]);
 

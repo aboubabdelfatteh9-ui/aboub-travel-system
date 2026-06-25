@@ -505,10 +505,6 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                         <Phone size={11} className="text-blue-600" />
                         0667910148 / 0696789633
                       </span>
-                      <span className="flex items-center gap-1.5 font-mono">
-                        <Mail size={11} className="text-blue-600" />
-                        contact@aboubtravel.dz
-                      </span>
                     </div>
                   </div>
 
@@ -767,6 +763,11 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
         .hide-scrollbar {
           -ms-overflow-style: none !important;
           scrollbar-width: none !important;
+        }
+
+        @page {
+          size: auto;
+          margin: 0mm;
         }
 
         @media print {
