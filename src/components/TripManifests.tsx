@@ -225,7 +225,12 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
   };
 
   const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = ''; // Clear webpage title so it does not appear in browser print headers
     window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 150);
   };
 
   return (
@@ -495,70 +500,97 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
 
       </div>
       
-      {/* Global CSS style tags for manifest A4 layout */}
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #print-layout-app-wrapper, .print-hidden-viewport {
-            display: none !important;
-          }
-          #printable-manifest-document, #printable-manifest-document * {
-            visibility: visible;
-          }
-          #printable-manifest-document {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 15mm;
-            margin: 0;
-            box-shadow: none !important;
-            border: none !important;
-            background: white !important;
-          }
-          #printable-manifest-document .overflow-x-auto {
-            overflow: visible !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-            border: none !important;
-          }
-          #printable-manifest-document *::-webkit-scrollbar,
-          #printable-manifest-document *::-webkit-scrollbar-button,
-          #printable-manifest-document *::-webkit-scrollbar-thumb,
-          #printable-manifest-document *::-webkit-scrollbar-track,
-          #printable-manifest-document *::-webkit-scrollbar-corner,
-          #printable-manifest-document *::-webkit-resizer {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-            background: transparent !important;
-          }
-          #printable-manifest-document input {
-            border: none !important;
-            border-bottom: none !important;
-            background: transparent !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            width: auto !important;
-            text-align: center !important;
-            font-weight: bold !important;
-            color: #000 !important;
-            box-shadow: none !important;
-          }
-          #printable-manifest-document input::placeholder {
-            color: transparent !important;
-          }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-        }
-      `}</style>
+       {/* Global CSS style tags for manifest A4 layout */}
+       <style>{`
+         @page {
+           size: auto;
+           margin: 0 !important;
+         }
+         @media print {
+           @page {
+             margin: 0 !important;
+           }
+           body * {
+             visibility: hidden;
+           }
+           #print-layout-app-wrapper, .print-hidden-viewport {
+             display: none !important;
+           }
+           #printable-manifest-document, #printable-manifest-document * {
+             visibility: visible;
+           }
+           #printable-manifest-document {
+             position: absolute;
+             left: 0;
+             top: 0;
+             width: 210mm;
+             min-height: 297mm;
+             padding: 20mm 15mm 15mm 15mm !important;
+             margin: 0;
+             box-shadow: none !important;
+             border: none !important;
+             background: white !important;
+             box-sizing: border-box !important;
+           }
+           #printable-manifest-document .overflow-x-auto {
+             overflow: visible !important;
+             overflow-x: visible !important;
+             overflow-y: visible !important;
+             scrollbar-width: none !important;
+             -ms-overflow-style: none !important;
+             border: 1.5px solid #000000 !important;
+             border-radius: 0px !important;
+           }
+           #printable-manifest-document table {
+             border-collapse: collapse !important;
+             width: 100% !important;
+             border: none !important;
+           }
+           #printable-manifest-document th {
+             border: 1px solid #000000 !important;
+             background-color: #f1f5f9 !important;
+             color: #000000 !important;
+             font-weight: bold !important;
+             text-align: center !important;
+             padding: 8px 12px !important;
+           }
+           #printable-manifest-document td {
+             border: 1px solid #000000 !important;
+             color: #000000 !important;
+             padding: 8px 12px !important;
+           }
+           #printable-manifest-document *::-webkit-scrollbar,
+           #printable-manifest-document *::-webkit-scrollbar-button,
+           #printable-manifest-document *::-webkit-scrollbar-thumb,
+           #printable-manifest-document *::-webkit-scrollbar-track,
+           #printable-manifest-document *::-webkit-scrollbar-corner,
+           #printable-manifest-document *::-webkit-resizer {
+             display: none !important;
+             width: 0 !important;
+             height: 0 !important;
+             background: transparent !important;
+           }
+           #printable-manifest-document input {
+             border: none !important;
+             border-bottom: none !important;
+             background: transparent !important;
+             padding: 0 !important;
+             margin: 0 !important;
+             width: auto !important;
+             text-align: center !important;
+             font-weight: bold !important;
+             color: #000 !important;
+             box-shadow: none !important;
+           }
+           #printable-manifest-document input::placeholder {
+             color: transparent !important;
+           }
+           * {
+             -webkit-print-color-adjust: exact !important;
+             print-color-adjust: exact !important;
+           }
+         }
+       `}</style>
     </div>
   );
 }

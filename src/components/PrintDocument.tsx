@@ -359,7 +359,12 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
   // Trigger Native Browser Print
   const triggerNativePrint = () => {
+    const originalTitle = document.title;
+    document.title = ''; // Clear webpage title so it does not appear in browser print headers
     window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 150);
   };
 
   return (
