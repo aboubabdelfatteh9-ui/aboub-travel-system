@@ -525,11 +525,18 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
             overflow-y: visible !important;
             scrollbar-width: none !important;
             -ms-overflow-style: none !important;
+            border: none !important;
           }
-          #printable-manifest-document .overflow-x-auto::-webkit-scrollbar {
+          #printable-manifest-document *::-webkit-scrollbar,
+          #printable-manifest-document *::-webkit-scrollbar-button,
+          #printable-manifest-document *::-webkit-scrollbar-thumb,
+          #printable-manifest-document *::-webkit-scrollbar-track,
+          #printable-manifest-document *::-webkit-scrollbar-corner,
+          #printable-manifest-document *::-webkit-resizer {
             display: none !important;
             width: 0 !important;
             height: 0 !important;
+            background: transparent !important;
           }
           #printable-manifest-document input {
             border: none !important;
