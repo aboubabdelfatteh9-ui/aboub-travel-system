@@ -332,7 +332,7 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
               <p className="text-[11px] text-blue-900 leading-normal flex items-start gap-1.5 font-sans">
                 <span>💡</span>
                 <span>
-                  <strong>تلميح لحفظ الكشف كملف PDF:</strong> اضغط على زر الطباعة أعلاه، ثم اختر <strong>"حفظ بتنسيق PDF" (Save as PDF)</strong> من خانة الوجهة بالمتصفح ليتم تصدير الكشف بشكل فوري وواضح ومطابق للمتطلبات الأمنية والبلدية.
+                  <strong>تلميح لطباعة نظيفة وخالية من هوامش المتصفح:</strong> اضغط على زر الطباعة، وفي نافذة خيارات الطباعة تأكد من <strong>إلغاء تحديد خيار "الرؤوس والتذييلات" (Headers and Footers)</strong> لتفادي ظهور تاريخ ووقت الطباعة وعنوان الموقع بشكل كامل والحصول على ورقة رسمية نقية بنسبة 100%.
                 </span>
               </p>
             </div>
@@ -509,6 +509,12 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
          @media print {
            @page {
              margin: 0 !important;
+             size: A4 portrait;
+           }
+           html, body {
+             margin: 0 !important;
+             padding: 0 !important;
+             background: #ffffff !important;
            }
            body * {
              visibility: hidden;
@@ -538,26 +544,29 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
              overflow-y: visible !important;
              scrollbar-width: none !important;
              -ms-overflow-style: none !important;
-             border: 1.5px solid #000000 !important;
+             border: none !important;
              border-radius: 0px !important;
+             margin-top: 15px !important;
            }
            #printable-manifest-document table {
              border-collapse: collapse !important;
              width: 100% !important;
-             border: none !important;
+             border: 2px solid #000000 !important; /* Thick neat black outer border */
            }
            #printable-manifest-document th {
-             border: 1px solid #000000 !important;
+             border: 1px solid #000000 !important; /* Elegant black inner grid lines */
              background-color: #f1f5f9 !important;
              color: #000000 !important;
              font-weight: bold !important;
              text-align: center !important;
-             padding: 8px 12px !important;
+             padding: 10px 12px !important;
+             font-size: 11px !important;
            }
            #printable-manifest-document td {
-             border: 1px solid #000000 !important;
+             border: 1px solid #000000 !important; /* Elegant black inner grid lines */
              color: #000000 !important;
-             padding: 8px 12px !important;
+             padding: 10px 12px !important;
+             font-size: 11px !important;
            }
            #printable-manifest-document *::-webkit-scrollbar,
            #printable-manifest-document *::-webkit-scrollbar-button,
