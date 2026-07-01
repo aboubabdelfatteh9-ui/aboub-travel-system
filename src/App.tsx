@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Customer, Trip, Employee, Branch, OperationLog } from './types';
 import { defaultTrips } from './data/trips';
 import { Logo } from './components/Logo';
-import { CustomerForm } from './components/CustomerForm';
+import { CustomerForm, getRoomOptionsForTrip, getTripPriceLabelsAndDefaults } from './components/CustomerForm';
 import { CustomerTable } from './components/CustomerTable';
 import { PrintDocument } from './components/PrintDocument';
 import { TripManifests } from './components/TripManifests';
@@ -374,10 +374,27 @@ export default function App() {
     }
   };
 
-  // 2. LIVE CLOCK EFFECT
+  // 2. LIVE CLOCK EFFECT & GLOBAL PRINT HEADERS/FOOTERS SUPPRESSION
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Globally hide webpage titles and default browser headers (URL, Website name, Date/Time) during print
+  useEffect(() => {
+    const originalTitle = document.title;
+    const handleBeforePrint = () => {
+      document.title = ''; // Setting document.title to empty suppresses the website title/name in Chrome/Firefox/Safari
+    };
+    const handleAfterPrint = () => {
+      document.title = originalTitle || 'بوابة إدارة الفروع - وكالة عبعوب';
+    };
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
   }, []);
 
   // Helpers: Load dynamic datasets from backend with fail-safe local storage fallback
@@ -1405,93 +1422,115 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Detailed Prices Section (Algerian Accommodation Style) - Only visible if Professional is selected */}
-                  {newTripData.isProfessional && (
-                    <div className="bg-blue-50/45 p-3 rounded-lg border border-blue-100 space-y-2 mt-2 font-sans text-right animate-in fade-in duration-150">
-                      <h4 className="font-extrabold text-[11px] text-blue-900 border-b border-blue-100 pb-1 mb-1.5 flex items-center gap-1">
-                        <span>🏷️ تفاصيل الأسعار حسب نوع الغرفة (دج)</span>
-                      </h4>
-                      <div className="grid grid-cols-2 gap-2 text-[10px]">
-                        <div>
-                          <label htmlFor="trip-price-single" className="block font-bold text-slate-600 mb-0.5">غرفة فردية Single</label>
-                          <input
-                            type="number"
-                            id="trip-price-single"
-                            placeholder="مثال: 75000"
-                            value={newTripData.priceSingle || ''}
-                            onChange={(e) => setNewTripData({ ...newTripData, priceSingle: parseInt(e.target.value) || undefined })}
-                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="trip-price-double" className="block font-bold text-slate-600 mb-0.5">غرفة ثنائية Double</label>
-                          <input
-                            type="number"
-                            id="trip-price-double"
-                            placeholder="مثال: 55000"
-                            value={newTripData.priceDouble || ''}
-                            onChange={(e) => setNewTripData({ ...newTripData, priceDouble: parseInt(e.target.value) || undefined })}
-                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="trip-price-triple" className="block font-bold text-slate-600 mb-0.5">غرفة ثلاثية Triple</label>
-                          <input
-                            type="number"
-                            id="trip-price-triple"
-                            placeholder="مثال: 48000"
-                            value={newTripData.priceTriple || ''}
-                            onChange={(e) => setNewTripData({ ...newTripData, priceTriple: parseInt(e.target.value) || undefined })}
-                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="trip-price-quadruple" className="block font-bold text-slate-600 mb-0.5">غرفة رباعية Quadruple</label>
-                          <input
-                            type="number"
-                            id="trip-price-quadruple"
-                            placeholder="مثال: 42000"
-                            value={newTripData.priceQuadruple || ''}
-                            onChange={(e) => setNewTripData({ ...newTripData, priceQuadruple: parseInt(e.target.value) || undefined })}
-                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="trip-price-quintuple" className="block font-bold text-slate-600 mb-0.5">غرفة خماسية Quintuple</label>
-                          <input
-                            type="number"
-                            id="trip-price-quintuple"
-                            placeholder="مثال: 38000"
-                            value={newTripData.priceQuintuple || ''}
-                            onChange={(e) => setNewTripData({ ...newTripData, priceQuintuple: parseInt(e.target.value) || undefined })}
-                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="trip-price-sextuple" className="block font-bold text-slate-600 mb-0.5">غرفة سداسية Sextuple</label>
-                          <input
-                            type="number"
-                            id="trip-price-sextuple"
-                            placeholder="مثال: 35000"
-                            value={newTripData.priceSextuple || ''}
-                            onChange={(e) => setNewTripData({ ...newTripData, priceSextuple: parseInt(e.target.value) || undefined })}
-                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="trip-price-child" className="block font-bold text-slate-600 mb-0.5">سعر الأطفال Child</label>
-                          <input
-                            type="number"
-                            id="trip-price-child"
-                            placeholder="مثال: 32000"
-                            value={newTripData.priceChild || ''}
-                            onChange={(e) => setNewTripData({ ...newTripData, priceChild: parseInt(e.target.value) || undefined })}
-                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                          />
-                        </div>
+                  {/* Detailed Prices Section (Algerian Accommodation Style) - Always Visible */}
+                  <div className="bg-blue-50/45 p-3 rounded-lg border border-blue-100 space-y-2 mt-2 font-sans text-right">
+                    <h4 className="font-extrabold text-[11px] text-blue-900 border-b border-blue-100 pb-1 mb-1.5 flex items-center gap-1">
+                      <span>🏷️ تفاصيل الأسعار حسب نوع الغرفة والمقعد (اختياري)</span>
+                    </h4>
+                    <p className="text-[9px] text-slate-500 leading-normal mb-1">
+                      تعبئة هذه الحقول تفعل تلقائياً خيارات الغرف المفصلة للمسافرين في استمارة التسجيل والعروض.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      <div>
+                        <label htmlFor="trip-price-single" className="block font-bold text-slate-600 mb-0.5">غرفة فردية Single</label>
+                        <input
+                          type="number"
+                          id="trip-price-single"
+                          placeholder="مثال: 75000"
+                          value={newTripData.priceSingle || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || undefined;
+                            setNewTripData({ ...newTripData, priceSingle: val, isProfessional: true });
+                          }}
+                          className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="trip-price-double" className="block font-bold text-slate-600 mb-0.5">غرفة ثنائية Double</label>
+                        <input
+                          type="number"
+                          id="trip-price-double"
+                          placeholder="مثال: 55000"
+                          value={newTripData.priceDouble || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || undefined;
+                            setNewTripData({ ...newTripData, priceDouble: val, isProfessional: true });
+                          }}
+                          className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="trip-price-triple" className="block font-bold text-slate-600 mb-0.5">غرفة ثلاثية Triple</label>
+                        <input
+                          type="number"
+                          id="trip-price-triple"
+                          placeholder="مثال: 48000"
+                          value={newTripData.priceTriple || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || undefined;
+                            setNewTripData({ ...newTripData, priceTriple: val, isProfessional: true });
+                          }}
+                          className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="trip-price-quadruple" className="block font-bold text-slate-600 mb-0.5">غرفة رباعية Quadruple</label>
+                        <input
+                          type="number"
+                          id="trip-price-quadruple"
+                          placeholder="مثال: 42000"
+                          value={newTripData.priceQuadruple || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || undefined;
+                            setNewTripData({ ...newTripData, priceQuadruple: val, isProfessional: true });
+                          }}
+                          className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="trip-price-quintuple" className="block font-bold text-slate-600 mb-0.5">غرفة خماسية Quintuple</label>
+                        <input
+                          type="number"
+                          id="trip-price-quintuple"
+                          placeholder="مثال: 38000"
+                          value={newTripData.priceQuintuple || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || undefined;
+                            setNewTripData({ ...newTripData, priceQuintuple: val, isProfessional: true });
+                          }}
+                          className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="trip-price-sextuple" className="block font-bold text-slate-600 mb-0.5">غرفة سداسية Sextuple</label>
+                        <input
+                          type="number"
+                          id="trip-price-sextuple"
+                          placeholder="مثال: 35000"
+                          value={newTripData.priceSextuple || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || undefined;
+                            setNewTripData({ ...newTripData, priceSextuple: val, isProfessional: true });
+                          }}
+                          className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="trip-price-child" className="block font-bold text-slate-600 mb-0.5">سعر الأطفال Child</label>
+                        <input
+                          type="number"
+                          id="trip-price-child"
+                          placeholder="مثال: 32000"
+                          value={newTripData.priceChild || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || undefined;
+                            setNewTripData({ ...newTripData, priceChild: val, isProfessional: true });
+                          }}
+                          className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Departure/Itinerary info details */}
                   <div className="font-sans text-right">
@@ -1601,8 +1640,8 @@ export default function App() {
                           </div>
 
                           {/* Rich metadata display of prices and departure details */}
-                          {(tour.departurePlaceNotes || tour.priceSingle || tour.priceDouble || tour.priceTriple || tour.priceChild) && (
-                            <div className="mt-3 pt-3 border-t border-slate-200/50 space-y-2 text-[10px] text-slate-500 font-sans text-right">
+                          {(tour.departurePlaceNotes || tour.priceSingle || tour.priceDouble || tour.priceTriple || tour.priceQuadruple || tour.priceQuintuple || tour.priceSextuple || tour.priceChild) && (
+                            <div className="mt-3 pt-3 border-t border-slate-200/50 space-y-2 text-[10px] text-slate-550 font-sans text-right">
                               {tour.departurePlaceNotes && (
                                 <div className="bg-slate-100 p-2 rounded text-[10px] text-slate-700 leading-relaxed">
                                   <strong className="text-slate-900 block mb-0.5">📌 مسار ونقاط الانطلاق:</strong>
@@ -1610,13 +1649,16 @@ export default function App() {
                                 </div>
                               )}
                               
-                              {(tour.priceSingle || tour.priceDouble || tour.priceTriple || tour.priceChild) && (
+                              {(tour.priceSingle !== undefined || tour.priceDouble !== undefined || tour.priceTriple !== undefined || tour.priceQuadruple !== undefined || tour.priceQuintuple !== undefined || tour.priceSextuple !== undefined || tour.priceChild !== undefined) && (
                                 <div className="bg-blue-50/50 p-2 rounded border border-blue-100 text-blue-950 font-sans">
                                   <strong className="text-blue-900 block mb-1">🏷️ تفاصيل أسعار الإقامة والغرف:</strong>
                                   <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
                                     {tour.priceSingle !== undefined && <div>• فردية Single: <span className="font-bold font-mono">{tour.priceSingle.toLocaleString('ar-DZ')} دج</span></div>}
                                     {tour.priceDouble !== undefined && <div>• ثنائية Double: <span className="font-bold font-mono">{tour.priceDouble.toLocaleString('ar-DZ')} دج</span></div>}
                                     {tour.priceTriple !== undefined && <div>• ثلاثية Triple: <span className="font-bold font-mono">{tour.priceTriple.toLocaleString('ar-DZ')} دج</span></div>}
+                                    {tour.priceQuadruple !== undefined && <div>• رباعية Quad: <span className="font-bold font-mono">{tour.priceQuadruple.toLocaleString('ar-DZ')} دج</span></div>}
+                                    {tour.priceQuintuple !== undefined && <div>• خماسية Quint: <span className="font-bold font-mono">{tour.priceQuintuple.toLocaleString('ar-DZ')} دج</span></div>}
+                                    {tour.priceSextuple !== undefined && <div>• سداسية Sext: <span className="font-bold font-mono">{tour.priceSextuple.toLocaleString('ar-DZ')} دج</span></div>}
                                     {tour.priceChild !== undefined && <div>• أطفال Child: <span className="font-bold font-mono">{tour.priceChild.toLocaleString('ar-DZ')} دج</span></div>}
                                   </div>
                                 </div>
@@ -1631,7 +1673,14 @@ export default function App() {
                           </span>
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => setEditingTrip(tour)}
+                              onClick={() => {
+                                const defaultTripObj = defaultTrips.find(dt => dt.id === tour.id);
+                                const enrichedTrip = {
+                                  ...defaultTripObj,
+                                  ...tour,
+                                };
+                                setEditingTrip(enrichedTrip);
+                              }}
                               id={`btn-trip-edit-${tour.id}`}
                               className="text-slate-600 p-1.5 bg-white border border-slate-200 rounded-lg hover:border-amber-500 hover:text-amber-600 transition-colors cursor-pointer flex items-center justify-center"
                               title="تعديل تفاصيل البرنامج السياحي"
@@ -2369,92 +2418,182 @@ export default function App() {
               </div>
 
               {/* Detailed Prices Section (Algerian Accommodation Style) - EDIT */}
-              {editingTrip.isProfessional && (
-                <div className="bg-blue-50/45 p-3 rounded-lg border border-blue-100 space-y-2 mt-2 font-sans text-right">
-                  <h4 className="font-extrabold text-[11px] text-blue-900 border-b border-blue-100 pb-1 mb-1.5 flex items-center gap-1">
-                    <span>🏷️ تفاصيل الأسعار حسب نوع الغرفة (دج)</span>
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-[10px]">
-                    <div>
-                      <label htmlFor="edit-trip-price-single" className="block font-bold text-slate-600 mb-0.5">غرفة فردية Single</label>
-                      <input
-                        type="number"
-                        id="edit-trip-price-single"
-                        placeholder="لا توجد تسعيرة مخصصة"
-                        value={editingTrip.priceSingle || ''}
-                        onChange={(e) => setEditingTrip({ ...editingTrip, priceSingle: parseInt(e.target.value) || undefined })}
-                        className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
-                      />
+              {(() => {
+                const tripLabels = getTripPriceLabelsAndDefaults(editingTrip.id, editingTrip);
+                const disabledKeys = (Object.keys(tripLabels) as (keyof typeof tripLabels)[]).filter(
+                  (key) => tripLabels[key].disabled
+                );
+                return (
+                  <div className="bg-blue-50/45 p-3 rounded-lg border border-blue-100 space-y-2 mt-2 font-sans text-right">
+                    <h4 className="font-extrabold text-[11px] text-blue-900 border-b border-blue-100 pb-1 mb-1.5 flex items-center gap-1">
+                      <span>🏷️ تفاصيل الأسعار حسب نوع الغرفة والمقعد (اختياري)</span>
+                    </h4>
+                    <p className="text-[9px] text-slate-500 leading-normal mb-1">
+                      تعديل هذه الحقول ينعكس فوراً للمسافرين في استمارة التسجيل الحالية والعروض لجميع المستخدمين.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      {!tripLabels.priceSingle.disabled && (
+                        <div>
+                          <label htmlFor="edit-trip-price-single" className="block font-bold text-slate-600 mb-0.5">{tripLabels.priceSingle.label}</label>
+                          <input
+                            type="number"
+                            id="edit-trip-price-single"
+                            placeholder={tripLabels.priceSingle.defaultVal ? `الافتراضي: ${tripLabels.priceSingle.defaultVal}` : "لا توجد تسعيرة مخصصة"}
+                            value={editingTrip.priceSingle ?? ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || undefined;
+                              setEditingTrip({ ...editingTrip, priceSingle: val, isProfessional: true });
+                            }}
+                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
+                          />
+                        </div>
+                      )}
+                      {!tripLabels.priceDouble.disabled && (
+                        <div>
+                          <label htmlFor="edit-trip-price-double" className="block font-bold text-slate-600 mb-0.5">{tripLabels.priceDouble.label}</label>
+                          <input
+                            type="number"
+                            id="edit-trip-price-double"
+                            placeholder={tripLabels.priceDouble.defaultVal ? `الافتراضي: ${tripLabels.priceDouble.defaultVal}` : "لا توجد تسعيرة مخصصة"}
+                            value={editingTrip.priceDouble ?? ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || undefined;
+                              setEditingTrip({ ...editingTrip, priceDouble: val, isProfessional: true });
+                            }}
+                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
+                          />
+                        </div>
+                      )}
+                      {!tripLabels.priceTriple.disabled && (
+                        <div>
+                          <label htmlFor="edit-trip-price-triple" className="block font-bold text-slate-600 mb-0.5">{tripLabels.priceTriple.label}</label>
+                          <input
+                            type="number"
+                            id="edit-trip-price-triple"
+                            placeholder={tripLabels.priceTriple.defaultVal ? `الافتراضي: ${tripLabels.priceTriple.defaultVal}` : "لا توجد تسعيرة مخصصة"}
+                            value={editingTrip.priceTriple ?? ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || undefined;
+                              setEditingTrip({ ...editingTrip, priceTriple: val, isProfessional: true });
+                            }}
+                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
+                          />
+                        </div>
+                      )}
+                      {!tripLabels.priceQuadruple.disabled && (
+                        <div>
+                          <label htmlFor="edit-trip-price-quadruple" className="block font-bold text-slate-600 mb-0.5">{tripLabels.priceQuadruple.label}</label>
+                          <input
+                            type="number"
+                            id="edit-trip-price-quadruple"
+                            placeholder={tripLabels.priceQuadruple.defaultVal ? `الافتراضي: ${tripLabels.priceQuadruple.defaultVal}` : "لا توجد تسعيرة مخصصة"}
+                            value={editingTrip.priceQuadruple ?? ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || undefined;
+                              setEditingTrip({ ...editingTrip, priceQuadruple: val, isProfessional: true });
+                            }}
+                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
+                          />
+                        </div>
+                      )}
+                      {!tripLabels.priceQuintuple.disabled && (
+                        <div>
+                          <label htmlFor="edit-trip-price-quintuple" className="block font-bold text-slate-600 mb-0.5">{tripLabels.priceQuintuple.label}</label>
+                          <input
+                            type="number"
+                            id="edit-trip-price-quintuple"
+                            placeholder={tripLabels.priceQuintuple.defaultVal ? `الافتراضي: ${tripLabels.priceQuintuple.defaultVal}` : "لا توجد تسعيرة مخصصة"}
+                            value={editingTrip.priceQuintuple ?? ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || undefined;
+                              setEditingTrip({ ...editingTrip, priceQuintuple: val, isProfessional: true });
+                            }}
+                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
+                          />
+                        </div>
+                      )}
+                      {!tripLabels.priceSextuple.disabled && (
+                        <div>
+                          <label htmlFor="edit-trip-price-sextuple" className="block font-bold text-slate-600 mb-0.5">{tripLabels.priceSextuple.label}</label>
+                          <input
+                            type="number"
+                            id="edit-trip-price-sextuple"
+                            placeholder={tripLabels.priceSextuple.defaultVal ? `الافتراضي: ${tripLabels.priceSextuple.defaultVal}` : "لا توجد تسعيرة مخصصة"}
+                            value={editingTrip.priceSextuple ?? ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || undefined;
+                              setEditingTrip({ ...editingTrip, priceSextuple: val, isProfessional: true });
+                            }}
+                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
+                          />
+                        </div>
+                      )}
+                      {!tripLabels.priceChild.disabled && (
+                        <div>
+                          <label htmlFor="edit-trip-price-child" className="block font-bold text-slate-600 mb-0.5">{tripLabels.priceChild.label}</label>
+                          <input
+                            type="number"
+                            id="edit-trip-price-child"
+                            placeholder={tripLabels.priceChild.defaultVal ? `الافتراضي: ${tripLabels.priceChild.defaultVal}` : "لا توجد تسعيرة مخصصة"}
+                            value={editingTrip.priceChild ?? ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || undefined;
+                              setEditingTrip({ ...editingTrip, priceChild: val, isProfessional: true });
+                            }}
+                            className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
+                          />
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <label htmlFor="edit-trip-price-double" className="block font-bold text-slate-600 mb-0.5">غرفة ثنائية Double</label>
-                      <input
-                        type="number"
-                        id="edit-trip-price-double"
-                        placeholder="لا توجد تسعيرة مخصصة"
-                        value={editingTrip.priceDouble || ''}
-                        onChange={(e) => setEditingTrip({ ...editingTrip, priceDouble: parseInt(e.target.value) || undefined })}
-                        className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="edit-trip-price-triple" className="block font-bold text-slate-600 mb-0.5">غرفة ثلاثية Triple</label>
-                      <input
-                        type="number"
-                        id="edit-trip-price-triple"
-                        placeholder="لا توجد تسعيرة مخصصة"
-                        value={editingTrip.priceTriple || ''}
-                        onChange={(e) => setEditingTrip({ ...editingTrip, priceTriple: parseInt(e.target.value) || undefined })}
-                        className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="edit-trip-price-quadruple" className="block font-bold text-slate-600 mb-0.5">غرفة رباعية Quadruple</label>
-                      <input
-                        type="number"
-                        id="edit-trip-price-quadruple"
-                        placeholder="لا توجد تسعيرة مخصصة"
-                        value={editingTrip.priceQuadruple || ''}
-                        onChange={(e) => setEditingTrip({ ...editingTrip, priceQuadruple: parseInt(e.target.value) || undefined })}
-                        className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="edit-trip-price-quintuple" className="block font-bold text-slate-600 mb-0.5">غرفة خماسية Quintuple</label>
-                      <input
-                        type="number"
-                        id="edit-trip-price-quintuple"
-                        placeholder="لا توجد تسعيرة مخصصة"
-                        value={editingTrip.priceQuintuple || ''}
-                        onChange={(e) => setEditingTrip({ ...editingTrip, priceQuintuple: parseInt(e.target.value) || undefined })}
-                        className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="edit-trip-price-sextuple" className="block font-bold text-slate-600 mb-0.5">غرفة سداسية Sextuple</label>
-                      <input
-                        type="number"
-                        id="edit-trip-price-sextuple"
-                        placeholder="لا توجد تسعيرة مخصصة"
-                        value={editingTrip.priceSextuple || ''}
-                        onChange={(e) => setEditingTrip({ ...editingTrip, priceSextuple: parseInt(e.target.value) || undefined })}
-                        className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="edit-trip-price-child" className="block font-bold text-slate-600 mb-0.5">سعر الأطفال Child</label>
-                      <input
-                        type="number"
-                        id="edit-trip-price-child"
-                        placeholder="لا توجد تسعيرة مخصصة"
-                        value={editingTrip.priceChild || ''}
-                        onChange={(e) => setEditingTrip({ ...editingTrip, priceChild: parseInt(e.target.value) || undefined })}
-                        className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
-                      />
-                    </div>
+
+                    {/* Add Dynamic Price Selector */}
+                    {disabledKeys.length > 0 && (
+                      <div className="mt-3 pt-2.5 border-t border-blue-100/60">
+                        <span className="block text-[10px] text-blue-800 font-bold mb-1.5">➕ إضافة تسعيرة مخصصة أو خيار سكن إضافي للرحلة:</span>
+                        <div className="flex gap-1 flex-wrap">
+                          {disabledKeys.map((key) => {
+                            const arabicLabels: Record<string, string> = {
+                              priceSingle: 'غرفة فردية Single',
+                              priceDouble: 'غرفة ثنائية Double',
+                              priceTriple: 'غرفة ثلاثية Triple',
+                              priceQuadruple: 'غرفة رباعية Quadruple',
+                              priceQuintuple: 'غرفة خماسية Quintuple',
+                              priceSextuple: 'غرفة سداسية Sextuple',
+                              priceChild: 'سعر الأطفال Child'
+                            };
+                            const label = arabicLabels[key] || key;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  const defaults: Record<string, number> = {
+                                    priceSingle: 25000,
+                                    priceDouble: 24000,
+                                    priceTriple: 20000,
+                                    priceQuadruple: 18000,
+                                    priceQuintuple: 16000,
+                                    priceSextuple: 15000,
+                                    priceChild: 10000
+                                  };
+                                  setEditingTrip({
+                                    ...editingTrip,
+                                    [key]: defaults[key] || 0,
+                                    isProfessional: true
+                                  });
+                                }}
+                                className="px-2 py-1 bg-white hover:bg-blue-100/80 border border-blue-200 text-blue-700 font-bold rounded-md text-[9px] transition-all cursor-pointer shadow-2xs"
+                              >
+                                + {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Departure/Itinerary info details - EDIT */}
               <div className="font-sans text-right">

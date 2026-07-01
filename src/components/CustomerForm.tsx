@@ -25,131 +25,353 @@ export const calculateAge = (birthDateString: string): number => {
   return age >= 0 ? age : 0;
 };
 
+// Match a saved roomType string or option value to current dynamic room options
+export const matchRoomTypeOption = (
+  savedRoomType: string,
+  options: { value: string; label: string; price: number }[]
+) => {
+  if (!savedRoomType) return null;
+  // 1. Exact match by label or value
+  const exact = options.find(o => o.label === savedRoomType || o.value === savedRoomType);
+  if (exact) return exact;
+
+  // 2. Prefix match (ignoring price in parentheses)
+  const cleanSaved = savedRoomType.split('(')[0].trim().split(' (')[0].trim();
+  const matched = options.find(o => {
+    const cleanLabel = o.label.split('(')[0].trim().split(' (')[0].trim();
+    return cleanLabel === cleanSaved || o.value === savedRoomType;
+  });
+  return matched || null;
+};
+
+export interface PriceFieldConfig {
+  label: string;
+  defaultVal?: number;
+  disabled?: boolean;
+}
+
+export interface TripPriceConfig {
+  priceSingle: PriceFieldConfig;
+  priceDouble: PriceFieldConfig;
+  priceTriple: PriceFieldConfig;
+  priceQuadruple: PriceFieldConfig;
+  priceQuintuple: PriceFieldConfig;
+  priceSextuple: PriceFieldConfig;
+  priceChild: PriceFieldConfig;
+  priceBase: PriceFieldConfig;
+}
+
+// Custom helper to get labels and fallback default values for Algerian style trip room pricing
+export const getBaseTripPriceLabelsAndDefaults = (tripId: string): TripPriceConfig => {
+  if (tripId === 'trip-soviva-tunisia') {
+    return {
+      priceSingle: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceDouble: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceTriple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceQuadruple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceQuintuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceSextuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceChild: { label: 'سعر طفل من 3 إلى 10 سنوات (دج)', defaultVal: 30000, disabled: false },
+      priceBase: { label: 'سعر فندق Soviva Resort (دج)', defaultVal: 45000, disabled: false }
+    };
+  }
+  if (tripId === 'trip-family-tunisia') {
+    return {
+      priceSingle: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceDouble: { label: 'شقة ثنائية Double (دج/شخص)', defaultVal: 33500, disabled: false },
+      priceTriple: { label: 'شقة ثلاثية Triple (دج/شخص)', defaultVal: 30000, disabled: false },
+      priceQuadruple: { label: 'شقة رباعية Quadruple (دج/شخص)', defaultVal: 28000, disabled: false },
+      priceQuintuple: { label: 'شقة خماسية أو سداسية (دج/شخص)', defaultVal: 24000, disabled: false },
+      priceSextuple: { label: 'شقة سداسية (مكرر للخماسي) (دج/شخص)', defaultVal: 24000, disabled: false },
+      priceChild: { label: 'سعر طفل من 3 إلى 10 سنوات (مقعد فقط) (دج)', defaultVal: 10000, disabled: false },
+      priceBase: { label: 'السعر المباشر للمقعد/الشقة المشتركة (دج)', defaultVal: 24000, disabled: false }
+    };
+  }
+  if (tripId === 'trip-jijel-beach') {
+    return {
+      priceSingle: { label: 'إقامة فندقية (ثنائي/ثلاثي/رباعي) (دج/شخص)', defaultVal: 25000, disabled: false },
+      priceDouble: { label: 'شقة مجهزة لـ 2 أفراد (دج/شخص)', defaultVal: 17500, disabled: false },
+      priceTriple: { label: 'شقة مجهزة لـ 3 أفراد (دج/شخص)', defaultVal: 14500, disabled: false },
+      priceQuadruple: { label: 'شقة مجهزة لـ 4 أفراد (دج/شخص)', defaultVal: 13505, disabled: false },
+      priceQuintuple: { label: 'شقة مجهزة لـ 5 أفراد (دج/شخص)', defaultVal: 12900, disabled: false },
+      priceSextuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceChild: { label: 'سعر طفل من 3 إلى 10 سنوات (مقعد فقط) (دج)', defaultVal: 10000, disabled: false },
+      priceBase: { label: 'السعر الأساسي الموحد (دج)', defaultVal: 12900, disabled: false }
+    };
+  }
+  if (tripId === 'trip-istanbul-8d') {
+    return {
+      priceSingle: { label: 'غرفة فردية Single (دج/شخص)', defaultVal: 169000, disabled: false },
+      priceDouble: { label: 'غرفة ثنائية/ثلاثية Double/Triple (دج/شخص)', defaultVal: 129000, disabled: false },
+      priceTriple: { label: 'غرفة ثنائية/ثلاثية (مكرر للـ Double) (دج/شخص)', defaultVal: 129000, disabled: false },
+      priceQuadruple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceQuintuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceSextuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceChild: { label: 'سعر طفل من 3 إلى 11 سنة (دج)', defaultVal: 99000, disabled: false },
+      priceBase: { label: 'السعر الأساسي للرحلة (دج)', defaultVal: 135000, disabled: false }
+    };
+  }
+  if (tripId === 'trip-center-algeria') {
+    return {
+      priceSingle: { label: 'إقامة فندقية راقية (دج/شخص)', defaultVal: 23000, disabled: false },
+      priceDouble: { label: 'مرقد - غرفة ثنائية (دج/شخص)', defaultVal: 15500, disabled: false },
+      priceTriple: { label: 'مرقد - غرفة ثلاثية (دج/شخص)', defaultVal: 14500, disabled: false },
+      priceQuadruple: { label: 'مرقد - غرفة رباعية أو خماسية (دج/شخص)', defaultVal: 12500, disabled: false },
+      priceQuintuple: { label: 'مرقد - غرفة خماسية (مكرر للرباعي) (دج/شخص)', defaultVal: 12500, disabled: false },
+      priceSextuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceChild: { label: 'سعر طفل من 3 إلى 10 سنوات (مقعد فقط) (دج)', defaultVal: 10000, disabled: false },
+      priceBase: { label: 'السعر الأساسي المباشر (دج)', defaultVal: 12500, disabled: false }
+    };
+  }
+  if (tripId === 'trip-sharm-el-sheikh-2026') {
+    return {
+      priceSingle: { label: 'غرفة فردية Single (دج/شخص)', defaultVal: 269000, disabled: false },
+      priceDouble: { label: 'غرفة ثنائية/ثلاثية Double/Triple (دج/شخص)', defaultVal: 199000, disabled: false },
+      priceTriple: { label: 'غرفة ثنائية/ثلاثية (مكرر للـ Double) (دج/شخص)', defaultVal: 199000, disabled: false },
+      priceQuadruple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceQuintuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceSextuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceChild: { label: 'سعر طفل من 2 إلى 11 سنة (دج)', defaultVal: 145000, disabled: false },
+      priceBase: { label: 'السعر الأساسي للرحلة (دج)', defaultVal: 199000, disabled: false }
+    };
+  }
+  
+  // Fallback for custom trips
+  return {
+    priceSingle: { label: 'غرفة فردية Single (دج)', defaultVal: undefined, disabled: false },
+    priceDouble: { label: 'غرفة ثنائية Double (دج)', defaultVal: undefined, disabled: false },
+    priceTriple: { label: 'غرفة ثلاثية Triple (دج)', defaultVal: undefined, disabled: false },
+    priceQuadruple: { label: 'غرفة رباعية Quadruple (دج)', defaultVal: undefined, disabled: false },
+    priceQuintuple: { label: 'غرفة خماسية Quintuple (دج)', defaultVal: undefined, disabled: false },
+    priceSextuple: { label: 'غرفة سداسية Sextuple (دج)', defaultVal: undefined, disabled: false },
+    priceChild: { label: 'سعر الأطفال Child (دج)', defaultVal: undefined, disabled: false },
+    priceBase: { label: 'سعر المقعد بالدينار (DZD)', defaultVal: undefined, disabled: false }
+  };
+};
+
+export const getTripPriceLabelsAndDefaults = (tripId: string, tripObj?: Trip): TripPriceConfig => {
+  const config = getBaseTripPriceLabelsAndDefaults(tripId);
+  
+  if (tripObj) {
+    const keys: (keyof TripPriceConfig)[] = [
+      'priceSingle',
+      'priceDouble',
+      'priceTriple',
+      'priceQuadruple',
+      'priceQuintuple',
+      'priceSextuple',
+      'priceChild',
+      'priceBase'
+    ];
+    const standardLabels: Record<string, string> = {
+      priceSingle: 'غرفة فردية Single (دج)',
+      priceDouble: 'غرفة ثنائية Double (دج)',
+      priceTriple: 'غرفة ثلاثية Triple (دج)',
+      priceQuadruple: 'غرفة رباعية Quadruple (دج)',
+      priceQuintuple: 'غرفة خماسية Quintuple (دج)',
+      priceSextuple: 'غرفة سداسية Sextuple (دج)',
+      priceChild: 'سعر الأطفال Child (دج)',
+      priceBase: 'سعر المقعد بالدينار (DZD)'
+    };
+    keys.forEach((key) => {
+      if (tripObj[key] !== undefined) {
+        config[key].disabled = false;
+        if (config[key].label === 'غير مستخدم في هذا العرض') {
+          config[key].label = standardLabels[key];
+        }
+      }
+    });
+  }
+  return config;
+};
+
 // Rich lookup table based on the customer's published ads
 export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: Trip) => {
-  // If the trip object contains specific room pricing, prioritize those!
-  if (tripObj && (tripObj.isProfessional || tripObj.priceSingle !== undefined || tripObj.priceDouble !== undefined || tripObj.priceTriple !== undefined || tripObj.priceQuadruple !== undefined || tripObj.priceQuintuple !== undefined || tripObj.priceSextuple !== undefined || tripObj.priceChild !== undefined)) {
-    const customOpts = [];
-    if (tripObj.priceDouble !== undefined) {
-      customOpts.push({
-        value: 'double',
-        label: `غرفة ثنائية Double (${tripObj.priceDouble.toLocaleString('ar-DZ')} دج/شخص)`,
-        price: tripObj.priceDouble
-      });
-    }
-    if (tripObj.priceTriple !== undefined) {
-      customOpts.push({
-        value: 'triple',
-        label: `غرفة ثلاثية Triple (${tripObj.priceTriple.toLocaleString('ar-DZ')} دج/شخص)`,
-        price: tripObj.priceTriple
-      });
-    }
-    if (tripObj.priceQuadruple !== undefined) {
-      customOpts.push({
-        value: 'quadruple',
-        label: `غرفة رباعية Quadruple (${tripObj.priceQuadruple.toLocaleString('ar-DZ')} دج/شخص)`,
-        price: tripObj.priceQuadruple
-      });
-    }
-    if (tripObj.priceQuintuple !== undefined) {
-      customOpts.push({
-        value: 'quintuple',
-        label: `غرفة خماسية Quintuple (${tripObj.priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`,
-        price: tripObj.priceQuintuple
-      });
-    }
-    if (tripObj.priceSextuple !== undefined) {
-      customOpts.push({
-        value: 'sextuple',
-        label: `غرفة سداسية Sextuple (${tripObj.priceSextuple.toLocaleString('ar-DZ')} دج/شخص)`,
-        price: tripObj.priceSextuple
-      });
-    }
-    if (tripObj.priceSingle !== undefined) {
-      customOpts.push({
-        value: 'single',
-        label: `غرفة فردية Single (${tripObj.priceSingle.toLocaleString('ar-DZ')} دج/شخص)`,
-        price: tripObj.priceSingle
-      });
-    }
-    if (tripObj.priceChild !== undefined) {
-      customOpts.push({
-        value: 'child_custom',
-        label: `سعر الأطفال Child (${tripObj.priceChild.toLocaleString('ar-DZ')} دج)`,
-        price: tripObj.priceChild
-      });
-    }
-    
-    // Always append child under 2 free
-    customOpts.push({
-      value: 'child_under_2_custom',
-      label: 'طفل أقل من سنتين (مجاناً - 0 دج)',
-      price: 0
-    });
-    return customOpts;
-  }
+  let options: { value: string; label: string; price: number }[] = [];
+  let excludedKeys: string[] = [];
 
+  // Predefined Trips with dynamic pricing support:
   if (tId === 'trip-soviva-tunisia') {
-    return [
-      { value: 'soviva_standard', label: 'فندق Soviva Resort - فطور صباحي + عشاء (45,000 دج/شخص)', price: 45000 },
-      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (30,000 دج)', price: 30000 },
+    const priceStandard = tripObj?.price ?? basePrice ?? 45000;
+    const priceChild = tripObj?.priceChild ?? 30000;
+    options = [
+      { value: 'soviva_standard', label: `فندق Soviva Resort - فطور صباحي + عشاء (${priceStandard.toLocaleString('ar-DZ')} دج/شخص)`, price: priceStandard },
+      { value: 'child_3_10', label: `طفل من 3 إلى 10 سنوات (${priceChild.toLocaleString('ar-DZ')} دج)`, price: priceChild },
       { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
     ];
-  }
-  if (tId === 'trip-family-tunisia') {
-    return [
-      { value: 'five_six', label: 'شقة خماسية أو سداسية (24,000 دج/شخص)', price: 24000 },
-      { value: 'quad', label: 'شقة رباعية (28,000 دج/شخص)', price: 28000 },
-      { value: 'triple', label: 'شقة ثلاثية (30,000 دج/شخص)', price: 30000 },
-      { value: 'double', label: 'شقة ثنائية (33,500 دج/شخص)', price: 33500 },
-      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (مقعد فقط - 10,000 دج)', price: 10000 },
+    excludedKeys = ['priceChild'];
+  } else if (tId === 'trip-family-tunisia') {
+    const priceFiveSix = tripObj?.priceQuintuple ?? tripObj?.priceSextuple ?? 24000;
+    const priceQuad = tripObj?.priceQuadruple ?? 28000;
+    const priceTriple = tripObj?.priceTriple ?? 30000;
+    const priceDouble = tripObj?.priceDouble ?? 33500;
+    const priceChild = tripObj?.priceChild ?? 10000;
+
+    options = [
+      { value: 'five_six', label: `شقة خماسية أو سداسية (${priceFiveSix.toLocaleString('ar-DZ')} دج/شخص)`, price: priceFiveSix },
+      { value: 'quad', label: `شقة رباعية (${priceQuad.toLocaleString('ar-DZ')} دج/شخص)`, price: priceQuad },
+      { value: 'triple', label: `شقة ثلاثية (${priceTriple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceTriple },
+      { value: 'double', label: `شقة ثنائية (${priceDouble.toLocaleString('ar-DZ')} دج/شخص)`, price: priceDouble },
+      { value: 'child_3_10', label: `طفل من 3 إلى 10 سنوات (مقعد فقط - ${priceChild.toLocaleString('ar-DZ')} دج)`, price: priceChild },
       { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
     ];
-  }
-  if (tId === 'trip-jijel-beach') {
-    return [
-      { value: 'jijel_apt_5', label: 'شقة مجهزة - عائلية لـ 5 أفراد (12,900 دج/شخص)', price: 12900 },
-      { value: 'jijel_apt_4', label: 'شقة مجهزة - عائلية لـ 4 أفراد (13,500 دج/شخص)', price: 13505 },
-      { value: 'jijel_apt_3', label: 'شقة مجهزة - عائلية لـ 3 أفراد (14,500 دج/شخص)', price: 14500 },
-      { value: 'jijel_apt_2', label: 'شقة مجهزة - عائلية لـ 2 أفراد (17,500 دج/شخص)', price: 17500 },
-      { value: 'jijel_hotel', label: 'إقامة فندقية (ثنائي/ثلاثي/رباعي) مع فطور صباحي (25,000 دج/شخص)', price: 25000 },
-      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (مقعد فقط - 10,000 دج)', price: 10000 },
+    excludedKeys = ['priceDouble', 'priceTriple', 'priceQuadruple', 'priceQuintuple', 'priceSextuple', 'priceChild'];
+  } else if (tId === 'trip-jijel-beach') {
+    const priceQuintuple = tripObj?.priceQuintuple ?? 12900;
+    const priceQuad = tripObj?.priceQuadruple ?? 13505;
+    const priceTriple = tripObj?.priceTriple ?? 14500;
+    const priceDouble = tripObj?.priceDouble ?? 17500;
+    const priceHotel = tripObj?.priceSingle ?? 25000;
+    const priceChild = tripObj?.priceChild ?? 10000;
+
+    options = [
+      { value: 'jijel_apt_5', label: `شقة مجهزة - عائلية لـ 5 أفراد (${priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceQuintuple },
+      { value: 'jijel_apt_4', label: `شقة مجهزة - عائلية لـ 4 أفراد (${priceQuad.toLocaleString('ar-DZ')} دج/شخص)`, price: priceQuad },
+      { value: 'jijel_apt_3', label: `شقة مجهزة - عائلية لـ 3 أفراد (${priceTriple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceTriple },
+      { value: 'jijel_apt_2', label: `شقة مجهزة - عائلية لـ 2 أفراد (${priceDouble.toLocaleString('ar-DZ')} دج/شخص)`, price: priceDouble },
+      { value: 'jijel_hotel', label: `إقامة فندقية (ثنائي/ثلاثي/رباعي) مع فطور صباحي (${priceHotel.toLocaleString('ar-DZ')} دج/شخص)`, price: priceHotel },
+      { value: 'child_3_10', label: `طفل من 3 إلى 10 سنوات (مقعد فقط - ${priceChild.toLocaleString('ar-DZ')} دج)`, price: priceChild },
       { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
     ];
-  }
-  if (tId === 'trip-istanbul-8d') {
-    return [
-      { value: 'istanbul_adult_double_triple', label: 'شخص بالغ - غرفة ثنائية أو ثلاثية (129,000 دج/شخص)', price: 129000 },
-      { value: 'istanbul_single', label: 'شخص واحد بمفرده - غرفة فردية (169,000 دج/شخص)', price: 169000 },
-      { value: 'istanbul_child_3_11', label: 'طفل بين 3 إلى 11 سنة (99,000 دج/شخص)', price: 99000 },
-      { value: 'istanbul_child_under_2', label: 'طفل أقل من سنتين (18,000 دج/شخص)', price: 18000 }
+    excludedKeys = ['priceSingle', 'priceDouble', 'priceTriple', 'priceQuadruple', 'priceQuintuple', 'priceChild'];
+  } else if (tId === 'trip-istanbul-8d') {
+    const priceDoubleTriple = tripObj?.priceDouble ?? tripObj?.priceTriple ?? 129000;
+    const priceSingle = tripObj?.priceSingle ?? 169000;
+    const priceChild = tripObj?.priceChild ?? 99000;
+    const priceUnder2 = 18000;
+
+    options = [
+      { value: 'istanbul_adult_double_triple', label: `شخص بالغ - غرفة ثنائية أو ثلاثية (${priceDoubleTriple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceDoubleTriple },
+      { value: 'istanbul_single', label: `شخص واحد بمفرده - غرفة فردية (${priceSingle.toLocaleString('ar-DZ')} دج/شخص)`, price: priceSingle },
+      { value: 'istanbul_child_3_11', label: `طفل بين 3 إلى 11 سنة (${priceChild.toLocaleString('ar-DZ')} دج/شخص)`, price: priceChild },
+      { value: 'istanbul_child_under_2', label: `طفل أقل من سنتين (${priceUnder2.toLocaleString('ar-DZ')} دج/شخص)`, price: priceUnder2 }
     ];
-  }
-  if (tId === 'trip-sharm-el-sheikh-2026') {
-    return [
-      { value: 'sharm_double_triple', label: 'شخص بالغ - غرفة ثنائية أو ثلاثية (199,000 دج/شخص)', price: 199000 },
-      { value: 'sharm_single', label: 'شخص واحد بمفرده - غرفة فردية (269,000 دج/شخص)', price: 269000 },
-      { value: 'sharm_child_2_11', label: 'طفل بين 2 إلى 11 سنة (145,000 دج/شخص)', price: 145000 },
-      { value: 'sharm_child_under_2', label: 'رضيع أقل من سنتين (34,000 دج/شخص)', price: 34000 }
+    excludedKeys = ['priceSingle', 'priceDouble', 'priceTriple', 'priceChild'];
+  } else if (tId === 'trip-sharm-el-sheikh-2026') {
+    const priceDoubleTriple = tripObj?.priceDouble ?? tripObj?.priceTriple ?? 199000;
+    const priceSingle = tripObj?.priceSingle ?? 269000;
+    const priceChild = tripObj?.priceChild ?? 145000;
+    const priceUnder2 = 34000;
+
+    options = [
+      { value: 'sharm_double_triple', label: `شخص بالغ - غرفة ثنائية أو ثلاثية (${priceDoubleTriple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceDoubleTriple },
+      { value: 'sharm_single', label: `شخص واحد بمفرده - غرفة فردية (${priceSingle.toLocaleString('ar-DZ')} دج/شخص)`, price: priceSingle },
+      { value: 'sharm_child_2_11', label: `طفل بين 2 إلى 11 سنة (${priceChild.toLocaleString('ar-DZ')} دج/شخص)`, price: priceChild },
+      { value: 'sharm_child_under_2', label: `رضيع أقل من سنتين (${priceUnder2.toLocaleString('ar-DZ')} دج/شخص)`, price: priceUnder2 }
     ];
-  }
-  if (tId === 'trip-center-algeria') {
-    return [
-      { value: 'mergad_quad_five', label: 'مرقد - غرفة رباعية أو خماسية (12,500 دج/شخص)', price: 12500 },
-      { value: 'mergad_triple', label: 'مرقد - غرفة ثلاثية (14,500 دج/شخص)', price: 14500 },
-      { value: 'mergad_double', label: 'مرقد - غرفة ثنائية (15,500 دج/شخص)', price: 15500 },
-      { value: 'hotel_stay', label: 'إقامة فندقية راقية (23,000 دج/شخص)', price: 23000 },
-      { value: 'child_3_10', label: 'طفل من 3 إلى 10 سنوات (مقعد فقط - 10,000 دج)', price: 10000 },
+    excludedKeys = ['priceSingle', 'priceDouble', 'priceTriple', 'priceChild'];
+  } else if (tId === 'trip-center-algeria') {
+    const priceQuadFive = tripObj?.priceQuadruple ?? tripObj?.priceQuintuple ?? 12500;
+    const priceTriple = tripObj?.priceTriple ?? 14500;
+    const priceDouble = tripObj?.priceDouble ?? 15500;
+    const priceHotel = tripObj?.priceSingle ?? 23000;
+    const priceChild = tripObj?.priceChild ?? 10000;
+
+    options = [
+      { value: 'mergad_quad_five', label: `مرقد - غرفة رباعية أو خماسية (${priceQuadFive.toLocaleString('ar-DZ')} دج/شخص)`, price: priceQuadFive },
+      { value: 'mergad_triple', label: `مرقد - غرفة ثلاثية (${priceTriple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceTriple },
+      { value: 'mergad_double', label: `مرقد - غرفة ثنائية (${priceDouble.toLocaleString('ar-DZ')} دج/شخص)`, price: priceDouble },
+      { value: 'hotel_stay', label: `إقامة فندقية راقية (${priceHotel.toLocaleString('ar-DZ')} دج/شخص)`, price: priceHotel },
+      { value: 'child_3_10', label: `طفل من 3 إلى 10 سنوات (مقعد فقط - ${priceChild.toLocaleString('ar-DZ')} دج)`, price: priceChild },
       { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
+    ];
+    excludedKeys = ['priceSingle', 'priceDouble', 'priceTriple', 'priceQuadruple', 'priceQuintuple', 'priceChild'];
+  } else {
+    // Generic fallback for custom/professional trips added or edited
+    if (tripObj && (tripObj.isProfessional || tripObj.priceSingle !== undefined || tripObj.priceDouble !== undefined || tripObj.priceTriple !== undefined || tripObj.priceQuadruple !== undefined || tripObj.priceQuintuple !== undefined || tripObj.priceSextuple !== undefined || tripObj.priceChild !== undefined)) {
+      const customOpts = [];
+      if (tripObj.priceDouble !== undefined) {
+        customOpts.push({
+          value: 'double',
+          label: `غرفة ثنائية Double (${tripObj.priceDouble.toLocaleString('ar-DZ')} دج/شخص)`,
+          price: tripObj.priceDouble
+        });
+      }
+      if (tripObj.priceTriple !== undefined) {
+        customOpts.push({
+          value: 'triple',
+          label: `غرفة ثلاثية Triple (${tripObj.priceTriple.toLocaleString('ar-DZ')} دج/شخص)`,
+          price: tripObj.priceTriple
+        });
+      }
+      if (tripObj.priceQuadruple !== undefined) {
+        customOpts.push({
+          value: 'quadruple',
+          label: `غرفة رباعية Quadruple (${tripObj.priceQuadruple.toLocaleString('ar-DZ')} دج/شخص)`,
+          price: tripObj.priceQuadruple
+        });
+      }
+      if (tripObj.priceQuintuple !== undefined) {
+        customOpts.push({
+          value: 'quintuple',
+          label: `غرفة خماسية Quintuple (${tripObj.priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`,
+          price: tripObj.priceQuintuple
+        });
+      }
+      if (tripObj.priceSextuple !== undefined) {
+        customOpts.push({
+          value: 'sextuple',
+          label: `غرفة سداسية Sextuple (${tripObj.priceSextuple.toLocaleString('ar-DZ')} دج/شخص)`,
+          price: tripObj.priceSextuple
+        });
+      }
+      if (tripObj.priceSingle !== undefined) {
+        customOpts.push({
+          value: 'single',
+          label: `غرفة فردية Single (${tripObj.priceSingle.toLocaleString('ar-DZ')} دج/شخص)`,
+          price: tripObj.priceSingle
+        });
+      }
+      if (tripObj.priceChild !== undefined) {
+        customOpts.push({
+          value: 'child_custom',
+          label: `سعر الأطفال Child (${tripObj.priceChild.toLocaleString('ar-DZ')} دج)`,
+          price: tripObj.priceChild
+        });
+      }
+      
+      customOpts.push({
+        value: 'child_under_2_custom',
+        label: 'طفل أقل من سنتين (مجاناً - 0 دج)',
+        price: 0
+      });
+      return customOpts;
+    }
+
+    // Fallback for custom trips added inside the dashboard
+    return [
+      { value: 'standard', label: `عرض قياسي موحد (${basePrice.toLocaleString('ar-DZ')} دج/شخص)`, price: basePrice },
+      { value: 'double', label: `غرفة ثنائية مزدوجة (+10%) (${Math.round(basePrice * 1.1).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.1) },
+      { value: 'suite', label: `جناح سويت ملكي فاخر (+30%) (${Math.round(basePrice * 1.3).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.3) }
     ];
   }
 
-  // Fallback for custom trips added inside the dashboard
-  return [
-    { value: 'standard', label: `عرض قياسي موحد (${basePrice.toLocaleString('ar-DZ')} دج/شخص)`, price: basePrice },
-    { value: 'double', label: `غرفة ثنائية مزدوجة (+10%) (${Math.round(basePrice * 1.1).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.1) },
-    { value: 'suite', label: `جناح سويت ملكي فاخر (+30%) (${Math.round(basePrice * 1.3).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.3) }
-  ];
+  // Now dynamically append any newly activated price fields that are not in excludedKeys
+  if (tripObj) {
+    const extraKeys: { key: keyof Trip; value: string; label: string }[] = [
+      { key: 'priceDouble', value: 'double', label: 'غرفة ثنائية Double' },
+      { key: 'priceTriple', value: 'triple', label: 'غرفة ثلاثية Triple' },
+      { key: 'priceQuadruple', value: 'quadruple', label: 'غرفة رباعية Quadruple' },
+      { key: 'priceQuintuple', value: 'quintuple', label: 'غرفة خماسية Quintuple' },
+      { key: 'priceSextuple', value: 'sextuple', label: 'غرفة سداسية Sextuple' },
+      { key: 'priceSingle', value: 'single', label: 'غرفة فردية Single' },
+      { key: 'priceChild', value: 'child_custom', label: 'سعر الأطفال Child' },
+    ];
+
+    extraKeys.forEach(({ key, value, label }) => {
+      if (!excludedKeys.includes(key) && tripObj[key] !== undefined) {
+        if (!options.some(opt => opt.value === value)) {
+          options.push({
+            value,
+            label: `${label} (${(tripObj[key] as number).toLocaleString('ar-DZ')} دج/شخص)`,
+            price: tripObj[key] as number
+          });
+        }
+      }
+    });
+  }
+
+  return options;
 };
 
 export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer }) => {
@@ -196,7 +418,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
   // Helper inside to determine room price for helper
   const getCompanionRoomPrice = (roomTypeLabel: string, roleVal: string) => {
     if (roleVal === 'organizer' || roleVal === 'driver') return 0;
-    const matched = activeOptions.find(o => o.label === roomTypeLabel);
+    const matched = matchRoomTypeOption(roomTypeLabel, activeOptions);
     return matched ? matched.price : (activeSelectedTrip ? activeSelectedTrip.price : 0);
   };
 
@@ -208,8 +430,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price, tripObj);
       
       setFormData(prev => {
-        const matches = opts.find(o => o.label === prev.roomType);
-        const resolvedRoomType = matches ? prev.roomType : (opts[0]?.label || '');
+        const matches = matchRoomTypeOption(prev.roomType, opts);
+        const resolvedRoomType = matches ? matches.label : (opts[0]?.label || '');
         const standardPrice = matches ? matches.price : (opts[0]?.price || tripObj.price);
         const resolvedPrice = (prev.role === 'organizer' || prev.role === 'driver') ? 0 : standardPrice;
         const departureDateToUse = prev.tripId !== selectedTripId ? tripObj.date : (prev.departureDate || tripObj.date);
@@ -224,10 +446,27 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       });
 
       // Also adjust pending companion default room type
-      setCompanionForm(prev => ({
-        ...prev,
-        roomType: opts[0]?.label || ''
-      }));
+      setCompanionForm(prev => {
+        const matches = matchRoomTypeOption(prev.roomType, opts);
+        return {
+          ...prev,
+          roomType: matches ? matches.label : (opts[0]?.label || '')
+        };
+      });
+
+      // Also adjust already-added companions' room types so their labels are synced to the new prices!
+      setCompanions(prevComps => {
+        return prevComps.map(cmp => {
+          const matches = matchRoomTypeOption(cmp.roomType, opts);
+          if (matches) {
+            return {
+              ...cmp,
+              roomType: matches.label
+            };
+          }
+          return cmp;
+        });
+      });
     }
   }, [trips, formData.tripId]);
 
@@ -483,8 +722,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
             updated.roomType = recommendedOpt.label;
             updated.pricePerPerson = recommendedOpt.price;
           } else {
-            const matches = opts.find(o => o.label === prev.roomType);
-            updated.roomType = matches ? prev.roomType : (opts[0]?.label || '');
+            const matches = matchRoomTypeOption(prev.roomType, opts);
+            updated.roomType = matches ? matches.label : (opts[0]?.label || '');
             updated.pricePerPerson = matches ? matches.price : (opts[0]?.price || selected.price);
           }
         }
@@ -495,8 +734,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         const tripObj = trips.find(t => t.id === prev.tripId) || trips[0];
         if (tripObj) {
           const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price, tripObj);
-          const matched = opts.find(o => o.label === value);
+          const matched = matchRoomTypeOption(value, opts);
           if (matched) {
+            updated.roomType = matched.label;
             updated.pricePerPerson = matched.price;
           }
         }
@@ -509,7 +749,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         const tripObj = trips.find(t => t.id === updated.tripId) || trips[0];
         if (tripObj) {
           const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price, tripObj);
-          const matched = opts.find(o => o.label === updated.roomType);
+          const matched = matchRoomTypeOption(updated.roomType, opts);
           updated.pricePerPerson = matched ? matched.price : tripObj.price;
         }
       }

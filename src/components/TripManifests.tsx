@@ -437,18 +437,18 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
             {/* THE PASSENGER MANIFEST TABLE */}
             <div 
               ref={tableContainerRef}
-              className="mt-3 overflow-x-auto border border-slate-350 rounded-lg whitespace-nowrap scroll-smooth relative"
+              className="mt-3 overflow-x-auto border-2 border-slate-950 rounded-lg whitespace-nowrap scroll-smooth relative"
             >
-              <table className="w-full text-right border-collapse text-xs min-w-[700px]">
+              <table className="w-full text-right border-collapse text-xs min-w-[700px] border-slate-950">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-900 border-b border-slate-300 font-bold">
-                    <th className="py-2.5 px-3 border-l border-slate-300 text-center w-12">N°</th>
-                    <th className="py-2.5 px-4 border-l border-slate-300">الاســم واللقــب الكامل</th>
-                    <th className="py-2.5 px-4 border-l border-slate-300">تاريخ ومكان الميلاد الكامل</th>
-                    <th className="py-2.5 px-4">الصفة / المرافق</th>
+                  <tr className="bg-slate-100 text-slate-900 border-b-2 border-slate-950 font-bold">
+                    <th className="py-2.5 px-3 border-l border-b border-slate-950 text-center w-12 bg-slate-100">N°</th>
+                    <th className="py-2.5 px-4 border-l border-b border-slate-950 bg-slate-100">الاســم واللقــب الكامل</th>
+                    <th className="py-2.5 px-4 border-l border-b border-slate-950 bg-slate-100">تاريخ ومكان الميلاد الكامل</th>
+                    <th className="py-2.5 px-4 border-b border-slate-950 bg-slate-100">الصفة / المرافق</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-slate-800 font-medium">
+                <tbody className="divide-y divide-slate-950 text-slate-800 font-medium">
                   {flatPassengers.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-8 text-center text-slate-400 italic">
@@ -459,23 +459,23 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
                     flatPassengers.map((p, index) => (
                       <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                         {/* 1. Sequence */}
-                        <td className="py-2 px-3 border-l border-slate-200 text-center font-mono font-bold text-slate-600 w-12">
+                        <td className="py-2 px-3 border-l border-b border-slate-950 text-center font-mono font-bold text-slate-900 w-12">
                           {index + 1}
                         </td>
                         
                         {/* 2. Passenger Full name */}
-                        <td className="py-2 px-4 border-l border-slate-200 font-bold text-slate-900">
+                        <td className="py-2 px-4 border-l border-b border-slate-950 font-bold text-slate-950">
                           {p.firstName} {p.lastName}
                         </td>
                         
                         {/* 3. Birthday / Place */}
-                        <td className="py-2 px-4 border-l border-slate-200 font-mono text-[11px]">
+                        <td className="py-2 px-4 border-l border-b border-slate-950 font-mono text-[11px] text-slate-950">
                           {formatBirthInfo(p.birthDate, p.birthPlace)}
                         </td>
                         
                         {/* 4. Relationship or individual Role */}
-                        <td className="py-2 px-4">
-                          <span className={p.isLeader ? getRolePrintClass(p.role) : 'text-slate-600 font-bold'}>
+                        <td className="py-2 px-4 border-b border-slate-950 text-slate-950 font-bold">
+                          <span className={p.isLeader ? getRolePrintClass(p.role) : 'text-slate-900 font-bold'}>
                             {getRoleArabic(p.role, p.isLeader, p.relationship)}
                           </span>
                         </td>

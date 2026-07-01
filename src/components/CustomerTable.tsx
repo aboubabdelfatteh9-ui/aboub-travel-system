@@ -16,7 +16,7 @@ import {
   HelpCircle, 
   Sparkles
 } from 'lucide-react';
-import { calculateAge, getRoomOptionsForTrip } from './CustomerForm';
+import { calculateAge, getRoomOptionsForTrip, matchRoomTypeOption } from './CustomerForm';
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -298,7 +298,12 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                           <div>
                             <span className="text-[9px] text-stone-450 block font-bold">نوع الغرفة المبرمج:</span>
                             <span className="inline-flex items-center gap-1 text-[10.5px] text-amber-850 font-black bg-amber-50/85 px-2.5 py-0.8 rounded-lg border border-amber-500/10 shadow-3xs mt-1 leading-none">
-                              🏠 {customer.roomType || 'غرفة قياسية'}
+                              🏠 {(() => {
+                                const currentTripObj = trips.find(t => t.id === customer.tripId);
+                                const opts = currentTripObj ? getRoomOptionsForTrip(currentTripObj.id, currentTripObj.price, currentTripObj) : [];
+                                const matchedOpt = matchRoomTypeOption(customer.roomType, opts);
+                                return matchedOpt ? matchedOpt.label : (customer.roomType || 'غرفة قياسية');
+                              })()}
                             </span>
                           </div>
 
@@ -442,7 +447,12 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                     </div>
                     {customer.roomType && (
                       <div className="text-[10px] text-amber-800 font-bold bg-amber-50 inline-block px-2 py-0.5 rounded border border-amber-500/10 mt-1">
-                        🏠 {customer.roomType}
+                        🏠 {(() => {
+                          const currentTripObj = trips.find(t => t.id === customer.tripId);
+                          const opts = currentTripObj ? getRoomOptionsForTrip(currentTripObj.id, currentTripObj.price, currentTripObj) : [];
+                          const matchedOpt = matchRoomTypeOption(customer.roomType, opts);
+                          return matchedOpt ? matchedOpt.label : customer.roomType;
+                        })()}
                       </div>
                     )}
                   </div>
@@ -576,10 +586,26 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                     onChange={(e) => {
                       const newTripId = e.target.value;
                       const selectedTrip = trips.find(t => t.id === newTripId);
+                      const opts = selectedTrip ? getRoomOptionsForTrip(selectedTrip.id, selectedTrip.price, selectedTrip) : [];
+                      const firstOpt = opts[0];
+                      const newPricePerPerson = firstOpt ? firstOpt.price : (selectedTrip ? selectedTrip.price : 0);
+                      
+                      // Recalculate estimated total price with companions
+                      const compsPrice = (editingCustomer.companions || []).reduce((sum, cmp) => {
+                        const companionOpts = selectedTrip ? getRoomOptionsForTrip(selectedTrip.id, selectedTrip.price, selectedTrip) : [];
+                        const cmpMatch = matchRoomTypeOption(cmp.roomType, companionOpts);
+                        const cmpPrice = cmp.role === 'organizer' || cmp.role === 'driver' ? 0 : (cmpMatch ? cmpMatch.price : 0);
+                        return sum + cmpPrice;
+                      }, 0);
+                      const newTotal = newPricePerPerson + compsPrice;
+
                       setEditingCustomer({ 
                         ...editingCustomer, 
                         tripId: newTripId,
-                        departureDate: selectedTrip ? selectedTrip.date : '' 
+                        departureDate: selectedTrip ? selectedTrip.date : '',
+                        roomType: firstOpt ? firstOpt.label : '',
+                        pricePerPerson: newPricePerPerson,
+                        totalPrice: newTotal
                       });
                     }}
                     className="w-full px-2.5 py-2 border border-stone-200 bg-white rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 cursor-pointer font-sans"
@@ -610,8 +636,31 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                   <label htmlFor="edit-roomType" className="block text-[10px] font-bold text-stone-600 mb-1">الإقامة الفندقية</label>
                   <select
                     id="edit-roomType"
-                    value={editingCustomer.roomType || ''}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, roomType: e.target.value })}
+                    value={(() => {
+                      const matched = matchRoomTypeOption(editingCustomer.roomType || '', editingRoomOptions);
+                      return matched ? matched.label : (editingCustomer.roomType || '');
+                    })()}
+                    onChange={(e) => {
+                      const newLabel = e.target.value;
+                      const matched = editingRoomOptions.find(o => o.label === newLabel);
+                      const newPricePerPerson = matched ? matched.price : editingCustomer.pricePerPerson;
+                      
+                      // Recalculate estimated total price
+                      const compsPrice = (editingCustomer.companions || []).reduce((sum, cmp) => {
+                        const companionOpts = editingTripObj ? getRoomOptionsForTrip(editingTripObj.id, editingTripObj.price, editingTripObj) : [];
+                        const cmpMatch = matchRoomTypeOption(cmp.roomType, companionOpts);
+                        const cmpPrice = cmp.role === 'organizer' || cmp.role === 'driver' ? 0 : (cmpMatch ? cmpMatch.price : 0);
+                        return sum + cmpPrice;
+                      }, 0);
+                      const newTotal = newPricePerPerson + compsPrice;
+
+                      setEditingCustomer({ 
+                        ...editingCustomer, 
+                        roomType: newLabel,
+                        pricePerPerson: newPricePerPerson,
+                        totalPrice: newTotal
+                      });
+                    }}
                     className="w-full px-2.5 py-2 border border-stone-200 bg-white rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 cursor-pointer font-sans"
                   >
                     {editingRoomOptions.map((opt, i) => (
