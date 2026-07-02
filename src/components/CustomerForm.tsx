@@ -174,11 +174,9 @@ export const getTripPriceLabelsAndDefaults = (tripId: string, tripObj?: Trip): T
       priceBase: 'سعر المقعد بالدينار (DZD)'
     };
     keys.forEach((key) => {
-      if (tripObj[key] !== undefined) {
-        config[key].disabled = false;
-        if (config[key].label === 'غير مستخدم في هذا العرض') {
-          config[key].label = standardLabels[key];
-        }
+      config[key].disabled = false;
+      if (config[key].label === 'غير مستخدم في هذا العرض') {
+        config[key].label = standardLabels[key];
       }
     });
   }
@@ -278,56 +276,79 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
     excludedKeys = ['priceSingle', 'priceDouble', 'priceTriple', 'priceQuadruple', 'priceQuintuple', 'priceChild'];
   } else {
     // Generic fallback for custom/professional trips added or edited
-    if (tripObj && (tripObj.isProfessional || tripObj.priceSingle !== undefined || tripObj.priceDouble !== undefined || tripObj.priceTriple !== undefined || tripObj.priceQuadruple !== undefined || tripObj.priceQuintuple !== undefined || tripObj.priceSextuple !== undefined || tripObj.priceChild !== undefined)) {
+    if (tripObj) {
       const customOpts = [];
-      if (tripObj.priceDouble !== undefined) {
+      const isProf = !!tripObj.isProfessional;
+
+      // Check if there are any specific adult room rates defined
+      const hasAdultRoomRates = 
+        tripObj.priceSingle !== undefined || 
+        tripObj.priceDouble !== undefined || 
+        tripObj.priceTriple !== undefined || 
+        tripObj.priceQuadruple !== undefined || 
+        tripObj.priceQuintuple !== undefined || 
+        tripObj.priceSextuple !== undefined;
+
+      // If it's a regular trip (not professional), OR if it is professional but no specific adult room rates are specified,
+      // we ALWAYS include the standard uniform/base price option!
+      if (!isProf || !hasAdultRoomRates) {
         customOpts.push({
-          value: 'double',
-          label: `غرفة ثنائية Double (${tripObj.priceDouble.toLocaleString('ar-DZ')} دج/شخص)`,
-          price: tripObj.priceDouble
+          value: 'standard',
+          label: `سعر موحد ومباشر (${basePrice.toLocaleString('ar-DZ')} دج/شخص)`,
+          price: basePrice
         });
       }
-      if (tripObj.priceTriple !== undefined) {
-        customOpts.push({
-          value: 'triple',
-          label: `غرفة ثلاثية Triple (${tripObj.priceTriple.toLocaleString('ar-DZ')} دج/شخص)`,
-          price: tripObj.priceTriple
-        });
-      }
-      if (tripObj.priceQuadruple !== undefined) {
-        customOpts.push({
-          value: 'quadruple',
-          label: `غرفة رباعية Quadruple (${tripObj.priceQuadruple.toLocaleString('ar-DZ')} دج/شخص)`,
-          price: tripObj.priceQuadruple
-        });
-      }
-      if (tripObj.priceQuintuple !== undefined) {
-        customOpts.push({
-          value: 'quintuple',
-          label: `غرفة خماسية Quintuple (${tripObj.priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`,
-          price: tripObj.priceQuintuple
-        });
-      }
-      if (tripObj.priceSextuple !== undefined) {
-        customOpts.push({
-          value: 'sextuple',
-          label: `غرفة سداسية Sextuple (${tripObj.priceSextuple.toLocaleString('ar-DZ')} دج/شخص)`,
-          price: tripObj.priceSextuple
-        });
-      }
-      if (tripObj.priceSingle !== undefined) {
-        customOpts.push({
-          value: 'single',
-          label: `غرفة فردية Single (${tripObj.priceSingle.toLocaleString('ar-DZ')} دج/شخص)`,
-          price: tripObj.priceSingle
-        });
-      }
-      if (tripObj.priceChild !== undefined) {
-        customOpts.push({
-          value: 'child_custom',
-          label: `سعر الأطفال Child (${tripObj.priceChild.toLocaleString('ar-DZ')} دج)`,
-          price: tripObj.priceChild
-        });
+
+      if (isProf) {
+        if (tripObj.priceDouble !== undefined) {
+          customOpts.push({
+            value: 'double',
+            label: `غرفة ثنائية Double (${tripObj.priceDouble.toLocaleString('ar-DZ')} دج/شخص)`,
+            price: tripObj.priceDouble
+          });
+        }
+        if (tripObj.priceTriple !== undefined) {
+          customOpts.push({
+            value: 'triple',
+            label: `غرفة ثلاثية Triple (${tripObj.priceTriple.toLocaleString('ar-DZ')} دج/شخص)`,
+            price: tripObj.priceTriple
+          });
+        }
+        if (tripObj.priceQuadruple !== undefined) {
+          customOpts.push({
+            value: 'quadruple',
+            label: `غرفة رباعية Quadruple (${tripObj.priceQuadruple.toLocaleString('ar-DZ')} دج/شخص)`,
+            price: tripObj.priceQuadruple
+          });
+        }
+        if (tripObj.priceQuintuple !== undefined) {
+          customOpts.push({
+            value: 'quintuple',
+            label: `غرفة خماسية Quintuple (${tripObj.priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`,
+            price: tripObj.priceQuintuple
+          });
+        }
+        if (tripObj.priceSextuple !== undefined) {
+          customOpts.push({
+            value: 'sextuple',
+            label: `غرفة سداسية Sextuple (${tripObj.priceSextuple.toLocaleString('ar-DZ')} دج/شخص)`,
+            price: tripObj.priceSextuple
+          });
+        }
+        if (tripObj.priceSingle !== undefined) {
+          customOpts.push({
+            value: 'single',
+            label: `غرفة فردية Single (${tripObj.priceSingle.toLocaleString('ar-DZ')} دج/شخص)`,
+            price: tripObj.priceSingle
+          });
+        }
+        if (tripObj.priceChild !== undefined) {
+          customOpts.push({
+            value: 'child_custom',
+            label: `سعر الأطفال Child (${tripObj.priceChild.toLocaleString('ar-DZ')} دج)`,
+            price: tripObj.priceChild
+          });
+        }
       }
       
       customOpts.push({
@@ -335,19 +356,33 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
         label: 'طفل أقل من سنتين (مجاناً - 0 دج)',
         price: 0
       });
+
+      // Append any custom pricing fields
+      if (isProf && tripObj.customPrices && Array.isArray(tripObj.customPrices)) {
+        tripObj.customPrices.forEach((cp) => {
+          if (!customOpts.some(opt => opt.value === `custom_${cp.id}`)) {
+            customOpts.push({
+              value: `custom_${cp.id}`,
+              label: `${cp.label} (${cp.price.toLocaleString('ar-DZ')} دج)`,
+              price: cp.price
+            });
+          }
+        });
+      }
+
       return customOpts;
     }
 
-    // Fallback for custom trips added inside the dashboard
+    // Fallback for custom trips added inside the dashboard if no tripObj was passed
     return [
-      { value: 'standard', label: `عرض قياسي موحد (${basePrice.toLocaleString('ar-DZ')} دج/شخص)`, price: basePrice },
+      { value: 'standard', label: `سعر موحد ومباشر (${basePrice.toLocaleString('ar-DZ')} دج/شخص)`, price: basePrice },
       { value: 'double', label: `غرفة ثنائية مزدوجة (+10%) (${Math.round(basePrice * 1.1).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.1) },
       { value: 'suite', label: `جناح سويت ملكي فاخر (+30%) (${Math.round(basePrice * 1.3).toLocaleString('ar-DZ')} دج/شخص)`, price: Math.round(basePrice * 1.3) }
     ];
   }
 
   // Now dynamically append any newly activated price fields that are not in excludedKeys
-  if (tripObj) {
+  if (tripObj && tripObj.isProfessional) {
     const extraKeys: { key: keyof Trip; value: string; label: string }[] = [
       { key: 'priceDouble', value: 'double', label: 'غرفة ثنائية Double' },
       { key: 'priceTriple', value: 'triple', label: 'غرفة ثلاثية Triple' },
@@ -369,6 +404,19 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
         }
       }
     });
+
+    // Append any custom pricing fields
+    if (tripObj.customPrices && Array.isArray(tripObj.customPrices)) {
+      tripObj.customPrices.forEach((cp) => {
+        if (!options.some(opt => opt.value === `custom_${cp.id}`)) {
+          options.push({
+            value: `custom_${cp.id}`,
+            label: `${cp.label} (${cp.price.toLocaleString('ar-DZ')} دج)`,
+            price: cp.price
+          });
+        }
+      });
+    }
   }
 
   return options;

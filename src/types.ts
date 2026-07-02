@@ -71,6 +71,12 @@ export interface OperationLog {
   timestamp: string;
 }
 
+export interface CustomPrice {
+  id: string;
+  label: string;
+  price: number;
+}
+
 export interface Trip {
   id: string;
   name: string;
@@ -89,4 +95,5 @@ export interface Trip {
   priceQuintuple?: number; // سعر الغرفة الخماسية
   priceSextuple?: number; // سعر الغرفة السداسية
   priceChild?: number; // سعر المقعد للأطفال
+  customPrices?: CustomPrice[]; // قائمة أسعار مخصصة إضافية
 }
