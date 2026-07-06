@@ -370,7 +370,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
   return (
     <div id="print-modal-overlay" className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 md:p-6 font-sans">
       {/* Printable page layout container */}
-      <div id="print-modal-content" className="bg-slate-50 rounded-2xl max-w-5xl w-full p-6 shadow-xl relative flex flex-col md:flex-row gap-6 animate-in fade-in zoom-in-95 duration-200">
+      <div id="print-modal-content" className="bg-slate-50 rounded-2xl max-w-6xl w-full p-6 shadow-xl relative flex flex-col md:flex-row gap-6 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Controls Column (Hidden on print) */}
         <div className="md:w-1/4 flex flex-col justify-between gap-6 print:hidden text-right" dir="rtl">
@@ -475,7 +475,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
         </div>
 
         {/* Paper Container Preview (The actual A4 Ticket) */}
-        <div className="flex-1 overflow-auto max-h-[80vh] md:max-h-none border border-slate-250 rounded-xl bg-white shadow-inner flex justify-center hide-scrollbar">
+        <div id="a4-print-ticket-wrapper" className="flex-1 overflow-auto max-h-[75vh] h-[75vh] border border-slate-250 rounded-xl bg-white shadow-inner flex justify-center hide-scrollbar">
           
           <div
             id="a4-print-ticket-container"
@@ -770,24 +770,68 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
           scrollbar-width: none !important;
         }
 
+        /* Screen Preview Responsive Zoom Scale */
+        #a4-print-ticket-container {
+          zoom: 0.85;
+          transform-origin: top center;
+        }
+
+        @media screen and (max-width: 1200px) {
+          #a4-print-ticket-container {
+            zoom: 0.75;
+          }
+        }
+        @media screen and (max-width: 1024px) {
+          #a4-print-ticket-container {
+            zoom: 0.7;
+          }
+        }
+        @media screen and (max-width: 768px) {
+          #a4-print-ticket-container {
+            zoom: 0.95;
+          }
+        }
+        @media screen and (max-width: 640px) {
+          #a4-print-ticket-container {
+            zoom: 0.75;
+          }
+        }
+        @media screen and (max-width: 480px) {
+          #a4-print-ticket-container {
+            zoom: 0.55;
+          }
+        }
+        @media screen and (max-width: 380px) {
+          #a4-print-ticket-container {
+            zoom: 0.45;
+          }
+        }
+
         @page {
-          size: auto;
+          size: A4 portrait;
           margin: 0 !important;
         }
 
         @media print {
           @page {
+            size: A4 portrait;
             margin: 0 !important;
           }
           html, body {
             margin: 0 !important;
             padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
           }
           body {
             visibility: hidden;
             background: white !important;
           }
-          #print-modal-overlay, #print-modal-content, #a4-print-ticket-container, #a4-print-ticket-container * {
+          #print-modal-overlay, 
+          #print-modal-content, 
+          #a4-print-ticket-wrapper, 
+          #a4-print-ticket-container, 
+          #a4-print-ticket-container * {
             visibility: visible !important;
           }
           #print-modal-overlay {
@@ -814,6 +858,17 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             box-shadow: none !important;
             display: block !important;
           }
+          #a4-print-ticket-wrapper {
+            display: block !important;
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
           #a4-print-ticket-container {
             position: relative !important;
             width: 210mm !important;
@@ -825,6 +880,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             box-shadow: none !important;
             background: white !important;
             box-sizing: border-box !important;
+            zoom: 1 !important;
           }
           .print\:hidden {
             display: none !important;
