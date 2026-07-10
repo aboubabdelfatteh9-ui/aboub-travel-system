@@ -14,7 +14,9 @@ import {
   Save, 
   Building2, 
   HelpCircle, 
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { calculateAge, getRoomOptionsForTrip, matchRoomTypeOption } from './CustomerForm';
 
@@ -38,6 +40,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [expandedTrips, setExpandedTrips] = useState<Record<string, boolean>>({});
 
   // Helper to find trip by ID
   const getTripName = (tripId: string) => {
@@ -144,6 +147,58 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
   const editingTripObj = editingCustomer ? (trips.find(t => t.id === editingCustomer.tripId) || trips[0]) : null;
   const editingRoomOptions = editingTripObj ? getRoomOptionsForTrip(editingTripObj.id, editingTripObj.price, editingTripObj) : [];
 
+  // Group customers by trip
+  const tripGroups = trips.map(trip => {
+    const tripCustomers = sortedCustomers.filter(c => c.tripId === trip.id);
+    const totalPassengers = tripCustomers.reduce((acc, c) => acc + (c.companions?.length || 0) + 1, 0);
+    return {
+      trip,
+      customers: tripCustomers,
+      totalPassengers
+    };
+  }).filter(group => group.customers.length > 0);
+
+  // Fallback for any customer whose tripId does not match any active trip
+  const unassignedCustomers = sortedCustomers.filter(c => !trips.some(t => t.id === c.tripId));
+  if (unassignedCustomers.length > 0) {
+    const totalPassengers = unassignedCustomers.reduce((acc, c) => acc + (c.companions?.length || 0) + 1, 0);
+    tripGroups.push({
+      trip: {
+        id: 'unassigned',
+        name: 'حجوزات معلقة / رحلة محذوفة أو غير محددة',
+        price: 0,
+        duration: 'غير محدد',
+        date: 'غير محدد',
+      } as any,
+      customers: unassignedCustomers,
+      totalPassengers
+    });
+  }
+
+  const toggleTrip = (tripId: string) => {
+    setExpandedTrips(prev => ({
+      ...prev,
+      [tripId]: !prev[tripId]
+    }));
+  };
+
+  const isTripExpanded = (tripId: string) => {
+    if (searchTerm.trim() !== '') return true;
+    return !!expandedTrips[tripId];
+  };
+
+  const expandAll = () => {
+    const allIds: Record<string, boolean> = {};
+    tripGroups.forEach(g => {
+      allIds[g.trip.id] = true;
+    });
+    setExpandedTrips(allIds);
+  };
+
+  const collapseAll = () => {
+    setExpandedTrips({});
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs space-y-6" dir="rtl">
       
@@ -169,11 +224,30 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
           <Search size={14} className="absolute right-4 top-3.5 text-stone-400 group-focus-within:text-amber-600 transition-colors duration-300" />
         </div>
       </div>
-
-      {/* Results Count Descriptor */}
-      <div className="flex justify-between items-center text-xs text-stone-500 font-medium">
-        <span>مجموع الحجوزات المفلترة: <strong className="text-amber-700 font-bold">{sortedCustomers.length} حجز عائلي</strong></span>
-        {searchTerm && <button onClick={() => setSearchTerm('')} className="text-amber-600 hover:underline cursor-pointer">إلغاء التصفية ❌</button>}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-stone-500 font-medium">
+        <div>
+          <span>مجموع الحجوزات المفلترة: <strong className="text-amber-700 font-bold">{sortedCustomers.length} حجز عائلي</strong></span>
+          {searchTerm && <button onClick={() => setSearchTerm('')} className="mr-2 text-amber-600 hover:underline cursor-pointer">إلغاء التصفية ❌</button>}
+        </div>
+        
+        {sortedCustomers.length > 0 && !searchTerm && (
+          <div className="flex items-center gap-2">
+            <button 
+              type="button" 
+              onClick={expandAll} 
+              className="px-2.5 py-1 rounded bg-stone-100 hover:bg-amber-50 hover:text-amber-700 transition-all font-bold cursor-pointer text-[10.5px]"
+            >
+              📂 توسيع الكل
+            </button>
+            <button 
+              type="button" 
+              onClick={collapseAll} 
+              className="px-2.5 py-1 rounded bg-stone-100 hover:bg-stone-200 transition-all font-bold cursor-pointer text-[10.5px]"
+            >
+              📁 طي الكل
+            </button>
+          </div>
+        )}
       </div>
 
       {sortedCustomers.length === 0 ? (
@@ -183,321 +257,370 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
           <p className="text-stone-500 text-[11px]">جرب البحث بكلمة أو رقم حجز مختلف أو تفاصيل حجز أخرى.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          
-          {/* Desktop Luxury Dossiers Register - Beautifully Organized on Large Screens */}
-          <div className="hidden lg:block space-y-4">
-            
-            {/* List of Luxury Cards */}
-            <div className="space-y-5">
-              {sortedCustomers.map((customer) => {
-                const currentTrip = trips.find(t => t.id === customer.tripId);
-                const showTotalPrice = customer.totalPrice !== undefined ? customer.totalPrice : (currentTrip ? currentTrip.price : 0);
-                const companionCount = (customer.companions || []).length;
-                const totalCount = companionCount + 1;
+        <div className="space-y-6">
+          {tripGroups.map((group) => {
+            const tripId = group.trip.id;
+            const isExpanded = isTripExpanded(tripId);
 
-                return (
-                  <div 
-                    key={customer.id} 
-                    className="bg-white border border-stone-200 rounded-2xl shadow-sm hover:border-amber-500/30 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col group"
-                  >
-                    {/* Inner Card Top Header */}
-                    <div className="bg-stone-50 border-b border-stone-100 px-5 py-3 flex items-center justify-between font-sans">
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs font-black bg-zinc-900 text-amber-400 border border-zinc-950 px-3 py-1 rounded-lg shadow-3xs select-all">
-                          رقم الحجز: {customer.invoiceNumber}
-                        </span>
-                        <span className="text-[11px] text-stone-500 font-bold font-mono">
-                          📅 تاريخ التسجيل: {new Date(customer.registrationDate).toLocaleDateString('ar-DZ')}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {getPaymentStatusBadge(customer.paymentStatus)}
-                        {customer.bookingType === 'individual' ? (
-                          <span className="bg-amber-50 text-amber-800 border border-amber-200/50 px-2.5 py-1 rounded-lg text-[10px] font-black shadow-3xs">
-                            👤 حجز مستقل
-                          </span>
-                        ) : (
-                          <span className="bg-blue-50 text-blue-800 border border-blue-200/50 px-2.5 py-1 rounded-lg text-[10px] font-black shadow-3xs">
-                            👨‍👩‍👧‍👦 حجز عائلي ({totalCount} أفراد)
-                          </span>
-                        )}
-                      </div>
+            return (
+              <div key={tripId} className="border border-stone-200 rounded-2xl overflow-hidden shadow-3xs bg-stone-50/20">
+                {/* Trip Collapsible Header */}
+                <button
+                  type="button"
+                  onClick={() => toggleTrip(tripId)}
+                  className="w-full flex flex-col md:flex-row md:items-center justify-between p-4 bg-gradient-to-r from-stone-50 to-white hover:from-amber-500/[0.03] hover:to-white border-b border-stone-200 transition-all duration-300 text-right cursor-pointer gap-4 group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-amber-500/10 text-amber-700 rounded-xl group-hover:bg-amber-500/15 transition-colors">
+                      <Sparkles size={16} className="text-amber-600" />
                     </div>
-
-                    {/* Card Content Grid */}
-                    <div className="p-5 grid grid-cols-12 gap-6 items-stretch divide-x divide-x-reverse divide-stone-100">
-                      
-                      {/* Section 1: Lead Customer Details (col-span-4) */}
-                      <div className="col-span-4 space-y-3.5 pr-1">
-                        <div>
-                          <span className="text-[10px] text-stone-400 font-extrabold block mb-1 uppercase tracking-wider">الزبون الرئيسي (المسؤول)</span>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-sans font-black text-stone-900 text-sm leading-tight">
-                              {customer.lastName} {customer.firstName}
-                            </h4>
-                            {getRoleBadge(customer.role)}
-                          </div>
-                        </div>
-
-                        <div className="text-[11px] text-stone-605 space-y-2 font-sans pt-1">
-                          <div className="flex items-center gap-1.5 text-stone-605">
-                            <span className="text-stone-400">🎂 الميلاد والسن:</span>
-                            <span className="font-bold text-stone-800">{formatBirthInfo(customer.birthDate, customer.birthPlace)}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 pt-1">
-                            <span className="inline-flex items-center gap-1 bg-amber-50/75 text-amber-900 font-mono font-black px-2.5 py-1 rounded-lg border border-amber-500/10 shadow-3xs text-[10.5px]">
-                              📞 {customer.phone}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Section 2: Companions and Family Members list (col-span-4) */}
-                      <div className="col-span-4 space-y-3.5 pr-5">
-                        <span className="text-[10px] text-stone-400 font-extrabold block mb-1 uppercase tracking-wider">أفراد العائلة والمرافقين بالملف</span>
-                        {companionCount > 0 ? (
-                          <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto pr-0.5 custom-scrollbar">
-                            {customer.companions.map((cmp) => (
-                              <span 
-                                key={cmp.id} 
-                                className="inline-flex items-center gap-1 bg-stone-50 text-stone-700 text-[10px] px-2 py-0.8 rounded-lg border border-stone-200 font-sans shadow-3xs"
-                              >
-                                <span className="text-amber-700 font-black text-[8px] bg-amber-50/80 px-1 py-0.1 border border-amber-200 rounded shrink-0">
-                                  {cmp.relationship}
-                                </span>
-                                <span className="font-bold text-stone-900">{cmp.firstName}</span>
-                                <span className="text-stone-450 font-mono text-[8.5px] shrink-0">({calculateAge(cmp.birthDate)} سنة)</span>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-[11px] text-stone-400 italic font-medium pt-1">
-                            سائح مستقل لوحده في الفندق (لا يوجد مرافقون).
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Section 3: Travel Program & Lodging assignment (col-span-4) */}
-                      <div className="col-span-4 space-y-3.5 pr-5 flex flex-col justify-between">
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] text-stone-400 font-extrabold block uppercase tracking-wider">برنامج السفر والمسار المبرمج</span>
-                          <strong className="text-stone-900 text-xs font-black leading-tight block">
-                            {getTripName(customer.tripId)}
-                          </strong>
-                          {currentTrip && (
-                            <div className="text-[10px] text-stone-500 font-mono font-bold space-y-0.5 pt-0.5">
-                              <span className="block">⏳ مدة المغامرة: {currentTrip.duration}</span>
-                              <span className="block text-blue-600">🛫 موعد الاقلاع المرتقب: {customer.departureDate || currentTrip.date}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between border-t border-stone-100 pt-2.5 mt-2.5">
-                          <div>
-                            <span className="text-[9px] text-stone-450 block font-bold">نوع الغرفة المبرمج:</span>
-                            <span className="inline-flex items-center gap-1 text-[10.5px] text-amber-850 font-black bg-amber-50/85 px-2.5 py-0.8 rounded-lg border border-amber-500/10 shadow-3xs mt-1 leading-none">
-                              🏠 {(() => {
-                                const currentTripObj = trips.find(t => t.id === customer.tripId);
-                                const opts = currentTripObj ? getRoomOptionsForTrip(currentTripObj.id, currentTripObj.price, currentTripObj) : [];
-                                const matchedOpt = matchRoomTypeOption(customer.roomType, opts);
-                                return matchedOpt ? matchedOpt.label : (customer.roomType || 'غرفة قياسية');
-                              })()}
-                            </span>
-                          </div>
-
-                          <div className="text-left">
-                            <span className="text-[9px] text-stone-450 block font-bold text-left">التكلفة والوضعية المالية:</span>
-                            <div className="text-center font-mono font-black text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-500/15 text-[11px] inline-block shadow-3xs tracking-tight mt-1">
-                              💵 {showTotalPrice.toLocaleString('ar-DZ')} دج
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Padded Footer Bar containing Administrative note & Action buttons */}
-                    <div className="bg-[#FAF9F6] border-t border-stone-200/60 px-5 py-3 flex flex-row items-center justify-between gap-4">
-                      
-                      {/* Left side: Client administrative comment */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-tight shrink-0">ملاحظات الملف:</span>
-                        {customer.notes ? (
-                          <p className="text-[11px] text-stone-750 bg-amber-500/5 px-3 py-1 rounded-lg border border-amber-500/10 max-w-[280px] xl:max-w-[480px] truncate leading-tight font-sans font-bold text-right" title={customer.notes}>
-                            ⚠️ {customer.notes}
-                          </p>
-                        ) : (
-                          <p className="text-[10.5px] text-stone-500 font-bold font-sans">
-                            ✔️ معالجة مستوفية، والبيانات والملفات مكتملة.
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Right side: Action operational buttons (Fully prominent and responsive) */}
-                      <div className="flex items-center gap-2 px-1">
-                        
-                        {/* Print Receipt Button */}
-                        <button
-                          onClick={() => onPrintCustomer(customer)}
-                          id={`btn-print-invoice-dossier-${customer.id}`}
-                          className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-4 py-2 font-black text-xs shadow-3xs active:scale-[0.97] transition-all cursor-pointer border border-amber-650 flex items-center gap-1.5 shrink-0"
-                          title="طباعة التذكرة ووصل الاستلام الكلي للملف"
-                        >
-                          <Printer size={13} className="stroke-[2.5]" />
-                          <span>طباعة وصل الحجز</span>
-                        </button>
-
-                        {/* Edit Record Button */}
-                        <button
-                          onClick={() => setEditingCustomer(customer)}
-                          id={`btn-edit-details-dossier-${customer.id}`}
-                          className="bg-stone-900 hover:bg-stone-950 text-white rounded-xl px-4 py-2 font-black text-xs shadow-3xs active:scale-[0.97] transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-                          title="تعديل بيانات الحجز والمبالغ المدفوعة"
-                        >
-                          <Edit2 size={13} className="stroke-[2.5]" />
-                          <span>تعديل السجل</span>
-                        </button>
-
-                        {/* Delete Button */}
-                        <button
-                          onClick={() => setDeleteConfirmId(customer.id)}
-                          id={`btn-delete-res-dossier-${customer.id}`}
-                          className="bg-white hover:bg-rose-50 text-stone-550 hover:text-rose-600 rounded-xl px-3 py-2 border border-stone-200 hover:border-rose-200 cursor-pointer shadow-3xs transition-all active:scale-[0.97] flex items-center gap-1.5 font-bold text-xs shrink-0"
-                          title="حذف ملف الحجز"
-                        >
-                          <Trash2 size={13} className="stroke-[2.5]" />
-                          <span>حذف</span>
-                        </button>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Unified mobile user-interface responsive cards - Styled perfectly */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
-            {sortedCustomers.map((customer) => {
-              const currentTrip = trips.find(t => t.id === customer.tripId);
-              const showTotalPrice = customer.totalPrice !== undefined ? customer.totalPrice : (currentTrip ? currentTrip.price : 0);
-              const companionCount = (customer.companions || []).length;
-              const totalCount = companionCount + 1;
-
-              return (
-                <div key={customer.id} className="border border-stone-200 rounded-2xl p-4 bg-white hover:bg-stone-50/50 transition-all text-right relative space-y-4 shadow-3xs font-sans">
-                  
-                  {/* Card Title Header with Payment Badge and Invoice */}
-                  <div className="flex items-center justify-between border-b border-stone-200/40 pb-2.5 font-sans">
-                    <span className="font-mono text-[10px] font-black bg-stone-900 text-white border border-stone-950 px-2.5 py-0.5 rounded-lg shadow-3xs">
-                      رقم الحجز: {customer.invoiceNumber}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {getPaymentStatusBadge(customer.paymentStatus)}
-                    </div>
-                  </div>
-
-                  {/* Leader Info */}
-                  <div className="space-y-1 bg-stone-50/60 p-3 rounded-xl border border-stone-200/40">
-                    <span className="text-[9px] text-stone-400 block font-black leading-none">رب العائلة / المسؤول:</span>
-                    <h4 className="font-extrabold text-[#1C1917] text-sm leading-tight pt-1">
-                      {customer.firstName} {customer.lastName}
-                    </h4>
-                    <div className="text-[10px] text-stone-500 font-medium space-y-1 pt-1.5 font-sans">
-                      <div>🎂 {customer.birthDate} ({customer.birthPlace})</div>
-                      <div className="inline-flex items-center gap-1 bg-stone-100 font-mono font-bold text-stone-700 px-2 py-0.5 rounded-md border border-stone-200 shadow-3xs mt-1">
-                        📞 {customer.phone}
-                      </div>
-                      <div className="pt-2">{getRoleBadge(customer.role)}</div>
-                    </div>
-                  </div>
-
-                  {/* Companions Sub-block */}
-                  <div className="p-3 rounded-xl border border-stone-200/80 bg-stone-50/50 space-y-2 text-[10px]">
-                    <div className="flex justify-between items-center text-stone-700 font-bold border-b border-stone-200/60 pb-1 mb-1.5 border-stone-150/80">
-                      <span>👤 الأفراد والعائلة المرافقة:</span>
-                      <span className="font-mono text-stone-900 font-extrabold">{totalCount} مسافرين</span>
-                    </div>
-
-                    {companionCount > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                        {customer.companions.map((cmp) => (
-                          <span key={cmp.id} className="inline-flex items-center gap-1.5 bg-white text-stone-700 text-[9px] px-2 py-1 rounded-md border border-stone-200 shadow-3xs font-medium">
-                            <span className="text-amber-700 font-bold bg-amber-50/60 px-1 py-0.2 rounded border border-amber-200 shrink-0">{cmp.relationship}</span>
-                            <span>{cmp.firstName}</span>
-                            <span className="text-stone-400 shrink-0">({calculateAge(cmp.birthDate)}س)</span>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-stone-400 italic block">سائح فردي (بدون مرافقين)</span>
-                    )}
-                  </div>
-
-                  {/* Voyage and price detail */}
-                  <div className="text-xs space-y-1.5 text-stone-600 bg-stone-50/30 p-3 rounded-xl border border-stone-200/50">
                     <div>
-                      <span className="text-stone-400 block text-[9px] font-black pb-0.5">البرنامج السياحي المتعاقد عليه:</span>
-                      <strong className="text-[#1C1917] text-xs font-extrabold leading-normal">{getTripName(customer.tripId)}</strong>
-                    </div>
-                    {customer.roomType && (
-                      <div className="text-[10px] text-amber-800 font-bold bg-amber-50 inline-block px-2 py-0.5 rounded border border-amber-500/10 mt-1">
-                        🏠 {(() => {
-                          const currentTripObj = trips.find(t => t.id === customer.tripId);
-                          const opts = currentTripObj ? getRoomOptionsForTrip(currentTripObj.id, currentTripObj.price, currentTripObj) : [];
-                          const matchedOpt = matchRoomTypeOption(customer.roomType, opts);
-                          return matchedOpt ? matchedOpt.label : customer.roomType;
-                        })()}
+                      <h4 className="font-sans font-black text-[#1C1917] text-sm md:text-base group-hover:text-amber-800 transition-colors">
+                        {group.trip.name}
+                      </h4>
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-stone-500 font-bold">
+                        <span>📅 تاريخ البرنامج: {group.trip.date || 'غير محدد'}</span>
+                        <span>⏳ المدة: {group.trip.duration || 'غير محدد'}</span>
                       </div>
-                    )}
+                    </div>
                   </div>
 
-                  {/* Financial calculation summary bar */}
-                  <div className="flex justify-between items-center bg-[#FAF8F5] p-3 border border-stone-205 border-stone-200 rounded-xl text-xs">
-                    <span className="font-bold text-stone-600 font-sans">إجمالي مدفوعات المعاملة:</span>
-                    <strong className="font-mono font-black text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-                      {showTotalPrice.toLocaleString('ar-DZ')} دج
-                    </strong>
+                  <div className="flex items-center gap-3 self-end md:self-auto font-sans">
+                    <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-850 border border-amber-200/50 px-3 py-1 rounded-lg text-[10.5px] font-black shadow-3xs">
+                      👨‍👩‍👧‍👦 {group.customers.length} عائلات / حجوزات
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-900 border border-blue-200/50 px-3 py-1 rounded-lg text-[10.5px] font-black shadow-3xs">
+                      👤 {group.totalPassengers} مسافراً إجمالاً
+                    </span>
+                    
+                    <div className="p-1 rounded-lg bg-stone-100 group-hover:bg-amber-50 text-stone-500 group-hover:text-amber-600 transition-all duration-300">
+                      {isExpanded ? (
+                        <ChevronUp size={16} className="stroke-[2.5]" />
+                      ) : (
+                        <ChevronDown size={16} className="stroke-[2.5]" />
+                      )}
+                    </div>
                   </div>
+                </button>
 
-                  {/* Responsive bottom card actions with proper labels */}
-                  <div className="flex items-center gap-2 pt-2.5 border-t border-stone-100">
-                    <button
-                      onClick={() => onPrintCustomer(customer)}
-                      id={`mob-btn-print-${customer.id}`}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-extrabold cursor-pointer transition-all border border-amber-650 shadow-3xs"
-                    >
-                      <Printer size={12} />
-                      طباعة الوصل
-                    </button>
-                    <button
-                      onClick={() => setEditingCustomer(customer)}
-                      id={`mob-btn-edit-${customer.id}`}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-stone-900 hover:bg-stone-950 text-white rounded-lg text-[11px] font-extrabold border border-stone-950 cursor-pointer transition-all shadow-3xs"
-                    >
-                      <Edit2 size={11} />
-                      تعديل الحجز
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirmId(customer.id)}
-                      id={`mob-btn-delete-${customer.id}`}
-                      className="p-2 bg-stone-50 hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-lg border border-stone-200 cursor-pointer transition-all flex items-center justify-center shadow-3xs"
-                      title="حذف السجل"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                {/* Collapsible Content */}
+                {isExpanded && (
+                  <div className="p-4 md:p-5 bg-white space-y-6">
+                    {/* Desktop Luxury Dossiers Register - Beautifully Organized on Large Screens */}
+                    <div className="hidden lg:block space-y-4">
+                      <div className="space-y-5">
+                        {group.customers.map((customer) => {
+                          const currentTrip = trips.find(t => t.id === customer.tripId);
+                          const showTotalPrice = customer.totalPrice !== undefined ? customer.totalPrice : (currentTrip ? currentTrip.price : 0);
+                          const companionCount = (customer.companions || []).length;
+                          const totalCount = companionCount + 1;
+
+                          return (
+                            <div 
+                              key={customer.id} 
+                              className="bg-white border border-stone-200 rounded-2xl shadow-sm hover:border-amber-500/30 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col group"
+                            >
+                              {/* Inner Card Top Header */}
+                              <div className="bg-stone-50 border-b border-stone-100 px-5 py-3 flex items-center justify-between font-sans">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono text-xs font-black bg-zinc-900 text-amber-400 border border-zinc-950 px-3 py-1 rounded-lg shadow-3xs select-all">
+                                    رقم الحجز: {customer.invoiceNumber}
+                                  </span>
+                                  <span className="text-[11px] text-stone-500 font-bold font-mono">
+                                    📅 تاريخ التسجيل: {new Date(customer.registrationDate).toLocaleDateString('ar-DZ')}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  {getPaymentStatusBadge(customer.paymentStatus)}
+                                  {customer.bookingType === 'individual' ? (
+                                    <span className="bg-amber-50 text-amber-850 border border-amber-200/50 px-2.5 py-1 rounded-lg text-[10px] font-black shadow-3xs">
+                                      👤 حجز مستقل
+                                    </span>
+                                  ) : (
+                                    <span className="bg-blue-50 text-blue-800 border border-blue-200/50 px-2.5 py-1 rounded-lg text-[10px] font-black shadow-3xs">
+                                      👨‍👩‍👧‍👦 حجز عائلي ({totalCount} أفراد)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Card Content Grid */}
+                              <div className="p-5 grid grid-cols-12 gap-6 items-stretch divide-x divide-x-reverse divide-stone-100">
+                                
+                                {/* Section 1: Lead Customer Details (col-span-4) */}
+                                <div className="col-span-4 space-y-3.5 pr-1">
+                                  <div>
+                                    <span className="text-[10px] text-stone-400 font-extrabold block mb-1 uppercase tracking-wider">الزبون الرئيسي (المسؤول)</span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <h4 className="font-sans font-black text-stone-900 text-sm leading-tight">
+                                        {customer.lastName} {customer.firstName}
+                                      </h4>
+                                      {getRoleBadge(customer.role)}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-[11px] text-stone-600 space-y-2 font-sans pt-1">
+                                    <div className="flex items-center gap-1.5 text-stone-600">
+                                      <span className="text-stone-400">🎂 الميلاد والسن:</span>
+                                      <span className="font-bold text-stone-800">{formatBirthInfo(customer.birthDate, customer.birthPlace)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pt-1">
+                                      <span className="inline-flex items-center gap-1 bg-amber-50/75 text-amber-900 font-mono font-black px-2.5 py-1 rounded-lg border border-amber-500/10 shadow-3xs text-[10.5px]">
+                                        📞 {customer.phone}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Section 2: Companions and Family Members list (col-span-4) */}
+                                <div className="col-span-4 space-y-3.5 pr-5">
+                                  <span className="text-[10px] text-stone-400 font-extrabold block mb-1 uppercase tracking-wider">أفراد العائلة والمرافقين بالملف</span>
+                                  {companionCount > 0 ? (
+                                    <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto pr-0.5 custom-scrollbar">
+                                      {customer.companions.map((cmp) => (
+                                        <span 
+                                          key={cmp.id} 
+                                          className="inline-flex items-center gap-1 bg-stone-50 text-stone-700 text-[10px] px-2 py-0.5 rounded-lg border border-stone-200 font-sans shadow-3xs"
+                                        >
+                                          <span className="text-amber-700 font-black text-[8px] bg-amber-50/80 px-1 py-0.1 border border-amber-200 rounded shrink-0">
+                                            {cmp.relationship}
+                                          </span>
+                                          <span className="font-bold text-stone-900">{cmp.firstName}</span>
+                                          <span className="text-stone-450 font-mono text-[8.5px] shrink-0">({calculateAge(cmp.birthDate)} سنة)</span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-[11px] text-stone-400 italic font-medium pt-1">
+                                      سائح مستقل لوحده في الفندق (لا يوجد مرافقون).
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Section 3: Travel Program & Lodging assignment (col-span-4) */}
+                                <div className="col-span-4 space-y-3.5 pr-5 flex flex-col justify-between">
+                                  <div className="space-y-1.5">
+                                    <span className="text-[10px] text-stone-400 font-extrabold block uppercase tracking-wider">برنامج السفر والمسار المبرمج</span>
+                                    <strong className="text-stone-900 text-xs font-black leading-tight block">
+                                      {getTripName(customer.tripId)}
+                                    </strong>
+                                    {currentTrip && (
+                                      <div className="text-[10px] text-stone-500 font-mono font-bold space-y-0.5 pt-0.5">
+                                        <span className="block">⏳ مدة المغامرة: {currentTrip.duration}</span>
+                                        <span className="block text-blue-600">🛫 موعد الاقلاع المرتقب: {customer.departureDate || currentTrip.date}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center justify-between border-t border-stone-100 pt-2.5 mt-2.5">
+                                    <div>
+                                      <span className="text-[9px] text-stone-400 block font-bold">نوع الغرفة المبرمج:</span>
+                                      <span className="inline-flex items-center gap-1 text-[10.5px] text-amber-800 font-black bg-amber-50/85 px-2.5 py-0.5 rounded-lg border border-amber-500/10 shadow-3xs mt-1 leading-none">
+                                        🏠 {(() => {
+                                          const currentTripObj = trips.find(t => t.id === customer.tripId);
+                                          const opts = currentTripObj ? getRoomOptionsForTrip(currentTripObj.id, currentTripObj.price, currentTripObj) : [];
+                                          const matchedOpt = matchRoomTypeOption(customer.roomType, opts);
+                                          return matchedOpt ? matchedOpt.label : (customer.roomType || 'غرفة قياسية');
+                                        })()}
+                                      </span>
+                                    </div>
+
+                                    <div className="text-left">
+                                      <span className="text-[9px] text-stone-400 block font-bold text-left">التكلفة والوضعية المالية:</span>
+                                      <div className="text-center font-mono font-black text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-500/15 text-[11px] inline-block shadow-3xs tracking-tight mt-1">
+                                        💵 {showTotalPrice.toLocaleString('ar-DZ')} دج
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                              </div>
+
+                              {/* Padded Footer Bar containing Administrative note & Action buttons */}
+                              <div className="bg-[#FAF9F6] border-t border-stone-200/60 px-5 py-3 flex flex-row items-center justify-between gap-4">
+                                
+                                {/* Left side: Client administrative comment */}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-tight shrink-0">ملاحظات الملف:</span>
+                                  {customer.notes ? (
+                                    <p className="text-[11px] text-stone-700 bg-amber-500/5 px-3 py-1 rounded-lg border border-amber-500/10 max-w-[280px] xl:max-w-[480px] truncate leading-tight font-sans font-bold text-right" title={customer.notes}>
+                                      ⚠️ {customer.notes}
+                                    </p>
+                                  ) : (
+                                    <p className="text-[10.5px] text-stone-500 font-bold font-sans">
+                                      ✔️ معالجة مستوفية، والبيانات والملفات مكتملة.
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Right side: Action operational buttons (Fully prominent and responsive) */}
+                                <div className="flex items-center gap-2 px-1">
+                                  
+                                  {/* Print Receipt Button */}
+                                  <button
+                                    onClick={() => onPrintCustomer(customer)}
+                                    id={`btn-print-invoice-dossier-${customer.id}`}
+                                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-4 py-2 font-black text-xs shadow-3xs active:scale-[0.97] transition-all cursor-pointer border border-amber-650 flex items-center gap-1.5 shrink-0"
+                                    title="طباعة التذكرة ووصل الاستلام الكلي للملف"
+                                  >
+                                    <Printer size={13} className="stroke-[2.5]" />
+                                    <span>طباعة وصل الحجز</span>
+                                  </button>
+
+                                  {/* Edit Record Button */}
+                                  <button
+                                    onClick={() => setEditingCustomer(customer)}
+                                    id={`btn-edit-details-dossier-${customer.id}`}
+                                    className="bg-stone-900 hover:bg-stone-950 text-white rounded-xl px-4 py-2 font-black text-xs shadow-3xs active:scale-[0.97] transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                                    title="تعديل بيانات الحجز والمبالغ المدفوعة"
+                                  >
+                                    <Edit2 size={13} className="stroke-[2.5]" />
+                                    <span>تعديل السجل</span>
+                                  </button>
+
+                                  {/* Delete Button */}
+                                  <button
+                                    onClick={() => setDeleteConfirmId(customer.id)}
+                                    id={`btn-delete-res-dossier-${customer.id}`}
+                                    className="bg-white hover:bg-rose-50 text-stone-500 hover:text-rose-600 rounded-xl px-3 py-2 border border-stone-200 hover:border-rose-200 cursor-pointer shadow-3xs transition-all active:scale-[0.97] flex items-center gap-1.5 font-bold text-xs shrink-0"
+                                    title="حذف ملف الحجز"
+                                  >
+                                    <Trash2 size={13} className="stroke-[2.5]" />
+                                    <span>حذف</span>
+                                  </button>
+
+                                </div>
+
+                              </div>
+
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Unified mobile user-interface responsive cards - Styled perfectly */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
+                      {group.customers.map((customer) => {
+                        const currentTrip = trips.find(t => t.id === customer.tripId);
+                        const showTotalPrice = customer.totalPrice !== undefined ? customer.totalPrice : (currentTrip ? currentTrip.price : 0);
+                        const companionCount = (customer.companions || []).length;
+                        const totalCount = companionCount + 1;
+
+                        return (
+                          <div key={customer.id} className="border border-stone-200 rounded-2xl p-4 bg-white hover:bg-stone-50/50 transition-all text-right relative space-y-4 shadow-3xs font-sans">
+                            
+                            {/* Card Title Header with Payment Badge and Invoice */}
+                            <div className="flex items-center justify-between border-b border-stone-200/40 pb-2.5 font-sans">
+                              <span className="font-mono text-[10px] font-black bg-stone-900 text-white border border-stone-950 px-2.5 py-0.5 rounded-lg shadow-3xs">
+                                رقم الحجز: {customer.invoiceNumber}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                {getPaymentStatusBadge(customer.paymentStatus)}
+                              </div>
+                            </div>
+
+                            {/* Leader Info */}
+                            <div className="space-y-1 bg-stone-50/60 p-3 rounded-xl border border-stone-200/40">
+                              <span className="text-[9px] text-stone-400 block font-black leading-none">رب العائلة / المسؤول:</span>
+                              <h4 className="font-extrabold text-[#1C1917] text-sm leading-tight pt-1">
+                                {customer.firstName} {customer.lastName}
+                              </h4>
+                              <div className="text-[10px] text-stone-500 font-medium space-y-1 pt-1.5 font-sans">
+                                <div>🎂 {customer.birthDate} ({customer.birthPlace})</div>
+                                <div className="inline-flex items-center gap-1 bg-stone-100 font-mono font-bold text-stone-700 px-2 py-0.5 rounded-md border border-stone-200 shadow-3xs mt-1">
+                                  📞 {customer.phone}
+                                </div>
+                                <div className="pt-2">{getRoleBadge(customer.role)}</div>
+                              </div>
+                            </div>
+
+                            {/* Companions Sub-block */}
+                            <div className="p-3 rounded-xl border border-stone-200/80 bg-stone-50/50 space-y-2 text-[10px]">
+                              <div className="flex justify-between items-center text-stone-700 font-bold border-b border-stone-200/60 pb-1 mb-1.5">
+                                <span>👤 الأفراد والعائلة المرافقة:</span>
+                                <span className="font-mono text-stone-900 font-extrabold">{totalCount} مسافرين</span>
+                              </div>
+
+                              {companionCount > 0 ? (
+                                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                                  {customer.companions.map((cmp) => (
+                                    <span key={cmp.id} className="inline-flex items-center gap-1.5 bg-white text-stone-700 text-[9px] px-2 py-1 rounded-md border border-stone-200 shadow-3xs font-medium">
+                                      <span className="text-amber-700 font-bold bg-amber-50/60 px-1 py-0.2 rounded border border-amber-200 shrink-0">{cmp.relationship}</span>
+                                      <span>{cmp.firstName}</span>
+                                      <span className="text-stone-400 shrink-0 font-mono">({calculateAge(cmp.birthDate)}س)</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-stone-400 italic block">سائح فردي (بدون مرافقين)</span>
+                              )}
+                            </div>
+
+                            {/* Voyage and price detail */}
+                            <div className="text-xs space-y-1.5 text-stone-600 bg-stone-50/30 p-3 rounded-xl border border-stone-200/50">
+                              <div>
+                                <span className="text-stone-400 block text-[9px] font-black pb-0.5">البرنامج السياحي المتعاقد عليه:</span>
+                                <strong className="text-[#1C1917] text-xs font-extrabold leading-normal">{getTripName(customer.tripId)}</strong>
+                              </div>
+                              {customer.roomType && (
+                                <div className="text-[10px] text-amber-800 font-bold bg-amber-50 inline-block px-2 py-0.5 rounded border border-amber-500/10 mt-1">
+                                  🏠 {(() => {
+                                    const currentTripObj = trips.find(t => t.id === customer.tripId);
+                                    const opts = currentTripObj ? getRoomOptionsForTrip(currentTripObj.id, currentTripObj.price, currentTripObj) : [];
+                                    const matchedOpt = matchRoomTypeOption(customer.roomType, opts);
+                                    return matchedOpt ? matchedOpt.label : customer.roomType;
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Financial calculation summary bar */}
+                            <div className="flex justify-between items-center bg-[#FAF8F5] p-3 border border-stone-200 rounded-xl text-xs">
+                              <span className="font-bold text-stone-600 font-sans">إجمالي مدفوعات المعاملة:</span>
+                              <strong className="font-mono font-black text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                                {showTotalPrice.toLocaleString('ar-DZ')} دج
+                              </strong>
+                            </div>
+
+                            {/* Responsive bottom card actions with proper labels */}
+                            <div className="flex items-center gap-2 pt-2.5 border-t border-stone-100">
+                              <button
+                                onClick={() => onPrintCustomer(customer)}
+                                id={`mob-btn-print-${customer.id}`}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-extrabold cursor-pointer transition-all border border-amber-650 shadow-3xs"
+                              >
+                                <Printer size={12} />
+                                طباعة الوصل
+                              </button>
+                              <button
+                                onClick={() => setEditingCustomer(customer)}
+                                id={`mob-btn-edit-${customer.id}`}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-stone-900 hover:bg-stone-950 text-white rounded-lg text-[11px] font-extrabold border border-stone-950 cursor-pointer transition-all shadow-3xs"
+                              >
+                                <Edit2 size={11} />
+                                تعديل الحجز
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(customer.id)}
+                                id={`mob-btn-delete-${customer.id}`}
+                                className="p-2 bg-stone-50 hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-lg border border-stone-200 cursor-pointer transition-all flex items-center justify-center shadow-3xs"
+                                title="حذف السجل"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-
-                </div>
-              );
-            })}
-          </div>
-
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
