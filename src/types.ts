@@ -32,6 +32,8 @@ export interface Customer {
   roomType?: string;          // نوع الإقامة للمسؤول الرئيسي
   pricePerPerson?: number;    // تكلفة الفرد للمسؤول الرئيسي
   totalPrice?: number;        // المبلغ الإجمالي المدفوع للحجز العائلي
+  paidAmount?: number;        // المبلغ المدفوع بالفعل
+  remainingAmount?: number;   // المبلغ المتبقي للسداد
   role?: 'tourist' | 'organizer' | 'driver'; // صفة المسؤول الرئيسي
   companions: Companion[]; // قائمة كافة أفراد العائلة المرافقين
   paymentStatus: 'paid' | 'partial' | 'unpaid'; // حالة الدفع

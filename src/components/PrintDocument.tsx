@@ -56,6 +56,14 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
   // Resolve prices dynamically using apartment pricing when available
   const totalPricePaid = customer.totalPrice !== undefined ? customer.totalPrice : (customer.pricePerPerson || trip.price);
 
+  const paidVal = customer.paidAmount !== undefined 
+    ? customer.paidAmount 
+    : (customer.paymentStatus === 'paid' ? totalPricePaid : 0);
+
+  const remainingVal = customer.remainingAmount !== undefined 
+    ? customer.remainingAmount 
+    : (customer.paymentStatus === 'unpaid' ? totalPricePaid : 0);
+
   // Get current date for issue
   const formattedDate = new Date().toLocaleDateString('ar-DZ', {
     year: 'numeric',
@@ -445,9 +453,21 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 <span className="font-bold text-[10px]">{getPaymentStatusArabic(customer.paymentStatus)}</span>
               </div>
               <div className="flex justify-between font-bold border-t border-slate-100 pt-2 text-slate-900 mt-1">
-                <span className="text-slate-500 text-[11px]">المبلغ الإجمالي المدفوع:</span>
-                <span className="font-mono text-xs text-blue-600">{(totalPricePaid).toLocaleString('ar-DZ')} دج</span>
+                <span className="text-slate-500 text-[11px]">المبلغ الإجمالي الكلي:</span>
+                <span className="font-mono text-xs text-slate-800">{(totalPricePaid).toLocaleString('ar-DZ')} دج</span>
               </div>
+              {customer.paymentStatus === 'partial' && (
+                <>
+                  <div className="flex justify-between font-bold text-slate-900">
+                    <span className="text-amber-700 text-[11px]">المبلغ المدفوع بالفعل:</span>
+                    <span className="font-mono text-xs text-amber-600">{(paidVal).toLocaleString('ar-DZ')} دج</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-slate-900">
+                    <span className="text-rose-700 text-[11px]">المبلغ المتبقي للسداد:</span>
+                    <span className="font-mono text-xs text-rose-600">{(remainingVal).toLocaleString('ar-DZ')} دج</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -682,9 +702,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
                 {/* 4. REAL CONSOLIDATED FINANCES SUMMARY */}
                 <div className="border-2 border-blue-200 rounded-lg p-4 mb-5 bg-blue-50/[0.15] z-10 font-sans">
-                  <div className="flex items-center justify-between text-slate-800 text-right">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-800 text-right">
                     <div>
-                      <h4 className="font-sans font-extrabold text-xs text-slate-800 font-sans">
+                      <h4 className="font-sans font-extrabold text-xs text-slate-800">
                         {isFamily ? 'بيانات الحساب المالي الإجمالي للحجز العائلي:' : 'بيانات الحساب المالي الإجمالي للحجز الفردي:'}
                       </h4>
                       <p className="text-[10px] text-slate-400 mt-0.5">
@@ -692,16 +712,49 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                           ? `الحساب الموحد شامل الضريبة (TTC) لكافة الأفراد (${totalPassengersCount} مسافرين)`
                           : `الحساب شامل الضريبة (TTC) للمسافر الفرد`}
                       </p>
+                      <div className="text-[10px] text-slate-500 font-bold mt-2 bg-white/80 px-2 py-1 rounded border border-slate-150 inline-block">
+                        حالة الدفع: {getPaymentStatusArabic(customer.paymentStatus)}
+                      </div>
                     </div>
 
-                    <div className="text-left font-sans flex flex-col items-end">
-                      <span className="text-[9px] text-slate-400 block mb-0.5">المبلغ الإجمالي المدفوع:</span>
-                      <strong className="text-base text-blue-700 font-serif font-black tracking-tight bg-white px-3 py-1 rounded border border-blue-100">
-                        {totalPricePaid.toLocaleString('ar-DZ')} د.ج
-                      </strong>
-                      <span className="text-[9px] text-slate-500 font-bold mt-1 bg-white/80 px-2 py-0.5 rounded border border-slate-150">
-                        حالة الدفع: {getPaymentStatusArabic(customer.paymentStatus)}
-                      </span>
+                    <div className="flex flex-col gap-1.5 font-sans text-right md:text-left justify-center items-end">
+                      <div className="flex items-center justify-between w-full max-w-[280px]">
+                        <span className="text-[10px] text-slate-500 font-bold">المبلغ الإجمالي الكلي:</span>
+                        <span className="text-xs text-slate-800 font-mono font-extrabold">
+                          {totalPricePaid.toLocaleString('ar-DZ')} د.ج
+                        </span>
+                      </div>
+
+                      {customer.paymentStatus === 'partial' ? (
+                        <>
+                          <div className="flex items-center justify-between w-full max-w-[280px] bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
+                            <span className="text-[10px] text-emerald-800 font-extrabold">المبلغ المدفوع (العربون):</span>
+                            <span className="text-xs text-emerald-700 font-mono font-black">
+                              {paidVal.toLocaleString('ar-DZ')} د.ج
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between w-full max-w-[280px] bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">
+                            <span className="text-[10px] text-rose-800 font-extrabold">المبلغ المتبقي للسداد:</span>
+                            <span className="text-xs text-rose-700 font-mono font-black">
+                              {remainingVal.toLocaleString('ar-DZ')} د.ج
+                            </span>
+                          </div>
+                        </>
+                      ) : customer.paymentStatus === 'paid' ? (
+                        <div className="flex items-center justify-between w-full max-w-[280px] bg-emerald-50 border border-emerald-100 px-2 py-1 rounded">
+                          <span className="text-[10px] text-emerald-800 font-extrabold">المبلغ المدفوع بالكامل:</span>
+                          <span className="text-sm text-emerald-700 font-mono font-black">
+                            {totalPricePaid.toLocaleString('ar-DZ')} د.ج
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between w-full max-w-[280px] bg-rose-50 border border-rose-100 px-2 py-1 rounded">
+                          <span className="text-[10px] text-rose-800 font-extrabold">المبلغ المتبقي للسداد:</span>
+                          <span className="text-sm text-rose-700 font-mono font-black">
+                            {totalPricePaid.toLocaleString('ar-DZ')} د.ج
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {customer.notes && (
@@ -725,13 +778,35 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                   </ol>
                 </div>
 
+                {/* SIGNATURE & STAMP SECTION */}
+                <div className="grid grid-cols-2 gap-8 mt-5 border-t border-dashed border-slate-200 pt-4 z-10">
+                  <div className="text-right">
+                    <span className="text-[10.5px] font-extrabold text-stone-700 block mb-1">إمضاء العميل / المستلم:</span>
+                    <div className="h-16 border border-dashed border-slate-200 rounded-xl bg-slate-50/30 flex items-end justify-center pb-1">
+                      <span className="text-[9px] text-slate-400 font-bold">توقيع المعني</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10.5px] font-extrabold text-stone-700 block mb-1">إمضاء وختم الوكالة:</span>
+                    <div className="h-16 border border-dashed border-slate-200 rounded-xl bg-slate-50/30 flex items-center justify-center relative">
+                      <span className="text-[9px] text-slate-450 font-bold">الختم والتوقيع الرسمي</span>
+                      
+                      {/* Decorative circular stamp placeholder */}
+                      <div className="absolute left-4 top-2.5 w-11 h-11 border border-blue-200/50 rounded-full flex flex-col items-center justify-center text-[5px] text-blue-300/60 rotate-12 select-none uppercase pointer-events-none">
+                        <span className="scale-[0.8] leading-none font-bold">ABOUB</span>
+                        <span className="scale-[0.7] leading-none">TRAVEL</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* STATUS BAR / OFFICIAL DIGITAL RECEIPT FOOTER */}
               <div className="flex items-center justify-between border-t border-slate-200 pt-4 mt-6 z-10 text-xs font-sans">
                 <div className="space-y-1 text-right">
                   <span className="text-[10px] text-slate-700 block font-extrabold">وصل حجز مالي وإداري مؤكد (وكالة عبعوب للسياحة والأسفار)</span>
-                  <span className="text-[8.5px] text-slate-400 block font-medium">تم إصدار وتحرير المعاملة إلكترونياً عبر البوابة الرسمية ولا يستدعي توقيعاً يدوياً.</span>
+                  <span className="text-[8.5px] text-slate-400 block font-medium">تم إصدار وتحرير المعاملة إلكترونياً عبر البوابة الرسمية للوكالة وتصبح سارية بمجرد الإمضاء والختم.</span>
                 </div>
 
                 <div className="flex items-center gap-4 text-left">

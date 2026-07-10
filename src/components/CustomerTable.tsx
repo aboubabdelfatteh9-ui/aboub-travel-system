@@ -126,10 +126,24 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
       }
       
       const computedAge = calculateAge(editingCustomer.birthDate);
+      
+      let finalPaid = editingCustomer.paidAmount || 0;
+      let finalRemaining = editingCustomer.remainingAmount || 0;
+      
+      if (editingCustomer.paymentStatus === 'paid') {
+        finalPaid = editingCustomer.totalPrice || 0;
+        finalRemaining = 0;
+      } else if (editingCustomer.paymentStatus === 'unpaid') {
+        finalPaid = 0;
+        finalRemaining = editingCustomer.totalPrice || 0;
+      }
+
       onUpdateCustomer({
         ...editingCustomer,
         age: computedAge,
         peopleCount: (editingCustomer.companions || []).length + 1,
+        paidAmount: finalPaid,
+        remainingAmount: finalRemaining,
       });
       setEditingCustomer(null);
     }
@@ -826,6 +840,37 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                     <option value="unpaid">🔴 لم يتم سداده بعد</option>
                   </select>
                 </div>
+
+                {editingCustomer.paymentStatus === 'partial' && (
+                  <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-amber-500/10">
+                    <div>
+                      <label htmlFor="edit-paidAmount" className="block text-[10px] font-bold text-stone-700 mb-1">
+                        المبلغ المدفوع (العربون) (دج)
+                      </label>
+                      <input
+                        type="number"
+                        id="edit-paidAmount"
+                        value={editingCustomer.paidAmount || 0}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, paidAmount: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono font-bold text-left text-amber-900 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="edit-remainingAmount" className="block text-[10px] font-bold text-stone-700 mb-1">
+                        المبلغ المتبقي (دج)
+                      </label>
+                      <input
+                        type="number"
+                        id="edit-remainingAmount"
+                        value={editingCustomer.remainingAmount || 0}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, remainingAmount: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono font-bold text-left text-rose-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Notes */}

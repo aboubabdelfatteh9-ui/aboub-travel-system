@@ -459,6 +459,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [companionError, setCompanionError] = useState<string>('');
   const [customTotalPrice, setCustomTotalPrice] = useState<string>('');
+  const [paidAmount, setPaidAmount] = useState<string>('');
+  const [remainingAmount, setRemainingAmount] = useState<string>('');
 
   const activeSelectedTrip = trips.find(t => t.id === formData.tripId) || trips[0];
   const activeOptions = activeSelectedTrip ? getRoomOptionsForTrip(activeSelectedTrip.id, activeSelectedTrip.price, activeSelectedTrip) : [];
@@ -670,6 +672,14 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       const isLeadFree = formData.role === 'organizer' || formData.role === 'driver';
       const actualLeadPrice = isLeadFree ? 0 : formData.pricePerPerson;
 
+      const finalPaidAmount = formData.paymentStatus === 'partial' 
+        ? (parseFloat(paidAmount) || 0) 
+        : (formData.paymentStatus === 'paid' ? finalTotalPriceToSubmit : 0);
+
+      const finalRemainingAmount = formData.paymentStatus === 'partial' 
+        ? (parseFloat(remainingAmount) || 0) 
+        : (formData.paymentStatus === 'unpaid' ? finalTotalPriceToSubmit : 0);
+
       // Complete customer object as dynamic family holding companions
       onAddCustomer({
         firstName: formData.firstName.trim(),
@@ -685,6 +695,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         roomType: formData.roomType,
         pricePerPerson: actualLeadPrice,
         totalPrice: finalTotalPriceToSubmit, // Unified aggregate paid amount
+        paidAmount: finalPaidAmount,
+        remainingAmount: finalRemainingAmount,
         role: formData.role,
         companions: bookingType === 'individual' ? [] : companions,
         paymentStatus: formData.paymentStatus,
@@ -713,6 +725,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       setBookingType('individual');
       setCompanions([]);
       setCustomTotalPrice('');
+      setPaidAmount('');
+      setRemainingAmount('');
       setErrors({});
       setCompanionError('');
     }
@@ -1325,6 +1339,48 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                 <option value="unpaid">🔴 تأكيد بدون دفع (Unpaid)</option>
               </select>
             </div>
+
+            {formData.paymentStatus === 'partial' && (
+              <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-3.5 border-t border-amber-500/10">
+                <div>
+                  <label htmlFor="paidAmount" className="block text-[11px] font-bold text-stone-600 mb-1.5">
+                    المبلغ المدفوع (العربون) (د.ج) <span className="text-amber-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      id="paidAmount"
+                      value={paidAmount}
+                      onChange={(e) => setPaidAmount(e.target.value)}
+                      placeholder="أدخل المبلغ الذي تم دفعه..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-white font-mono font-bold text-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 text-xs pl-12 text-right"
+                    />
+                    <span className="absolute left-3.5 top-3.5 text-[9px] text-stone-400 font-bold font-mono tracking-widest">DZD</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="remainingAmount" className="block text-[11px] font-bold text-stone-600 mb-1.5">
+                    المبلغ المتبقي (د.ج) <span className="text-amber-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      id="remainingAmount"
+                      value={remainingAmount}
+                      onChange={(e) => setRemainingAmount(e.target.value)}
+                      placeholder={
+                        paidAmount !== ''
+                          ? `المقترح: ${(finalTotalPriceToSubmit - (parseFloat(paidAmount) || 0)).toLocaleString('ar-DZ')} دج`
+                          : 'أدخل المبلغ المتبقي...'
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-white font-mono font-bold text-rose-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 text-xs pl-12 text-right"
+                    />
+                    <span className="absolute left-3.5 top-3.5 text-[9px] text-stone-400 font-bold font-mono tracking-widest">DZD</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="pt-3 border-t border-stone-200/60 flex justify-between items-center text-xs">
