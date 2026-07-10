@@ -499,22 +499,22 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
           
           <div
             id="a4-print-ticket-container"
-            className="w-[210mm] min-h-[297mm] p-[15mm] bg-white text-slate-800 relative select-text flex flex-col justify-between shadow-xs print:shadow-none"
+            className={`w-[210mm] min-h-[297mm] ${isFamily ? (companionCount > 2 ? 'p-[8mm]' : 'p-[11mm]') : 'p-[15mm]'} bg-white text-slate-800 relative select-text flex flex-col justify-between shadow-xs print:shadow-none`}
             dir="rtl"
           >
             {/* DOCUMENT WATERMARK */}
-            <div className="absolute inset-0 opacity-[0.06] flex items-center justify-center pointer-events-none z-0">
-              <Logo size={420} />
+            <div className="absolute inset-0 opacity-[0.05] flex items-center justify-center pointer-events-none z-0">
+              <Logo size={isFamily && companionCount > 2 ? 340 : 420} />
             </div>
 
-            <div className="z-10 flex flex-col h-full justify-between">
+            <div className="z-10 flex flex-col min-h-full justify-between">
               <div>
                 
                 {/* RECIPIENT HEADER */}
-                <div className="flex items-start justify-between border-b-2 border-blue-600 pb-5 mb-5 z-10">
+                <div className={`flex items-start justify-between border-b-2 border-blue-600 ${isFamily ? 'pb-3 mb-3' : 'pb-5 mb-5'} z-10`}>
                   {/* Agency details */}
                   <div className="space-y-1 text-right">
-                    <Logo size={70} showText={false} />
+                    <Logo size={isFamily && companionCount > 2 ? 60 : 70} showText={false} />
                     <h1 className="font-sans font-black text-lg text-slate-805 tracking-tight mt-1">
                       وكالة عبعوب للسياحة والأسفار
                     </h1>
@@ -556,7 +556,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* TICKET DESCRIPTION TITLE */}
-                <div className="bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-lg py-2.5 px-4 mb-5 text-center select-none shadow-sm z-10 font-bold flex items-center justify-between">
+                <div className={`bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-lg ${isFamily ? 'py-1.5 px-3 mb-3' : 'py-2.5 px-4 mb-5'} text-center select-none shadow-sm z-10 font-bold flex items-center justify-between`}>
                   <span className="font-bold text-xs">
                     {isFamily ? 'وصل حجز عائلي رسمي موحد' : 'وصل حجز فردي رسمي لمسافر'}
                   </span>
@@ -566,13 +566,13 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* 1. PRIMARY ACCOUNT RESPONSIBLE (LEADER) */}
-                <div className="border border-slate-200 rounded-lg p-4 mb-5 bg-slate-50/55 z-10">
-                  <h3 className="font-sans font-bold text-xs text-blue-600 border-b border-slate-205 pb-1.5 mb-2.5 flex items-center gap-1.5">
+                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-slate-50/55 z-10`}>
+                  <h3 className={`font-sans font-bold text-xs text-blue-600 border-b border-slate-205 ${isFamily ? 'pb-1 mb-1.5' : 'pb-1.5 mb-2.5'} flex items-center gap-1.5`}>
                     <CheckCircle size={13} className="text-blue-600" />
                     {isFamily ? 'أولاً: معلومات مستلم الحجز رب العائلة الأساسي' : 'أولاً: معلومات مستلم الحجز والزبون الأساسي'}
                   </h3>
                   
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-[11px] text-slate-700 text-right">
+                  <div className={`grid grid-cols-2 ${isFamily ? 'gap-y-1.5 gap-x-4 text-[10px]' : 'gap-y-3 gap-x-6 text-[11px]'} text-slate-700 text-right`}>
                     <div>
                       <span className="text-slate-400 block mb-0.5">{isFamily ? 'اسم ولقب رب العائلة:' : 'اسم ولقب المسافر الكامل:'}</span>
                       <strong className="text-slate-900 text-xs font-black bg-white px-2 py-0.5 rounded border border-slate-200/50 inline-block">
@@ -603,42 +603,42 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
                 {/* 2. COMPANIONS AND FAMILY MEMBERS TABLE (ONLY FOR FAMILY BOOKING) */}
                 {isFamily && (
-                  <div className="border border-slate-200 rounded-lg p-4 mb-5 bg-slate-50/55 z-10 font-sans">
-                    <h3 className="font-sans font-bold text-xs text-blue-600 border-b border-slate-205 pb-1.5 mb-2.5 flex items-center gap-1.5">
+                  <div className={`border border-slate-200 rounded-lg ${companionCount > 2 ? 'p-2 mb-2' : 'p-3.5 mb-3.5'} bg-slate-50/55 z-10 font-sans`}>
+                    <h3 className={`font-sans font-bold text-xs text-blue-600 border-b border-slate-205 ${companionCount > 2 ? 'pb-1 mb-1.5' : 'pb-1.5 mb-2.5'} flex items-center gap-1.5`}>
                       <Users size={13} className="text-blue-600" />
                       ثانياً: قائمة جميع أفراد العائلة والمرافقين المشمولين
                     </h3>
 
                     {companionCount > 0 ? (
                       <div className="overflow-hidden border border-slate-200 rounded-md bg-white">
-                        <table className="w-full text-right text-[11px] border-collapse">
+                        <table className="w-full text-right text-[10px] border-collapse">
                           <thead>
                             <tr className="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-bold">
-                              <th className="py-1.5 px-3 w-16 text-center">الرقم</th>
-                              <th className="py-1.5 px-3">صلة القرابة</th>
-                              <th className="py-1.5 px-3">الاسم واللقب الكامل</th>
-                              <th className="py-1.5 px-3">تاريخ ومكان الميلاد (السن)</th>
-                              <th className="py-1.5 px-3">نوع الإقامة المبرمجة</th>
+                              <th className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} w-12 text-center`}>الرقم</th>
+                              <th className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>صلة القرابة</th>
+                              <th className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>الاسم واللقب الكامل</th>
+                              <th className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>تاريخ ومكان الميلاد (السن)</th>
+                              <th className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>نوع الإقامة المبرمجة</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-150 font-medium">
                             {/* Main Leader row inside table too for extreme clarity */}
                             <tr className="bg-blue-50/20">
-                              <td className="py-1.5 px-3 text-center font-bold text-blue-800">1</td>
-                              <td className="py-1.5 px-3 font-bold text-blue-800">رب العائلة (المسؤول)</td>
-                              <td className="py-1.5 px-3 font-bold text-slate-900">{customer.firstName} {customer.lastName}</td>
-                              <td className="py-1.5 px-3">{customer.birthDate} ({customer.birthPlace || 'غير محدد'}) - {ageComputed} سنة</td>
-                              <td className="py-1.5 px-3 text-slate-600">{customer.roomType || 'عرض قياسي موحد'}</td>
+                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-center font-bold text-blue-800`}>1</td>
+                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-800`}>رب العائلة (المسؤول)</td>
+                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-slate-900`}>{customer.firstName} {customer.lastName}</td>
+                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>{customer.birthDate} ({customer.birthPlace || 'غير محدد'}) - {ageComputed} سنة</td>
+                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-slate-600`}>{customer.roomType || 'عرض قياسي موحد'}</td>
                             </tr>
 
                             {/* Companion Rows */}
                             {customer.companions.map((cmp, index) => (
                               <tr key={cmp.id} className="hover:bg-slate-50/50">
-                                <td className="py-1.5 px-3 text-center text-slate-500">{index + 2}</td>
-                                <td className="py-1.5 px-3 font-bold text-blue-600">{cmp.relationship || 'مرافق'}</td>
-                                <td className="py-1.5 px-3 font-semibold text-slate-800">{cmp.firstName} {cmp.lastName}</td>
-                                <td className="py-1.5 px-3">{cmp.birthDate} ({cmp.birthPlace || 'غير محدد'}) - {calculateAge(cmp.birthDate)} سنة</td>
-                                <td className="py-1.5 px-3 text-slate-500">{cmp.roomType || 'عرض قياسي موفر'}</td>
+                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-center text-slate-500`}>{index + 2}</td>
+                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-600`}>{cmp.relationship || 'مرافق'}</td>
+                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-semibold text-slate-800`}>{cmp.firstName} {cmp.lastName}</td>
+                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>{cmp.birthDate} ({cmp.birthPlace || 'غير محدد'}) - {calculateAge(cmp.birthDate)} سنة</td>
+                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-slate-500`}>{cmp.roomType || 'عرض قياسي موفر'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -653,13 +653,13 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 )}
 
                 {/* 3. TRIP SERVICE PLAN DETAILS */}
-                <div className="border border-slate-200 rounded-lg p-4 mb-5 bg-slate-50/55 z-10 font-sans">
-                  <h3 className="font-sans font-bold text-xs text-blue-600 border-b border-slate-205 pb-1.5 mb-2.5 flex items-center gap-1.5">
+                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-slate-50/55 z-10 font-sans`}>
+                  <h3 className={`font-sans font-bold text-xs text-blue-600 border-b border-slate-205 ${isFamily ? 'pb-1 mb-1.5' : 'pb-1.5 mb-2.5'} flex items-center gap-1.5`}>
                     <Calendar size={13} className="text-blue-600" />
                     {isFamily ? 'ثالثاً: تفاصيل وجهة السفر والبرنامج المعتمد للأسرة' : 'ثانياً: تفاصيل وجهة السفر والبرنامج المعتمد للزبون'}
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-[11px] text-slate-700 text-right font-sans">
+                  <div className={`grid grid-cols-2 ${isFamily ? 'gap-y-1.5 gap-x-4 text-[10px]' : 'gap-y-3 gap-x-6 text-[11px]'} text-slate-700 text-right font-sans`}>
                     <div className="col-span-2">
                       <span className="text-slate-400 block mb-0.5">
                         {isFamily ? 'اسم البرنامج والمسار المعتمد بالوكالة للأسرة:' : 'اسم البرنامج والمسار المعتمد بالوكالة:'}
@@ -690,7 +690,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                     </div>
 
                     {trip.departurePlaceNotes && (
-                      <div className="col-span-2 mt-2 pt-2 border-t border-slate-200/50">
+                      <div className="col-span-2 mt-1.5 pt-1.5 border-t border-slate-200/50">
                         <span className="text-slate-400 block mb-0.5">مكان المغادرة والتجمع ونقاط الانطلاق المحددة للرحلة:</span>
                         <p className="text-slate-850 font-sans font-bold leading-relaxed bg-white/70 px-3 py-1.5 rounded border border-slate-200/50">
                           {trip.departurePlaceNotes}
@@ -701,7 +701,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* 4. REAL CONSOLIDATED FINANCES SUMMARY */}
-                <div className="border-2 border-blue-200 rounded-lg p-4 mb-5 bg-blue-50/[0.15] z-10 font-sans">
+                <div className={`border-2 border-blue-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-blue-50/[0.15] z-10 font-sans`}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-800 text-right">
                     <div>
                       <h4 className="font-sans font-extrabold text-xs text-slate-800">
@@ -712,7 +712,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                           ? `الحساب الموحد شامل الضريبة (TTC) لكافة الأفراد (${totalPassengersCount} مسافرين)`
                           : `الحساب شامل الضريبة (TTC) للمسافر الفرد`}
                       </p>
-                      <div className="text-[10px] text-slate-500 font-bold mt-2 bg-white/80 px-2 py-1 rounded border border-slate-150 inline-block">
+                      <div className="text-[10px] text-slate-500 font-bold mt-1.5 bg-white/80 px-2 py-0.5 rounded border border-slate-150 inline-block">
                         حالة الدفع: {getPaymentStatusArabic(customer.paymentStatus)}
                       </div>
                     </div>
@@ -758,7 +758,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                     </div>
                   </div>
                   {customer.notes && (
-                    <div className="border-t border-slate-200 mt-2.5 pt-2 text-[10px] text-slate-500 leading-relaxed font-sans text-right">
+                    <div className="border-t border-slate-200 mt-1.5 pt-1.5 text-[10px] text-slate-500 leading-relaxed font-sans text-right">
                       <span className="font-bold block text-slate-700 mb-0.5">ملاحظات العميل الخاصة والملحقة بالحجز:</span>
                       {customer.notes}
                     </div>
@@ -766,12 +766,12 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* TERMS & REGULATIONS */}
-                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/15 z-10">
-                  <h4 className="font-sans font-bold text-xs text-slate-700 mb-1.5 flex items-center gap-1">
+                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2 mb-2 bg-slate-50/10' : 'p-4 bg-slate-50/15'} z-10`}>
+                  <h4 className="font-sans font-bold text-xs text-slate-700 mb-1 flex items-center gap-1">
                     <Info size={11} className="text-slate-400" />
                     شروط سفر وإقرارات تذاكر وكالة عبعوب:
                   </h4>
-                  <ol className="list-decimal list-inside space-y-0.5 text-[9px] text-slate-500 leading-relaxed pl-2">
+                  <ol className="list-decimal list-inside space-y-0.5 text-[8.5px] text-slate-500 leading-relaxed pl-2">
                     <li>تعتبر بيانات هذا الوصل تأكيداً رسمياً لحفّار السكاكين وحساب الغرف بمجرد تأكيد ختم مصلحة الحجوزات.</li>
                     <li>لا يمكن إلغاء الحجز الفردي أو استرجاع المدفوعات بعد تأكيد حجز الغرف وتأشيرات الطيران.</li>
                     <li>يلتزم أفراد الحجز بالحضور لمركز المغادرة في الأوقات المحددة سلفاً متسلحين بجوازات السفر.</li>
@@ -779,20 +779,20 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* SIGNATURE & STAMP SECTION */}
-                <div className="grid grid-cols-2 gap-8 mt-5 border-t border-dashed border-slate-200 pt-4 z-10">
+                <div className={`grid grid-cols-2 gap-8 ${isFamily ? 'mt-2.5 pt-2' : 'mt-5 pt-4'} border-t border-dashed border-slate-200 z-10`}>
                   <div className="text-right">
-                    <span className="text-[10.5px] font-extrabold text-stone-700 block mb-1">إمضاء العميل / المستلم:</span>
-                    <div className="h-16 border border-dashed border-slate-200 rounded-xl bg-slate-50/30 flex items-end justify-center pb-1">
+                    <span className="text-[10px] font-extrabold text-stone-700 block mb-0.5">إمضاء العميل / المستلم:</span>
+                    <div className={`border border-dashed border-slate-200 rounded-xl bg-slate-50/30 flex items-end justify-center pb-1 ${isFamily ? 'h-11' : 'h-16'}`}>
                       <span className="text-[9px] text-slate-400 font-bold">توقيع المعني</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10.5px] font-extrabold text-stone-700 block mb-1">إمضاء وختم الوكالة:</span>
-                    <div className="h-16 border border-dashed border-slate-200 rounded-xl bg-slate-50/30 flex items-center justify-center relative">
+                    <span className="text-[10px] font-extrabold text-stone-700 block mb-0.5">إمضاء وختم الوكالة:</span>
+                    <div className={`border border-dashed border-slate-200 rounded-xl bg-slate-50/30 flex items-center justify-center relative ${isFamily ? 'h-11' : 'h-16'}`}>
                       <span className="text-[9px] text-slate-450 font-bold">الختم والتوقيع الرسمي</span>
                       
                       {/* Decorative circular stamp placeholder */}
-                      <div className="absolute left-4 top-2.5 w-11 h-11 border border-blue-200/50 rounded-full flex flex-col items-center justify-center text-[5px] text-blue-300/60 rotate-12 select-none uppercase pointer-events-none">
+                      <div className={`absolute left-4 top-1.5 w-10 h-10 border border-blue-200/50 rounded-full flex flex-col items-center justify-center text-[5px] text-blue-300/60 rotate-12 select-none uppercase pointer-events-none ${isFamily ? 'scale-[0.8]' : ''}`}>
                         <span className="scale-[0.8] leading-none font-bold">ABOUB</span>
                         <span className="scale-[0.7] leading-none">TRAVEL</span>
                       </div>
@@ -949,7 +949,6 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             width: 210mm !important;
             min-height: 297mm !important;
             height: auto !important;
-            padding: 15mm !important;
             margin: 0 auto !important;
             border: none !important;
             box-shadow: none !important;
