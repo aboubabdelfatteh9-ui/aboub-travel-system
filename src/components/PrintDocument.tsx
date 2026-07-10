@@ -38,6 +38,12 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
   const isFamily = customer.bookingType === 'family' || (customer.bookingType === undefined && (customer.companions || []).length > 0);
 
+  const familyRelations = ['الزوجـة', 'الزوجة', 'wife', 'الزوج', 'husband', 'ابـن', 'ابن', 'son', 'ابنـة', 'ابنة', 'daughter', 'والـد', 'والد', 'father', 'والـدة', 'والدة', 'mother'];
+  const isRealFamily = isFamily && (customer.companions || []).some(cmp => {
+    const rel = (cmp.relationship || '').trim().toLowerCase();
+    return familyRelations.some(fRel => fRel.toLowerCase() === rel || rel.includes('زوج') || rel.includes('ابن') || rel.includes('والد'));
+  });
+
   // Index of this customer in the whole customer array
   const currentCustIndex = customers.findIndex((c) => c.id === customer.id);
   const totalInList = customers.length;
@@ -433,7 +439,11 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
             <div className="border-t border-slate-205 my-4 pt-4 space-y-2.5 text-xs text-slate-700">
               <div className="flex justify-between">
-                <span className="text-slate-400">{isFamily ? "رب العائلة:" : "الزبون الرئيسي:"}</span>
+                <span className="text-slate-400">
+                  {isFamily 
+                    ? (isRealFamily ? "رب العائلة (المسؤول):" : "المسؤول:") 
+                    : "الزبون الرئيسي:"}
+                </span>
                 <strong className="text-slate-850">{customer.firstName} {customer.lastName}</strong>
               </div>
               <div className="flex justify-between">
@@ -602,10 +612,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                     </div>
                   </div>
                 ) : (
-                  /* Compact info bar for family booking to replace Section 1 */
                   <div className="bg-slate-100/90 border border-slate-200/80 rounded-lg py-1.5 px-3 mb-2.5 flex items-center justify-between text-[10px] text-slate-700 font-sans z-10 relative">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-slate-400 font-bold">رب العائلة المسؤول:</span>
+                      <span className="text-slate-400 font-bold">{isRealFamily ? "رب العائلة (المسؤول):" : "المسؤول:"}</span>
                       <strong className="text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200/60 font-extrabold">{customer.firstName} {customer.lastName}</strong>
                     </div>
                     <div className="flex items-center gap-1.5 font-mono">
@@ -639,7 +648,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                             {/* Main Leader row inside table too for extreme clarity */}
                             <tr className="bg-blue-50/20">
                               <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-center font-bold text-blue-800`}>1</td>
-                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-800`}>رب العائلة (المسؤول)</td>
+                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-800`}>
+                                {isRealFamily ? "رب العائلة (المسؤول)" : "المسؤول"}
+                              </td>
                               <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-slate-900`}>{customer.firstName} {customer.lastName}</td>
                               <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>{customer.birthDate} ({customer.birthPlace || 'غير محدد'}) - {ageComputed} سنة</td>
                               <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-slate-600`}>{customer.roomType || 'عرض قياسي موحد'}</td>
@@ -649,7 +660,9 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                             {customer.companions.map((cmp, index) => (
                               <tr key={cmp.id} className="hover:bg-slate-50/50">
                                 <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-center text-slate-500`}>{index + 2}</td>
-                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-600`}>{cmp.relationship || 'مرافق'}</td>
+                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-600`}>
+                                  {cmp.relationship === 'wife' || cmp.relationship?.toLowerCase() === 'wife' ? 'زوجة' : (cmp.relationship || 'مرافق')}
+                                </td>
                                 <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-semibold text-slate-800`}>{cmp.firstName} {cmp.lastName}</td>
                                 <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>{cmp.birthDate} ({cmp.birthPlace || 'غير محدد'}) - {calculateAge(cmp.birthDate)} سنة</td>
                                 <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-slate-500`}>{cmp.roomType || 'عرض قياسي موفر'}</td>

@@ -453,7 +453,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
     birthPlace: '',
     role: 'tourist' as 'tourist' | 'organizer' | 'driver',
     roomType: '',
-    relationship: 'wife', // wife | son | daughter | companion
+    relationship: 'الزوجـة', // Default to first dropdown option 'الزوجـة'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -600,14 +600,14 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
     if (!formData.firstName.trim()) newErrors.firstName = 'الرجاء إدخال اسم المسؤول';
     if (!formData.lastName.trim()) newErrors.lastName = 'الرجاء إدخال اللقب الكلي';
     if (!formData.birthDate) newErrors.birthDate = 'الرجاء إدخال تاريخ ميلاد المسؤول';
-    if (!formData.birthPlace.trim()) newErrors.birthPlace = 'الرجاء تحديد مكان الميلاد لرب العائلة';
+    if (!formData.birthPlace.trim()) newErrors.birthPlace = 'الرجاء تحديد مكان الميلاد للمسؤول';
     if (!formData.phone.trim()) {
       newErrors.phone = 'الرجاء إدخال رقم هاتف التواصل';
     } else if (!/^(05|06|07|02|03|04)[0-9]{8}$/.test(formData.phone.replace(/\s/g, ''))) {
       newErrors.phone = 'يرجى إدخال رقم هاتف جزائري صحيح (مثال: 0550123456)';
     }
     if (!formData.tripId) newErrors.tripId = 'الرجاء اختيار برنامج سفر معين';
-    if (!formData.roomType) newErrors.roomType = 'الرجاء اختيار نوع الإقامة لرب العائلة';
+    if (!formData.roomType) newErrors.roomType = 'الرجاء اختيار نوع الإقامة للمسؤول';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -657,7 +657,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       birthPlace: '',
       role: 'tourist',
       roomType: activeOptions[0]?.label || '',
-      relationship: 'wife', // wife | son | daughter
+      relationship: 'الزوجـة', // Default to first dropdown option 'الزوجـة'
     });
   };
 
@@ -908,7 +908,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
           <h3 className="font-sans font-extrabold text-stone-800 pb-2.5 mb-1 text-xs flex items-center gap-2 border-b border-stone-200/60">
             <Users size={14} className="text-amber-700 shrink-0" />
             <span>
-              {bookingType === 'individual' ? '1. البيانات الشخصية للزبون الأساسي' : '1. بيانات رب العائلة والمسؤول الأساسي'}
+              {bookingType === 'individual' ? '1. البيانات الشخصية للزبون الأساسي' : '1. بيانات المسؤول الأساسي عن الحجز'}
             </span>
           </h3>
 
@@ -1130,6 +1130,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                   className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-bold text-stone-800 text-xs focus:outline-none focus:ring-4 focus:ring-amber-500/10 cursor-pointer"
                 >
                   <option value="الزوجـة">💍 الزوجـة</option>
+                  <option value="الزوج">🤵 الزوج</option>
                   <option value="ابـن">👦 ابـن</option>
                   <option value="ابنـة">👧 ابنـة</option>
                   <option value="والـد">👴 والـد</option>
@@ -1265,7 +1266,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                       const roomPrice = getCompanionRoomPrice(cmp.roomType, cmp.role);
                       return (
                         <tr key={cmp.id} className="hover:bg-stone-50/50 transition-colors">
-                          <td className="py-2.5 px-3 font-extrabold text-amber-600">{cmp.relationship}</td>
+                          <td className="py-2.5 px-3 font-extrabold text-amber-600">
+                            {cmp.relationship === 'wife' || cmp.relationship?.toLowerCase() === 'wife' ? 'الزوجة' : cmp.relationship}
+                          </td>
                           <td className="py-2.5 px-3 text-zinc-900">{cmp.firstName} {cmp.lastName}</td>
                           <td className="py-2.5 px-3 font-mono text-stone-500">{cmp.age} سنة ({cmp.birthPlace})</td>
                           <td className="py-2.5 px-3 text-stone-600">

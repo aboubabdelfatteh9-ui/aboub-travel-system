@@ -328,6 +328,12 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                           const showTotalPrice = customer.totalPrice !== undefined ? customer.totalPrice : (currentTrip ? currentTrip.price : 0);
                           const companionCount = (customer.companions || []).length;
                           const totalCount = companionCount + 1;
+                          const isFamily = customer.bookingType === 'family' || (customer.bookingType === undefined && companionCount > 0);
+                          const familyRelations = ['الزوجـة', 'الزوجة', 'wife', 'الزوج', 'husband', 'ابـن', 'ابن', 'son', 'ابنـة', 'ابنة', 'daughter', 'والـد', 'والد', 'father', 'والـدة', 'والدة', 'mother'];
+                          const isRealFamily = isFamily && (customer.companions || []).some(cmp => {
+                            const rel = (cmp.relationship || '').trim().toLowerCase();
+                            return familyRelations.some(fRel => fRel.toLowerCase() === rel || rel.includes('زوج') || rel.includes('ابن') || rel.includes('والد'));
+                          });
 
                           return (
                             <div 
@@ -365,7 +371,9 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                                 {/* Section 1: Lead Customer Details (col-span-4) */}
                                 <div className="col-span-4 space-y-3.5 pr-1">
                                   <div>
-                                    <span className="text-[10px] text-stone-400 font-extrabold block mb-1 uppercase tracking-wider">الزبون الرئيسي (المسؤول)</span>
+                                    <span className="text-[10px] text-stone-400 font-extrabold block mb-1 uppercase tracking-wider">
+                                      {isRealFamily ? "رب العائلة (المسؤول)" : "الزبون الرئيسي (المسؤول)"}
+                                    </span>
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <h4 className="font-sans font-black text-stone-900 text-sm leading-tight">
                                         {customer.lastName} {customer.firstName}
@@ -398,7 +406,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                                           className="inline-flex items-center gap-1 bg-stone-50 text-stone-700 text-[10px] px-2 py-0.5 rounded-lg border border-stone-200 font-sans shadow-3xs"
                                         >
                                           <span className="text-amber-700 font-black text-[8px] bg-amber-50/80 px-1 py-0.1 border border-amber-200 rounded shrink-0">
-                                            {cmp.relationship}
+                                            {cmp.relationship === 'wife' || cmp.relationship?.toLowerCase() === 'wife' ? 'الزوجة' : cmp.relationship}
                                           </span>
                                           <span className="font-bold text-stone-900">{cmp.firstName}</span>
                                           <span className="text-stone-450 font-mono text-[8.5px] shrink-0">({calculateAge(cmp.birthDate)} سنة)</span>
@@ -521,6 +529,12 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                         const showTotalPrice = customer.totalPrice !== undefined ? customer.totalPrice : (currentTrip ? currentTrip.price : 0);
                         const companionCount = (customer.companions || []).length;
                         const totalCount = companionCount + 1;
+                        const isFamily = customer.bookingType === 'family' || (customer.bookingType === undefined && companionCount > 0);
+                        const familyRelations = ['الزوجـة', 'الزوجة', 'wife', 'الزوج', 'husband', 'ابـن', 'ابن', 'son', 'ابنـة', 'ابنة', 'daughter', 'والـد', 'والد', 'father', 'والـدة', 'والدة', 'mother'];
+                        const isRealFamily = isFamily && (customer.companions || []).some(cmp => {
+                          const rel = (cmp.relationship || '').trim().toLowerCase();
+                          return familyRelations.some(fRel => fRel.toLowerCase() === rel || rel.includes('زوج') || rel.includes('ابن') || rel.includes('والد'));
+                        });
 
                         return (
                           <div key={customer.id} className="border border-stone-200 rounded-2xl p-4 bg-white hover:bg-stone-50/50 transition-all text-right relative space-y-4 shadow-3xs font-sans">
@@ -537,7 +551,9 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
 
                             {/* Leader Info */}
                             <div className="space-y-1 bg-stone-50/60 p-3 rounded-xl border border-stone-200/40">
-                              <span className="text-[9px] text-stone-400 block font-black leading-none">رب العائلة / المسؤول:</span>
+                              <span className="text-[9px] text-stone-400 block font-black leading-none">
+                                {isRealFamily ? "رب العائلة (المسؤول):" : "المسؤول:"}
+                              </span>
                               <h4 className="font-extrabold text-[#1C1917] text-sm leading-tight pt-1">
                                 {customer.firstName} {customer.lastName}
                               </h4>
@@ -561,7 +577,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                                 <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
                                   {customer.companions.map((cmp) => (
                                     <span key={cmp.id} className="inline-flex items-center gap-1.5 bg-white text-stone-700 text-[9px] px-2 py-1 rounded-md border border-stone-200 shadow-3xs font-medium">
-                                      <span className="text-amber-700 font-bold bg-amber-50/60 px-1 py-0.2 rounded border border-amber-200 shrink-0">{cmp.relationship}</span>
+                                      <span className="text-amber-700 font-bold bg-amber-50/60 px-1 py-0.2 rounded border border-amber-200 shrink-0">{cmp.relationship === 'wife' || cmp.relationship?.toLowerCase() === 'wife' ? 'الزوجة' : cmp.relationship}</span>
                                       <span>{cmp.firstName}</span>
                                       <span className="text-stone-400 shrink-0 font-mono">({calculateAge(cmp.birthDate)}س)</span>
                                     </span>
@@ -920,7 +936,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
             </div>
             <h3 className="font-extrabold text-[#1C1917] text-sm md:text-base mb-1">تأكيد حذف محضر وحجز العائلة</h3>
             <p className="text-[11px] text-stone-500 mb-6 font-medium leading-relaxed">
-              هل أنت متأكد من رغبتك في حذف هذا الحجز بشكل كامل؟ سيتم حذف رب العائلة وكافة أفراد العائلة والمرافقين المجدولين فيه ولا يمكن استرجاع البيانات!
+              هل أنت متأكد من رغبتك في حذف هذا الحجز بشكل كامل؟ سيتم حذف المسؤول وكافة أفراد العائلة والمرافقين المجدولين فيه ولا يمكن استرجاع البيانات!
             </p>
             <div className="flex items-center gap-2">
               <button
