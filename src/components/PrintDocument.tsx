@@ -507,7 +507,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
               <Logo size={isFamily && companionCount > 2 ? 340 : 420} />
             </div>
 
-            <div className="z-10 flex flex-col min-h-full justify-between">
+            <div className="z-10 flex flex-col min-h-full justify-between print:block print:h-auto print:min-h-0">
               <div>
                 
                 {/* RECIPIENT HEADER */}
@@ -566,7 +566,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* 1. PRIMARY ACCOUNT RESPONSIBLE (LEADER) */}
-                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-slate-50/55 z-10`}>
+                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-slate-50/55 z-10 print:break-inside-avoid`}>
                   <h3 className={`font-sans font-bold text-xs text-blue-600 border-b border-slate-205 ${isFamily ? 'pb-1 mb-1.5' : 'pb-1.5 mb-2.5'} flex items-center gap-1.5`}>
                     <CheckCircle size={13} className="text-blue-600" />
                     {isFamily ? 'أولاً: معلومات مستلم الحجز رب العائلة الأساسي' : 'أولاً: معلومات مستلم الحجز والزبون الأساسي'}
@@ -603,7 +603,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
                 {/* 2. COMPANIONS AND FAMILY MEMBERS TABLE (ONLY FOR FAMILY BOOKING) */}
                 {isFamily && (
-                  <div className={`border border-slate-200 rounded-lg ${companionCount > 2 ? 'p-2 mb-2' : 'p-3.5 mb-3.5'} bg-slate-50/55 z-10 font-sans`}>
+                  <div className={`border border-slate-200 rounded-lg ${companionCount > 2 ? 'p-2 mb-2' : 'p-3.5 mb-3.5'} bg-slate-50/55 z-10 font-sans print:break-inside-avoid`}>
                     <h3 className={`font-sans font-bold text-xs text-blue-600 border-b border-slate-205 ${companionCount > 2 ? 'pb-1 mb-1.5' : 'pb-1.5 mb-2.5'} flex items-center gap-1.5`}>
                       <Users size={13} className="text-blue-600" />
                       ثانياً: قائمة جميع أفراد العائلة والمرافقين المشمولين
@@ -653,7 +653,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 )}
 
                 {/* 3. TRIP SERVICE PLAN DETAILS */}
-                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-slate-50/55 z-10 font-sans`}>
+                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-slate-50/55 z-10 font-sans print:break-inside-avoid`}>
                   <h3 className={`font-sans font-bold text-xs text-blue-600 border-b border-slate-205 ${isFamily ? 'pb-1 mb-1.5' : 'pb-1.5 mb-2.5'} flex items-center gap-1.5`}>
                     <Calendar size={13} className="text-blue-600" />
                     {isFamily ? 'ثالثاً: تفاصيل وجهة السفر والبرنامج المعتمد للأسرة' : 'ثانياً: تفاصيل وجهة السفر والبرنامج المعتمد للزبون'}
@@ -701,7 +701,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* 4. REAL CONSOLIDATED FINANCES SUMMARY */}
-                <div className={`border-2 border-blue-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-blue-50/[0.15] z-10 font-sans`}>
+                <div className={`border-2 border-blue-200 rounded-lg ${isFamily ? 'p-2.5 mb-2.5' : 'p-4 mb-5'} bg-blue-50/[0.15] z-10 font-sans print:break-inside-avoid`}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-800 text-right">
                     <div>
                       <h4 className="font-sans font-extrabold text-xs text-slate-800">
@@ -766,7 +766,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* TERMS & REGULATIONS */}
-                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2 mb-2 bg-slate-50/10' : 'p-4 bg-slate-50/15'} z-10`}>
+                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2 mb-2 bg-slate-50/10' : 'p-4 bg-slate-50/15'} z-10 print:break-inside-avoid`}>
                   <h4 className="font-sans font-bold text-xs text-slate-700 mb-1 flex items-center gap-1">
                     <Info size={11} className="text-slate-400" />
                     شروط سفر وإقرارات تذاكر وكالة عبعوب:
@@ -779,7 +779,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 </div>
 
                 {/* SIGNATURE & STAMP SECTION */}
-                <div className={`grid grid-cols-2 gap-8 ${isFamily ? 'mt-2.5 pt-2' : 'mt-5 pt-4'} border-t border-dashed border-slate-200 z-10`}>
+                <div className={`grid grid-cols-2 gap-8 ${isFamily ? 'mt-2.5 pt-2' : 'mt-5 pt-4'} border-t border-dashed border-slate-200 z-10 print:break-inside-avoid`}>
                   <div className="text-right">
                     <span className="text-[10px] font-extrabold text-stone-700 block mb-0.5">إمضاء العميل / المستلم:</span>
                     <div className={`border border-dashed border-slate-200 rounded-xl bg-slate-50/30 flex items-end justify-center pb-1 ${isFamily ? 'h-11' : 'h-16'}`}>
@@ -892,11 +892,14 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             size: A4 portrait;
             margin: 0 !important;
           }
-          html, body {
+          html, body, #root, #root > div {
             margin: 0 !important;
             padding: 0 !important;
             height: auto !important;
+            min-height: 0 !important;
             overflow: visible !important;
+            position: static !important;
+            display: block !important;
           }
           body {
             visibility: hidden;
@@ -910,9 +913,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             visibility: visible !important;
           }
           #print-modal-overlay {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
             width: 100% !important;
             height: auto !important;
             background: transparent !important;
@@ -921,9 +922,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             display: block !important;
           }
           #print-modal-content {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
             width: 100% !important;
             height: auto !important;
             background: transparent !important;
@@ -935,6 +934,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
           }
           #a4-print-ticket-wrapper {
             display: block !important;
+            position: static !important;
             overflow: visible !important;
             max-height: none !important;
             height: auto !important;
@@ -955,6 +955,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
             background: white !important;
             box-sizing: border-box !important;
             zoom: 1 !important;
+            overflow: visible !important;
           }
           .print\:hidden {
             display: none !important;
