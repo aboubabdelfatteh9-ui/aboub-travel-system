@@ -798,129 +798,135 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
                   </div>
                 ) : (
-                  /* Normal Stacked View for Individual Bookings */
-                  <>
-                    {/* 3. TRIP SERVICE PLAN DETAILS */}
-                    <div className="border border-slate-200 rounded-lg p-4 mb-5 bg-slate-50/55 z-10 font-sans print:break-inside-avoid">
-                      <h3 className="font-sans font-bold text-xs text-blue-600 border-b border-slate-205 pb-1.5 mb-2.5 flex items-center gap-1.5">
-                        <Calendar size={13} className="text-blue-600" />
-                        ثانياً: تفاصيل وجهة السفر والبرنامج المعتمد للزبون
-                      </h3>
+                  /* Normal Side-by-Side Grid for Individual Bookings to match Family layout */
+                  <div className="grid grid-cols-2 gap-3 mb-2.5 z-10 font-sans">
+                    
+                    {/* ثانياً: تفاصيل وجهة السفر والبرنامج المعتمد للزبون */}
+                    <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/55 flex flex-col justify-between print:break-inside-avoid">
+                      <div>
+                        <h3 className="font-sans font-bold text-[11px] text-blue-600 border-b border-slate-205 pb-1 mb-1.5 flex items-center gap-1.5">
+                          <Calendar size={12} className="text-blue-600" />
+                          ثانياً: تفاصيل وجهة السفر والبرنامج المعتمد
+                        </h3>
 
-                      <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-[11px] text-slate-700 text-right font-sans">
-                        <div className="col-span-2">
-                          <span className="text-slate-400 block mb-0.5">اسم البرنامج والمسار المعتمد بالوكالة:</span>
-                          <strong className="text-slate-950 text-xs font-bold bg-white px-3 py-1 rounded border border-slate-200/50 block">
-                            {trip.name}
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span className="text-slate-400 block mb-0.5">الوجهة والبلد المضيف:</span>
-                          <strong className="text-slate-900">{trip.destination}</strong>
-                        </div>
-
-                        <div>
-                          <span className="text-slate-400 block mb-0.5">مدة البرنامج المجدولة:</span>
-                          <strong className="text-slate-900">{trip.duration}</strong>
-                        </div>
-
-                        <div>
-                          <span className="text-slate-400 block mb-0.5">تاريخ المغادرة المرتقب:</span>
-                          <strong className="text-blue-600 font-extrabold">{formattedDepartureDate}</strong>
-                        </div>
-
-                        <div>
-                          <span className="text-slate-400 block mb-0.5 font-sans">الإقامة الموحدة للزبون:</span>
-                          <strong className="text-slate-900">{customer.roomType || 'عرض قياسي موحد'}</strong>
-                        </div>
-
-                        {trip.departurePlaceNotes && (
-                          <div className="col-span-2 mt-1.5 pt-1.5 border-t border-slate-200/50">
-                            <span className="text-slate-400 block mb-0.5">مكان المغادرة والتجمع ونقاط الانطلاق المحددة للرحلة:</span>
-                            <p className="text-slate-850 font-sans font-bold leading-relaxed bg-white/70 px-3 py-1.5 rounded border border-slate-200/50">
-                              {trip.departurePlaceNotes}
-                            </p>
+                        <div className="space-y-1 text-[9.5px] text-slate-700 text-right font-sans">
+                          <div>
+                            <span className="text-slate-400 block mb-0.5 font-bold">اسم البرنامج والمسار المعتمد بالوكالة:</span>
+                            <strong className="text-slate-950 text-[10.5px] font-bold bg-white px-2 py-0.5 rounded border border-slate-200/50 block leading-tight">
+                              {trip.name}
+                            </strong>
                           </div>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* 4. REAL CONSOLIDATED FINANCES SUMMARY */}
-                    <div className="border-2 border-blue-200 rounded-lg p-4 mb-5 bg-blue-50/[0.15] z-10 font-sans print:break-inside-avoid">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-800 text-right font-sans">
-                        <div>
-                          <h4 className="font-sans font-extrabold text-xs text-slate-800">
-                            بيانات الحساب المالي الإجمالي للحجز الفردي:
-                          </h4>
-                          <p className="text-[10px] text-slate-400 mt-0.5">
-                            الحساب شامل الضريبة (TTC) للمسافر الفرد
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="text-slate-400 block mb-0.5">الوجهة والبلد:</span>
+                              <strong className="text-slate-900">{trip.destination}</strong>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block mb-0.5 font-sans">مدة البرنامج:</span>
+                              <strong className="text-slate-900">{trip.duration}</strong>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/30">
+                            <div>
+                              <span className="text-slate-400 block mb-0.5">تاريخ المغادرة المرتقب:</span>
+                              <strong className="text-blue-600 font-extrabold">{formattedDepartureDate}</strong>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block mb-0.5 font-sans">الإقامة للزبون:</span>
+                              <strong className="text-slate-900">{customer.roomType || 'عرض قياسي موحد'}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {trip.departurePlaceNotes && (
+                        <div className="mt-1.5 pt-1 border-t border-slate-200/30 text-[8.5px]">
+                          <span className="text-slate-400 block mb-0.5 font-bold">مكان التجمع ونقاط الانطلاق:</span>
+                          <p className="text-slate-800 font-sans font-bold leading-normal bg-white/70 px-1.5 py-0.5 rounded border border-slate-200/30">
+                            {trip.departurePlaceNotes}
                           </p>
-                          <div className="text-[10px] text-slate-500 font-bold mt-1.5 bg-white/80 px-2 py-0.5 rounded border border-slate-150 inline-block">
-                            حالة الدفع: {getPaymentStatusArabic(customer.paymentStatus)}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5 font-sans text-right md:text-left justify-center items-end">
-                          <div className="flex items-center justify-between w-full max-w-[280px]">
-                            <span className="text-[10px] text-slate-500 font-bold">المبلغ الإجمالي الكلي:</span>
-                            <span className="text-xs text-slate-800 font-mono font-extrabold">
-                              {totalPricePaid.toLocaleString('ar-DZ')} د.ج
-                            </span>
-                          </div>
-
-                          {customer.paymentStatus === 'partial' ? (
-                            <>
-                              <div className="flex items-center justify-between w-full max-w-[280px] bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
-                                <span className="text-[10px] text-emerald-800 font-extrabold">المبلغ المدفوع (العربون):</span>
-                                <span className="text-xs text-emerald-700 font-mono font-black">
-                                  {paidVal.toLocaleString('ar-DZ')} د.ج
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between w-full max-w-[280px] bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">
-                                <span className="text-[10px] text-rose-800 font-extrabold">المبلغ المتبقي للسداد:</span>
-                                <span className="text-xs text-rose-700 font-mono font-black">
-                                  {remainingVal.toLocaleString('ar-DZ')} د.ج
-                                </span>
-                              </div>
-                            </>
-                          ) : customer.paymentStatus === 'paid' ? (
-                            <div className="flex items-center justify-between w-full max-w-[280px] bg-emerald-50 border border-emerald-100 px-2 py-1 rounded">
-                              <span className="text-[10px] text-emerald-800 font-extrabold">المبلغ المدفوع بالكامل:</span>
-                              <span className="text-sm text-emerald-700 font-mono font-black">
-                                {totalPricePaid.toLocaleString('ar-DZ')} د.ج
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between w-full max-w-[280px] bg-rose-50 border border-rose-100 px-2 py-1 rounded">
-                              <span className="text-[10px] text-rose-800 font-extrabold">المبلغ المتبقي للسداد:</span>
-                              <span className="text-sm text-rose-700 font-mono font-black">
-                                {totalPricePaid.toLocaleString('ar-DZ')} د.ج
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {customer.notes && (
-                        <div className="border-t border-slate-200 mt-1.5 pt-1.5 text-[10px] text-slate-500 leading-relaxed font-sans text-right">
-                          <span className="font-bold block text-slate-700 mb-0.5 font-sans">ملاحظات العميل الخاصة والملحقة بالحجز:</span>
-                          {customer.notes}
                         </div>
                       )}
                     </div>
-                  </>
+
+                    {/* ثالثاً: بيانات الحساب المالي الإجمالي للحجز الفردي */}
+                    <div className="border-2 border-blue-200 rounded-lg p-2.5 bg-blue-50/[0.15] flex flex-col justify-between print:break-inside-avoid">
+                      <div>
+                        <h3 className="font-sans font-bold text-[11px] text-blue-600 border-b border-slate-205 pb-1 mb-1.5 flex items-center gap-1.5">
+                          <Info size={12} className="text-blue-600" />
+                          ثالثاً: بيانات الحساب المالي الإجمالي
+                        </h3>
+
+                        <div className="space-y-1 text-[9.5px] text-slate-800 text-right">
+                          <div className="flex items-center justify-between bg-white/80 px-2 py-0.5 rounded border border-slate-150">
+                            <span className="text-slate-500 font-bold">إجمالي المسافرين:</span>
+                            <span className="font-extrabold text-blue-800">مسافر واحد (حجز فردي)</span>
+                          </div>
+
+                          <div className="flex items-center justify-between border-b border-slate-200/40 pb-1">
+                            <span className="text-slate-500 font-bold">المبلغ الإجمالي الكلي:</span>
+                            <strong className="text-[11px] text-slate-900 font-mono font-extrabold">
+                              {totalPricePaid.toLocaleString('ar-DZ')} د.ج
+                            </strong>
+                          </div>
+
+                          <div className="space-y-1">
+                            {customer.paymentStatus === 'partial' ? (
+                              <>
+                                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">
+                                  <span className="text-emerald-800 font-bold">المبلغ المدفوع (العربون):</span>
+                                  <strong className="text-[10px] text-emerald-700 font-mono font-black">
+                                    {paidVal.toLocaleString('ar-DZ')} د.ج
+                                  </strong>
+                                </div>
+                                <div className="flex items-center justify-between bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded">
+                                  <span className="text-rose-800 font-bold">المبلغ المتبقي:</span>
+                                  <strong className="text-[10px] text-rose-700 font-mono font-black">
+                                    {remainingVal.toLocaleString('ar-DZ')} د.ج
+                                  </strong>
+                                </div>
+                              </>
+                            ) : customer.paymentStatus === 'paid' ? (
+                              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">
+                                <span className="text-emerald-800 font-bold">المدفوع بالكامل:</span>
+                                <strong className="text-[11px] text-emerald-700 font-mono font-black">
+                                  {totalPricePaid.toLocaleString('ar-DZ')} د.ج
+                                </strong>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded">
+                                <span className="text-rose-800 font-bold">المتبقي للسداد:</span>
+                                <strong className="text-[11px] text-rose-700 font-mono font-black">
+                                  {totalPricePaid.toLocaleString('ar-DZ')} د.ج
+                                </strong>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {customer.notes && (
+                        <div className="border-t border-slate-200 mt-1.5 pt-1 text-[8.5px] text-slate-500 leading-normal text-right">
+                          <span className="font-bold text-slate-700 font-sans">ملاحظات:</span> {customer.notes}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
                 )}
 
                 {/* TERMS & REGULATIONS */}
-                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2 mb-2 bg-slate-50/10' : 'p-4 bg-slate-50/15'} z-10 print:break-inside-avoid`}>
+                <div className={`border border-slate-200 rounded-lg ${isFamily ? 'p-2 mb-2 bg-slate-50/10' : 'p-2.5 mb-2.5 bg-slate-50/10'} z-10 print:break-inside-avoid`}>
                   <h4 className="font-sans font-bold text-xs text-slate-700 mb-1 flex items-center gap-1">
                     <Info size={11} className="text-slate-400" />
                     شروط سفر وإقرارات تذاكر وكالة عبعوب:
                   </h4>
                   <ol className="list-decimal list-inside space-y-0.5 text-[8.5px] text-slate-500 leading-relaxed pl-2">
                     <li>تعتبر بيانات هذا الوصل تأكيداً رسمياً لحفّار السكاكين وحساب الغرف بمجرد تأكيد ختم مصلحة الحجوزات.</li>
-                    <li>لا يمكن إلغاء الحجز الفردي أو استرجاع المدفوعات بعد تأكيد حجز الغرف وتأشيرات الطيران.</li>
-                    <li>يلتزم أفراد الحجز بالحضور لمركز المغادرة في الأوقات المحددة سلفاً متسلحين بجوازات السفر.</li>
+                    <li>لا يمكن إلغاء الحجز أو استرجاع المدفوعات بعد تأكيد الحجز.</li>
+                    <li>يلتزم أفراد الحجز بالحضور لمركز المغادرة في الأوقات المحددة سلفاً مصحوبين بجواز السفر أو بطاقة التعريف.</li>
                   </ol>
                 </div>
 
