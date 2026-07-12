@@ -138,10 +138,16 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
         finalRemaining = editingCustomer.totalPrice || 0;
       }
 
+      const computedCompanions = (editingCustomer.companions || []).map(cmp => ({
+        ...cmp,
+        age: calculateAge(cmp.birthDate)
+      }));
+
       onUpdateCustomer({
         ...editingCustomer,
         age: computedAge,
-        peopleCount: (editingCustomer.companions || []).length + 1,
+        companions: computedCompanions,
+        peopleCount: computedCompanions.length + 1,
         paidAmount: finalPaid,
         remainingAmount: finalRemaining,
       });
@@ -657,7 +663,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
       {/* 2. CUSTOM FAMILY EDIT MODAL */}
       {editingCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1C1917]/35 backdrop-blur-xs font-sans">
-          <div className="bg-white rounded-2xl border border-stone-200 max-w-lg w-full p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-155 max-h-[90vh] overflow-y-auto" dir="rtl">
+          <div className="bg-white rounded-2xl border border-stone-200 max-w-2xl w-full p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-155 max-h-[90vh] overflow-y-auto" dir="rtl">
             
             <button
               onClick={() => setEditingCustomer(null)}
@@ -669,18 +675,52 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
 
             <div className="flex items-center gap-2 border-b border-stone-100 pb-3 mb-4 justify-start">
               <Sparkles className="text-amber-600 animate-pulse" size={16} />
-              <h3 className="font-extrabold text-zinc-900 text-sm md:text-base">تعديل بيانات الحجز المالي والعشيرة</h3>
+              <h3 className="font-extrabold text-zinc-900 text-sm md:text-base">تعديل كامل تفاصيل وبيانات الحجز</h3>
             </div>
 
             <form onSubmit={handleEditSave} className="space-y-4 text-right text-xs">
               
+              {/* Booking Type and Invoice Number */}
+              <div className="grid grid-cols-2 gap-3 bg-[#FAF8F5]/50 p-3 rounded-xl border border-stone-200/40">
+                <div>
+                  <label htmlFor="edit-bookingType" className="block text-[10px] font-bold text-stone-600 mb-1">نوع التسجيل بالحجز</label>
+                  <select
+                    id="edit-bookingType"
+                    value={editingCustomer.bookingType || 'individual'}
+                    onChange={(e) => {
+                      const newType = e.target.value as 'individual' | 'family';
+                      setEditingCustomer({
+                        ...editingCustomer,
+                        bookingType: newType,
+                        companions: newType === 'individual' ? [] : (editingCustomer.companions || [])
+                      });
+                    }}
+                    className="w-full px-2.5 py-2 border border-stone-200 bg-white rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 cursor-pointer font-sans"
+                  >
+                    <option value="individual">👤 حجز فردي (مسافر واحد)</option>
+                    <option value="family">👨‍👩‍👧‍👦 حجز عائلي / جماعي</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="edit-invoiceNumber" className="block text-[10px] font-bold text-stone-600 mb-1">رقم الحجز / الفاتورة</label>
+                  <input
+                    type="text"
+                    id="edit-invoiceNumber"
+                    value={editingCustomer.invoiceNumber}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, invoiceNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono text-left focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all font-bold text-stone-850"
+                    required
+                  />
+                </div>
+              </div>
+
               {/* Leader Full Name */}
               <div className="grid grid-cols-2 gap-3 bg-stone-50/60 p-3.5 rounded-xl border border-stone-200/60">
                 <div className="col-span-2 text-stone-800 font-extrabold text-[10px] pb-1 border-b border-stone-200/40 mb-1 flex items-center gap-1.5 justify-start">
-                  <span>👤 معلومات الكفيل الأساسي:</span>
+                  <span>👤 معلومات الزبون الرئيسي:</span>
                 </div>
                 <div>
-                  <label htmlFor="edit-firstName" className="block text-[10px] font-bold text-stone-600 mb-1">الاسم الأول المسؤول</label>
+                  <label htmlFor="edit-firstName" className="block text-[10px] font-bold text-stone-600 mb-1">الاسم الأول</label>
                   <input
                      type="text"
                      id="edit-firstName"
@@ -691,7 +731,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-lastName" className="block text-[10px] font-bold text-stone-600 mb-1">اللقب الكلي</label>
+                  <label htmlFor="edit-lastName" className="block text-[10px] font-bold text-stone-600 mb-1">اللقب العائلي</label>
                   <input
                     type="text"
                     id="edit-lastName"
@@ -703,9 +743,9 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                 </div>
               </div>
 
-              {/* Phone, birth info */}
-              <div className="grid grid-cols-2 gap-3 bg-[#FAF8F5]/80 p-3.5 rounded-xl border border-stone-200/60">
-                <div>
+              {/* Phone, birth info, role */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-[#FAF8F5]/80 p-3.5 rounded-xl border border-stone-200/60">
+                <div className="col-span-2 md:col-span-1">
                   <label htmlFor="edit-phone" className="block text-[10px] font-bold text-stone-600 mb-1">رقم الهاتف</label>
                   <input
                     type="text"
@@ -716,8 +756,8 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                     required
                   />
                 </div>
-                <div>
-                  <label htmlFor="edit-birthPlace" className="block text-[10px] font-bold text-stone-600 mb-1">مكان الولادة (الولاية)</label>
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="edit-birthPlace" className="block text-[10px] font-bold text-stone-600 mb-1">مكان الولادة</label>
                   <input
                     type="text"
                     id="edit-birthPlace"
@@ -726,6 +766,30 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                     className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-medium focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-stone-800"
                     required
                   />
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="edit-birthDate" className="block text-[10px] font-bold text-stone-600 mb-1">تاريخ الميلاد</label>
+                  <input
+                    type="date"
+                    id="edit-birthDate"
+                    value={editingCustomer.birthDate}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, birthDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-medium focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-stone-800"
+                    required
+                  />
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="edit-role" className="block text-[10px] font-bold text-stone-600 mb-1">الدور / الصفة</label>
+                  <select
+                    id="edit-role"
+                    value={editingCustomer.role || 'tourist'}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, role: e.target.value as 'tourist' | 'organizer' | 'driver' })}
+                    className="w-full px-2.5 py-2 border border-stone-200 bg-white rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 cursor-pointer font-sans"
+                  >
+                    <option value="tourist">👤 سائح عادي</option>
+                    <option value="organizer">👔 مؤطر الرحلة</option>
+                    <option value="driver">🚌 سائق الحافلة</option>
+                  </select>
                 </div>
               </div>
 
@@ -824,6 +888,180 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                   </select>
                 </div>
               </div>
+
+              {/* Companions Section (Only if bookingType is family) */}
+              {(editingCustomer.bookingType === 'family' || (editingCustomer.companions && editingCustomer.companions.length > 0)) && (
+                <div className="space-y-3 bg-stone-50/50 p-3.5 rounded-xl border border-stone-200/60">
+                  <div className="flex items-center justify-between text-stone-850 font-extrabold text-[10px] pb-1 border-b border-stone-200/40 mb-1">
+                    <span>👥 أفراد العائلة والمرافقين المضافين للحجز ({editingCustomer.companions?.length || 0}):</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newCompanion = {
+                          id: `cmp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                          firstName: '',
+                          lastName: editingCustomer.lastName,
+                          birthDate: '',
+                          birthPlace: editingCustomer.birthPlace,
+                          age: 30,
+                          role: 'tourist' as const,
+                          roomType: editingCustomer.roomType || '',
+                          relationship: 'مرافق'
+                        };
+                        setEditingCustomer({
+                          ...editingCustomer,
+                          companions: [...(editingCustomer.companions || []), newCompanion]
+                        });
+                      }}
+                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[9.5px] font-extrabold cursor-pointer transition-all border border-amber-650 shadow-3xs"
+                    >
+                      + إضافة مرافق جديد
+                    </button>
+                  </div>
+
+                  {(!editingCustomer.companions || editingCustomer.companions.length === 0) ? (
+                    <div className="text-center py-4 text-stone-400 italic text-[10px]">
+                      لا يوجد مرافقين مضافين للحجز حالياً. انقر الزر لإضافة أفراد العائلة.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                      {editingCustomer.companions.map((comp, index) => (
+                        <div key={comp.id} className="bg-white p-3 border border-stone-200 rounded-xl relative space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = editingCustomer.companions.filter((_, idx) => idx !== index);
+                              setEditingCustomer({
+                                ...editingCustomer,
+                                companions: updated
+                              });
+                            }}
+                            className="absolute top-2.5 left-2.5 p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-all border border-transparent hover:border-rose-100"
+                            title="حذف هذا المرافق"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                          
+                          <div className="text-[10px] font-extrabold text-amber-700">المرافق #{index + 1}:</div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">الاسم</label>
+                              <input
+                                type="text"
+                                value={comp.firstName}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, firstName: e.target.value };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                className="w-full px-2 py-1 border border-stone-200 rounded text-xs bg-white text-stone-800"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">اللقب</label>
+                              <input
+                                type="text"
+                                value={comp.lastName}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, lastName: e.target.value };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                className="w-full px-2 py-1 border border-stone-200 rounded text-xs bg-white text-stone-800"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                            <div className="col-span-2 md:col-span-1">
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">تاريخ الميلاد</label>
+                              <input
+                                type="date"
+                                value={comp.birthDate}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, birthDate: e.target.value, age: calculateAge(e.target.value) };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                className="w-full px-1 py-1 border border-stone-200 rounded text-xs bg-white text-stone-850"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">مكان الولادة</label>
+                              <input
+                                type="text"
+                                value={comp.birthPlace}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, birthPlace: e.target.value };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                className="w-full px-2 py-1 border border-stone-200 rounded text-xs bg-white text-stone-800"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">صلة القرابة</label>
+                              <input
+                                type="text"
+                                value={comp.relationship}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, relationship: e.target.value };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                className="w-full px-2 py-1 border border-stone-200 rounded text-xs bg-white text-stone-800"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">الصفة</label>
+                              <select
+                                value={comp.role || 'tourist'}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, role: e.target.value as any };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                className="w-full px-1 py-1 border border-stone-200 bg-white rounded text-xs text-stone-800 cursor-pointer"
+                              >
+                                <option value="tourist">👤 سائح</option>
+                                <option value="organizer">👔 مؤطر (مجاني)</option>
+                                <option value="driver">🚌 سائق (مجاني)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">الإقامة</label>
+                              <select
+                                value={(() => {
+                                  const matched = matchRoomTypeOption(comp.roomType || '', editingRoomOptions);
+                                  return matched ? matched.label : (comp.roomType || '');
+                                })()}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, roomType: e.target.value };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                className="w-full px-1 py-1 border border-stone-200 bg-white rounded text-xs text-stone-800 cursor-pointer"
+                              >
+                                {editingRoomOptions.map((opt, idx) => (
+                                  <option key={idx} value={opt.label}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Total Price paid and Status editing */}
               <div className="grid grid-cols-2 gap-3 bg-amber-500/[0.03] p-3.5 rounded-xl border border-amber-500/20 shadow-3xs">
