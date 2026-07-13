@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Customer, Trip, Employee, Branch, OperationLog } from './types';
+import { Customer, Trip, Employee, Branch, OperationLog, AgencySettings } from './types';
 import { defaultTrips } from './data/trips';
 import { Logo } from './components/Logo';
 import { CustomerForm, getRoomOptionsForTrip, getTripPriceLabelsAndDefaults } from './components/CustomerForm';
@@ -52,6 +52,38 @@ import {
   ShieldAlert,
   RefreshCw
 } from 'lucide-react';
+
+// Color shade generator helpers for dynamic theme styling
+function hexToRgb(hex: string): { r: number, g: number, b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+function adjustColorBrightness(hex: string, percent: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const r = Math.max(0, Math.min(255, Math.round(rgb.r + (255 - rgb.r) * percent)));
+  const g = Math.max(0, Math.min(255, Math.round(rgb.g + (255 - rgb.g) * percent)));
+  const b = Math.max(0, Math.min(255, Math.round(rgb.b + (255 - rgb.b) * percent)));
+  return rgbToHex(r, g, b);
+}
+
+function darkenColor(hex: string, percent: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const r = Math.max(0, Math.min(255, Math.round(rgb.r * (1 - percent))));
+  const g = Math.max(0, Math.min(255, Math.round(rgb.g * (1 - percent))));
+  const b = Math.max(0, Math.min(255, Math.round(rgb.b * (1 - percent))));
+  return rgbToHex(r, g, b);
+}
 
 const DEFAULT_BRANCHES: Branch[] = [
   { id: 'branch-touggourt', name: 'فرع تقرت الرئيسي', location: 'حي عياد تبسبست، تقرت' },
@@ -167,6 +199,26 @@ export default function App() {
 
   // Time and Date tracker
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Agency Settings & Configuration
+  const [agencySettings, setAgencySettings] = useState<AgencySettings>({
+    websiteName: 'وكالة عبعوب للسياحة والأسفار',
+    websiteEnglishName: 'ABOUB TRAVEL & TOURISM',
+    primaryColor: '#d97706',
+  });
+
+  // Secret triggers
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [secretPassword, setSecretPassword] = useState('');
+  const [secretError, setSecretError] = useState('');
+
+  // Settings Edit states
+  const [editWebsiteName, setEditWebsiteName] = useState('وكالة عبعوب للسياحة والأسفار');
+  const [editWebsiteEnglishName, setEditWebsiteEnglishName] = useState('ABOUB TRAVEL & TOURISM');
+  const [editPrimaryColor, setEditPrimaryColor] = useState('#d97706');
+  const [editReceiptLogoUrl, setEditReceiptLogoUrl] = useState('');
+  const [editWebsiteLogoUrl, setEditWebsiteLogoUrl] = useState('');
 
   // EMPLOYEE / BRANCH WRITE ACTIONS
   const handleAddEmployeeSubmit = async (e: React.FormEvent) => {
@@ -373,6 +425,92 @@ export default function App() {
       showToast('خطأ في تأسيس الفرع بقاعدة البيانات', 'error');
     }
   };
+
+  // 1.5 GLOBAL AGENCY SETTINGS & THEMING & SECRET KEY LISTENER
+  // Secret "ع" key listener effect (Press 5 times consecutively within 2s gaps)
+  useEffect(() => {
+    let count = 0;
+    let lastPress = 0;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in inputs or textareas to avoid false triggers
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.getAttribute('contenteditable') === 'true')) {
+        return;
+      }
+      
+      const isAin = e.key === 'ع' || e.key === 'u' || e.key === 'U';
+      if (isAin) {
+        const now = Date.now();
+        if (now - lastPress < 2000) {
+          count += 1;
+        } else {
+          count = 1;
+        }
+        lastPress = now;
+        if (count === 5) {
+          count = 0;
+          setSecretPassword('');
+          setSecretError('');
+          setShowPasswordModal(true);
+        }
+      } else {
+        count = 0;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Sync settings and apply dynamic Tailwind styles
+  useEffect(() => {
+    const root = document.documentElement;
+    if (agencySettings?.primaryColor) {
+      const primary = agencySettings.primaryColor;
+      const hover = agencySettings.primaryColorHover || darkenColor(primary, 0.15);
+      const light = agencySettings.primaryColorLight || adjustColorBrightness(primary, 0.65);
+      const bg = agencySettings.primaryColorBg || adjustColorBrightness(primary, 0.85);
+      const lightest = agencySettings.primaryColorLightest || adjustColorBrightness(primary, 0.95);
+
+      root.style.setProperty('--color-amber-500', primary);
+      root.style.setProperty('--color-amber-600', hover);
+      root.style.setProperty('--color-amber-400', light);
+      root.style.setProperty('--color-amber-100', bg);
+      root.style.setProperty('--color-amber-50', lightest);
+      
+      root.style.setProperty('--color-amber-700', darkenColor(primary, 0.3));
+      root.style.setProperty('--color-amber-800', darkenColor(primary, 0.45));
+      root.style.setProperty('--color-amber-900', darkenColor(primary, 0.6));
+      root.style.setProperty('--color-amber-950', darkenColor(primary, 0.75));
+    }
+  }, [agencySettings]);
+
+  // Real-time Firestore Agency Settings Sync (Global, runs on mount)
+  useEffect(() => {
+    console.log('Registering real-time Firestore settings synchronizer...');
+    const unsubscribeSettings = onSnapshot(doc(db, 'agencySettings', 'default'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as AgencySettings;
+        setAgencySettings(data);
+        localStorage.setItem('agencySettings', JSON.stringify(data));
+        
+        // Populate edit states
+        if (data.websiteName) setEditWebsiteName(data.websiteName);
+        if (data.websiteEnglishName) setEditWebsiteEnglishName(data.websiteEnglishName);
+        if (data.primaryColor) setEditPrimaryColor(data.primaryColor);
+        if (data.receiptLogoUrl) setEditReceiptLogoUrl(data.receiptLogoUrl);
+        if (data.websiteLogoUrl) setEditWebsiteLogoUrl(data.websiteLogoUrl);
+
+        // Notify other components
+        window.dispatchEvent(new Event('agencySettingsChanged'));
+      }
+    }, (error) => {
+      console.warn('Could not subscribe to online agency settings, using local storage cache:', error);
+    });
+
+    return () => {
+      unsubscribeSettings();
+    };
+  }, []);
 
   // 2. LIVE CLOCK EFFECT & GLOBAL PRINT HEADERS/FOOTERS SUPPRESSION
   useEffect(() => {
@@ -1067,6 +1205,28 @@ export default function App() {
     e.target.value = '';
   };
 
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>, target: 'website' | 'receipt') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // File size safety check (max 1.2MB)
+    if (file.size > 1.2 * 1024 * 1024) {
+      showToast('حجم الصورة كبير جداً! الرجاء استخدام صورة بحجم أقل من 1.2 ميجابايت لضمان الحفظ والمزامنة السريعة.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      if (target === 'website') {
+        setEditWebsiteLogoUrl(base64);
+      } else {
+        setEditReceiptLogoUrl(base64);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-stone-900 flex flex-col md:flex-row-reverse font-sans selection:bg-amber-100 selection:text-amber-900 print:bg-white print:text-black" dir="rtl">
       
@@ -1075,20 +1235,39 @@ export default function App() {
         <div className="space-y-6">
           {/* Logo Heading - Premium & Modern Corporate Layout */}
           <div className="flex items-center gap-3.5">
-            <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-zinc-950 w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg shadow-amber-500/10 select-none transform hover:rotate-3 transition-all duration-300">
-              ع
-            </div>
+            <button
+              onClick={() => {
+                setSecretPassword('');
+                setSecretError('');
+                setShowPasswordModal(true);
+              }}
+              title="لوحة التحكم السرية"
+              className="focus:outline-none cursor-pointer transform hover:scale-110 hover:rotate-6 active:scale-95 transition-all duration-300 shrink-0"
+            >
+              {agencySettings.websiteLogoUrl ? (
+                <img
+                  src={agencySettings.websiteLogoUrl}
+                  alt={agencySettings.websiteName || 'وكالة عبعوب للسياحة'}
+                  className="w-11 h-11 rounded-2xl object-cover shadow-lg shadow-amber-500/10 select-none border border-amber-500/20"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-zinc-950 w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg shadow-amber-500/10 select-none">
+                  ع
+                </div>
+              )}
+            </button>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.55">
                 <h1 className="font-sans font-black text-xs tracking-tight select-none leading-none bg-gradient-to-l from-white to-stone-200 bg-clip-text text-transparent">
-                  وكالة عبعوب للسياحة
+                  {agencySettings.websiteName || 'وكالة عبعوب للسياحة'}
                 </h1>
                 <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90">
                   PORTAL
                 </span>
               </div>
               <span className="font-mono text-[8px] text-stone-400 font-bold tracking-wider select-none mt-1 opacity-80 uppercase leading-none">
-                ABOUB TRAVEL AGENCY
+                {agencySettings.websiteEnglishName || 'ABOUB TRAVEL AGENCY'}
               </span>
             </div>
           </div>
@@ -1170,12 +1349,31 @@ export default function App() {
       <header className="bg-zinc-950 text-white sticky top-0 z-40 shadow-md border-b border-amber-500/20 print:hidden flex flex-col md:hidden">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-zinc-950 w-9 h-9 rounded-lg flex items-center justify-center font-black text-md shadow-md">
-              ع
-            </div>
+            <button
+              onClick={() => {
+                setSecretPassword('');
+                setSecretError('');
+                setShowPasswordModal(true);
+              }}
+              title="لوحة التحكم السرية"
+              className="focus:outline-none cursor-pointer transform hover:scale-110 hover:rotate-6 active:scale-95 transition-all duration-300 shrink-0"
+            >
+              {agencySettings.websiteLogoUrl ? (
+                <img
+                  src={agencySettings.websiteLogoUrl}
+                  alt={agencySettings.websiteName || 'وكالة عبعوب للسياحة'}
+                  className="w-9 h-9 rounded-lg object-cover shadow-md select-none"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-zinc-950 w-9 h-9 rounded-lg flex items-center justify-center font-black text-md shadow-md">
+                  ع
+                </div>
+              )}
+            </button>
             <div className="flex flex-col text-right">
-              <h1 className="font-sans font-black text-xs leading-none">وكالة عبعوب للسياحة</h1>
-              <span className="font-mono text-[7.5px] text-stone-400 font-bold uppercase tracking-wide mt-1">ABOUB TRAVEL</span>
+              <h1 className="font-sans font-black text-xs leading-none">{agencySettings.websiteName || 'وكالة عبعوب للسياحة'}</h1>
+              <span className="font-mono text-[7.5px] text-stone-400 font-bold uppercase tracking-wide mt-1">{agencySettings.websiteEnglishName || 'ABOUB TRAVEL'}</span>
             </div>
           </div>
           
@@ -2288,7 +2486,7 @@ export default function App() {
       <footer className="bg-white border-t border-slate-150 py-4 px-6 text-center text-xs text-slate-400 mt-12 print:hidden">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <span>
-            جميع الحقوق محفوظة © {new Date().getFullYear()} - وكالة عبعوب لسياحة والأسفار والرحلات
+            جميع الحقوق محفوظة © {new Date().getFullYear()} - {agencySettings.websiteName || 'وكالة عبعوب لسياحة والأسفار والرحلات'}
           </span>
           <span className="font-mono text-[10px] bg-slate-50 border border-slate-100 px-2 py-1 rounded">
             Version 2.4.0 (Offline-first Workspace)
@@ -2834,6 +3032,286 @@ export default function App() {
                 >
                   <ShieldCheck size={14} />
                   <span>تأكيد المطلب وحفظ التحديثات</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= SECRET PASSWORD MODAL ================= */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans" dir="rtl">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-stone-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3 mb-4">
+              <h3 className="font-extrabold text-stone-850 text-xs flex items-center gap-2">
+                🔒 الدخول السرّي لوكيل الإدارة والمشرف
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                className="p-1 rounded-lg hover:bg-stone-150 text-stone-405 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (secretPassword === 'aboub2026') {
+                  setShowPasswordModal(false);
+                  setShowSettingsModal(true);
+                  setSecretPassword('');
+                  setSecretError('');
+                } else {
+                  setSecretError('كلمة المرور غير صحيحة! يرجى المحاولة مرة أخرى.');
+                }
+              }}
+              className="space-y-4 text-right"
+            >
+              <p className="text-[11px] text-stone-500 font-semibold leading-relaxed">
+                أدخل كلمة المرور السرية المحددة للولوج إلى وحدة تخصيص هوية الموقع وألوانه وعلاماته التجارية المطبوعة.
+              </p>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-600 mb-1">كلمة المرور السرية</label>
+                <input
+                  type="password"
+                  value={secretPassword}
+                  onChange={(e) => {
+                    setSecretPassword(e.target.value);
+                    setSecretError('');
+                  }}
+                  placeholder="أدخل كلمة السر هنا..."
+                  className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                  autoFocus
+                  required
+                />
+                {secretError && (
+                  <p className="text-[10px] text-red-500 mt-1 font-bold">⚠️ {secretError}</p>
+                )}
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  إلغاء التراجع
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                >
+                  <ShieldCheck size={14} />
+                  <span>تأكيد الهوية</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= SECRET SETTINGS MODAL ================= */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans overflow-y-auto" dir="rtl">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl border border-stone-100 my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3 mb-4">
+              <h3 className="font-extrabold text-stone-850 text-xs flex items-center gap-2">
+                ⚙️ لوحة التخصيص السرية وإعدادات الهوية
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="p-1 rounded-lg hover:bg-stone-150 text-stone-405 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editWebsiteName.trim()) {
+                  showToast('الرجاء إدخال اسم الموقع العربي', 'error');
+                  return;
+                }
+
+                try {
+                  const newSettings: AgencySettings = {
+                    websiteName: editWebsiteName.trim(),
+                    websiteEnglishName: editWebsiteEnglishName.trim(),
+                    primaryColor: editPrimaryColor,
+                    primaryColorHover: darkenColor(editPrimaryColor, 0.15),
+                    primaryColorLight: adjustColorBrightness(editPrimaryColor, 0.65),
+                    primaryColorBg: adjustColorBrightness(editPrimaryColor, 0.85),
+                    primaryColorLightest: adjustColorBrightness(editPrimaryColor, 0.95),
+                    websiteLogoUrl: editWebsiteLogoUrl,
+                    receiptLogoUrl: editReceiptLogoUrl,
+                  };
+
+                  await setDoc(doc(db, 'agencySettings', 'default'), newSettings);
+                  
+                  // Also log this change in logs
+                  const logId = `log-${Date.now()}`;
+                  const newLog = {
+                    id: logId,
+                    employeeId: currentEmployee?.id || 'emp-1',
+                    employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+                    branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+                    actionType: 'update_settings' as any,
+                    details: `تحديث هوية وتخصيصات الوكالة: تم تغيير اسم الموقع وألوانه وشعارات الهوية.`,
+                    timestamp: new Date().toISOString()
+                  };
+                  await setDoc(doc(db, 'logs', logId), newLog);
+
+                  setAgencySettings(newSettings);
+                  localStorage.setItem('agencySettings', JSON.stringify(newSettings));
+                  window.dispatchEvent(new Event('agencySettingsChanged'));
+
+                  setShowSettingsModal(false);
+                  showToast('تم حفظ وتحديث هوية وإعدادات الوكالة بنجاح وتعميمها على كافة الأجهزة!', 'success');
+                } catch (err) {
+                  console.error(err);
+                  showToast('حدث خطأ أثناء حفظ الإعدادات في قاعدة البيانات', 'error');
+                }
+              }}
+              className="space-y-4 text-right"
+            >
+              {/* Name Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-stone-600">اسم الموقع (بالعربية)</label>
+                  <input
+                    type="text"
+                    value={editWebsiteName}
+                    onChange={(e) => setEditWebsiteName(e.target.value)}
+                    placeholder="مثال: وكالة عبعوب للسياحة والأسفار"
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-stone-600">الاسم بالإنجليزية</label>
+                  <input
+                    type="text"
+                    value={editWebsiteEnglishName}
+                    onChange={(e) => setEditWebsiteEnglishName(e.target.value)}
+                    placeholder="مثال: ABOUB TRAVEL & TOURISM"
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Theme Colors */}
+              <div className="bg-stone-50/60 p-4 rounded-2xl border border-stone-150 space-y-3">
+                <span className="text-xs font-extrabold text-stone-700 block">🎨 اللون الرئيسي للعلامة التجارية</span>
+                <p className="text-[10px] text-stone-450 leading-relaxed font-semibold">
+                  اختر لون العلامة التجارية وسيتكفل النظام تلقائياً بتوليد التدرجات اللونية الفاتحة والداكنة لتطبيقها على جميع الواجهات والأزرار والتأثيرات فوراً.
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-12 h-10 rounded-xl overflow-hidden border border-stone-200 shrink-0 shadow-xs">
+                    <input
+                      type="color"
+                      value={editPrimaryColor}
+                      onChange={(e) => setEditPrimaryColor(e.target.value)}
+                      className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer scale-150"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={editPrimaryColor}
+                    onChange={(e) => setEditPrimaryColor(e.target.value)}
+                    placeholder="#d97706"
+                    className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Logo Uploads */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Website "ع" Logo */}
+                <div className="border border-stone-150 rounded-2xl p-3 bg-stone-50/30 text-center space-y-2">
+                  <span className="text-[11px] font-extrabold text-stone-700 block">لوجو "حرف ع" في الموقع</span>
+                  <div className="flex items-center justify-center h-14 w-14 mx-auto rounded-xl bg-zinc-950 text-white overflow-hidden shadow-md">
+                    {editWebsiteLogoUrl ? (
+                      <img src={editWebsiteLogoUrl} className="h-full w-full object-cover" alt="Website logo preview" referrerPolicy="no-referrer" />
+                    ) : (
+                      <span className="text-lg font-black font-sans text-amber-400">ع</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all font-bold text-[10px] rounded-lg border border-blue-200 cursor-pointer block text-center">
+                      📥 رفع صورة جديدة
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleLogoFileChange(e, 'website')}
+                        className="hidden"
+                      />
+                    </label>
+                    {editWebsiteLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditWebsiteLogoUrl('')}
+                        className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 transition-all font-bold text-[10px] rounded-lg border border-red-100 cursor-pointer"
+                      >
+                        ❌ إزالة والعودة للافتراضي
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Receipt Logo */}
+                <div className="border border-stone-150 rounded-2xl p-3 bg-stone-50/30 text-center space-y-2">
+                  <span className="text-[11px] font-extrabold text-stone-700 block">شعار الوصلات والفواتير المطبوعة</span>
+                  <div className="flex items-center justify-center h-14 w-14 mx-auto rounded-xl bg-stone-100 overflow-hidden shadow-inner border border-stone-150">
+                    {editReceiptLogoUrl ? (
+                      <img src={editReceiptLogoUrl} className="h-full w-full object-contain p-1" alt="Receipt logo preview" referrerPolicy="no-referrer" />
+                    ) : (
+                      <img src="/logo.png" className="h-full w-full object-contain p-1" alt="Receipt logo default" referrerPolicy="no-referrer" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all font-bold text-[10px] rounded-lg border border-blue-200 cursor-pointer block text-center">
+                      📥 رفع صورة جديدة
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleLogoFileChange(e, 'receipt')}
+                        className="hidden"
+                      />
+                    </label>
+                    {editReceiptLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditReceiptLogoUrl('')}
+                        className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 transition-all font-bold text-[10px] rounded-lg border border-red-100 cursor-pointer"
+                      >
+                        ❌ إزالة والعودة للافتراضي
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 flex items-center justify-end gap-2 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  إلغاء التراجع
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                >
+                  <CheckCircle2 size={14} />
+                  <span>حفظ التعديلات وتعميم الهوية</span>
                 </button>
               </div>
             </form>

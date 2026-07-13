@@ -99,3 +99,16 @@ export interface Trip {
   priceChild?: number; // سعر المقعد للأطفال
   customPrices?: CustomPrice[]; // قائمة أسعار مخصصة إضافية
 }
+
+export interface AgencySettings {
+  websiteName?: string;
+  websiteEnglishName?: string;
+  primaryColor?: string; // hex
+  primaryColorHover?: string; // hex
+  primaryColorLight?: string; // hex
+  primaryColorBg?: string; // hex
+  primaryColorLightest?: string; // hex
+  receiptLogoUrl?: string; // base64 or URL
+  websiteLogoUrl?: string; // base64 or URL for the letter 'ع'
+}
+

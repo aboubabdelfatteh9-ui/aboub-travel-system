@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Customer, Trip, Companion } from '../types';
 import { Logo } from './Logo';
 import { FileText, Download, Printer, X, Mail, Phone, MapPin, CheckCircle, Info, Calendar, Sparkles, Receipt, HelpCircle, Users } from 'lucide-react';
@@ -33,6 +33,28 @@ const calculateAge = (birthDateString: string): number => {
 
 export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customers, trips, onClose, onSelectCustomer }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [settings, setSettings] = useState<{
+    websiteName: string;
+    websiteEnglishName: string;
+  }>({
+    websiteName: 'وكالة عبعوب للسياحة والأسفار',
+    websiteEnglishName: 'ABOUB TRAVEL & TOURISM AGENCY'
+  });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('agencySettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSettings({
+          websiteName: parsed.websiteName || 'وكالة عبعوب للسياحة والأسفار',
+          websiteEnglishName: parsed.websiteEnglishName || 'ABOUB TRAVEL & TOURISM AGENCY'
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   if (!customer) return null;
 
@@ -526,10 +548,10 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                   <div className="space-y-1 text-right">
                     <Logo size={isFamily && companionCount > 2 ? 60 : 70} showText={false} />
                     <h1 className="font-sans font-black text-lg text-slate-805 tracking-tight mt-1">
-                      وكالة عبعوب للسياحة والأسفار
+                      {settings.websiteName}
                     </h1>
                     <p className="text-[9px] text-slate-400 font-mono tracking-wide uppercase">
-                      ABOUB TRAVEL & TOURISM AGENCY
+                      {settings.websiteEnglishName}
                     </p>
                     <div className="pt-2 flex flex-col gap-0.5 text-[11px] text-slate-600">
                       <span className="flex items-center gap-1.5 font-medium">
@@ -957,7 +979,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
               {/* STATUS BAR / OFFICIAL DIGITAL RECEIPT FOOTER */}
               <div className="flex items-center justify-between border-t border-slate-200 pt-4 mt-6 z-10 text-xs font-sans">
                 <div className="space-y-1 text-right">
-                  <span className="text-[10px] text-slate-700 block font-extrabold">وصل حجز مالي وإداري مؤكد (وكالة عبعوب للسياحة والأسفار)</span>
+                  <span className="text-[10px] text-slate-700 block font-extrabold">وصل حجز مالي وإداري مؤكد ({settings.websiteName})</span>
                   <span className="text-[8.5px] text-slate-400 block font-medium">تم إصدار وتحرير المعاملة إلكترونياً عبر البوابة الرسمية للوكالة وتصبح سارية بمجرد الإمضاء والختم.</span>
                 </div>
 
@@ -969,8 +991,8 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                   
                   {/* Small Digital verification seal tag */}
                   <div className="border-2 border-blue-500/80 text-blue-500/80 rounded-full w-14 h-14 flex flex-col items-center justify-center border-dashed p-1 shrink-0 rotate-12 select-none">
-                    <span className="text-[4px] font-black tracking-tight leading-none font-sans">وكالة عبعوب</span>
-                    <span className="text-[6.5px] font-extrabold uppercase font-mono tracking-tighter">ABOUB TRAVEL</span>
+                    <span className="text-[4px] font-black tracking-tight leading-none font-sans">{settings.websiteName.split(' ')[0] || 'وكالة'} {settings.websiteName.split(' ')[1] || 'عبعوب'}</span>
+                    <span className="text-[5px] font-extrabold uppercase font-mono tracking-tighter leading-none">{settings.websiteEnglishName.split(' ')[0] || 'ABOUB'}</span>
                     <div className="border-t border-blue-500/80 w-full my-0.5"></div>
                     <span className="text-[5.5px] font-bold">
                       {isFamily ? 'حجز عائلي' : 'حجز فردي'}
