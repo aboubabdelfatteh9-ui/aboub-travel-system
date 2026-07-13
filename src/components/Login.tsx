@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Employee } from '../types';
 import { ShieldCheck, User, Lock, ArrowLeftRight, Building2, HelpCircle } from 'lucide-react';
 
@@ -18,6 +18,28 @@ export const Login: React.FC<LoginProps> = ({ onLogin, employees }) => {
   const [error, setError] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<{
+    websiteName: string;
+    receiptLogoUrl?: string;
+  }>({
+    websiteName: 'وكالة عبعوب للسياحة',
+    receiptLogoUrl: ''
+  });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('agencySettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSettings({
+          websiteName: parsed.websiteName || 'وكالة عبعوب للسياحة',
+          receiptLogoUrl: parsed.receiptLogoUrl || ''
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,9 +93,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, employees }) => {
         <div className="text-center space-y-3.5">
           <div className="mx-auto w-24 h-24 bg-white border border-stone-200 rounded-full shadow-md flex items-center justify-center overflow-hidden">
             <img 
-              src="/logo.png" 
-              alt="Aboub Travels Logo" 
-              className="w-20 h-20 object-contain"
+              src={settings.receiptLogoUrl || "/logo.png"} 
+              alt={settings.websiteName} 
+              className="w-20 h-20 object-contain p-1"
               referrerPolicy="no-referrer"
             />
           </div>
@@ -82,7 +104,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, employees }) => {
               بوابة الموظفين والشركاء | Employee Portal
             </span>
             <h1 className="font-sans font-black text-xl text-stone-900 tracking-tight">
-              نظام إدارة فروع وكالة عبعوب للسياحة
+              نظام إدارة فروع {settings.websiteName}
             </h1>
             <p className="text-xs text-stone-500">
               سجل دخولك بنجاح للوصول إلى لوحة الحجوزات وإدارة ملفات المسافرين

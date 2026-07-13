@@ -9,13 +9,15 @@ interface LogoProps {
   className?: string;
   size?: number;
   showText?: boolean;
+  src?: string;
 }
 
-export const Logo: React.FC<LogoProps> = ({ className = '', size = 80, showText = false }) => {
+export const Logo: React.FC<LogoProps> = ({ className = '', size = 80, showText = false, src }) => {
+  const logoSrc = src || "/logo.png";
   return (
     <div className={`flex items-center gap-3 ${className}`} dir="rtl">
       <img
-        src="/logo.png"
+        src={logoSrc}
         alt="وكالة عبعوب للسياحة والأسفار"
         width={size}
         height={size}

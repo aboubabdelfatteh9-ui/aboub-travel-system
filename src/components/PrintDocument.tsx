@@ -36,24 +36,33 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
   const [settings, setSettings] = useState<{
     websiteName: string;
     websiteEnglishName: string;
+    receiptLogoUrl?: string;
   }>({
     websiteName: 'وكالة عبعوب للسياحة والأسفار',
-    websiteEnglishName: 'ABOUB TRAVEL & TOURISM AGENCY'
+    websiteEnglishName: 'ABOUB TRAVEL & TOURISM AGENCY',
+    receiptLogoUrl: ''
   });
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('agencySettings');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSettings({
-          websiteName: parsed.websiteName || 'وكالة عبعوب للسياحة والأسفار',
-          websiteEnglishName: parsed.websiteEnglishName || 'ABOUB TRAVEL & TOURISM AGENCY'
-        });
+    const loadSettings = () => {
+      try {
+        const stored = localStorage.getItem('agencySettings');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setSettings({
+            websiteName: parsed.websiteName || 'وكالة عبعوب للسياحة والأسفار',
+            websiteEnglishName: parsed.websiteEnglishName || 'ABOUB TRAVEL & TOURISM AGENCY',
+            receiptLogoUrl: parsed.receiptLogoUrl || ''
+          });
+        }
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    };
+
+    loadSettings();
+    window.addEventListener('agencySettingsChanged', loadSettings);
+    return () => window.removeEventListener('agencySettingsChanged', loadSettings);
   }, []);
 
   if (!customer) return null;
@@ -536,7 +545,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
           >
             {/* DOCUMENT WATERMARK */}
             <div className="absolute inset-0 opacity-[0.05] flex items-center justify-center pointer-events-none z-0">
-              <Logo size={isFamily && companionCount > 2 ? 340 : 420} />
+              <Logo size={isFamily && companionCount > 2 ? 340 : 420} src={settings.receiptLogoUrl} />
             </div>
 
             <div className="z-10 flex flex-col min-h-full justify-between print:block print:h-auto print:min-h-0">
@@ -546,7 +555,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                 <div className={`flex items-start justify-between border-b-2 border-blue-600 ${isFamily ? 'pb-3 mb-3' : 'pb-5 mb-5'} z-10`}>
                   {/* Agency details */}
                   <div className="space-y-1 text-right">
-                    <Logo size={isFamily && companionCount > 2 ? 60 : 70} showText={false} />
+                    <Logo size={isFamily && companionCount > 2 ? 60 : 70} showText={false} src={settings.receiptLogoUrl} />
                     <h1 className="font-sans font-black text-lg text-slate-805 tracking-tight mt-1">
                       {settings.websiteName}
                     </h1>
