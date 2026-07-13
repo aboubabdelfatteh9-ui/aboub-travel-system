@@ -1135,6 +1135,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                   <option value="ابنـة">👧 ابنـة</option>
                   <option value="والـد">👴 والـد</option>
                   <option value="والـدة">👵 والـدة</option>
+                  <option value="أخ">👦 أخ</option>
+                  <option value="أخت">👧 أخت</option>
                   <option value="مرافـق آخر">👤 مرافـق آخر</option>
                 </select>
               </div>
