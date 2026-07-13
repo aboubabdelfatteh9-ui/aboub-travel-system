@@ -98,6 +98,12 @@ export interface Trip {
   priceSextuple?: number; // سعر الغرفة السداسية
   priceChild?: number; // سعر المقعد للأطفال
   customPrices?: CustomPrice[]; // قائمة أسعار مخصصة إضافية
+  costPrice?: number; // سعر التكلفة للفرد للوكالة (د.ج)
+  expenseAccommodation?: number; // الإقامة
+  expenseTransport?: number; // النقل
+  expenseGuide?: number; // المرشد
+  expenseInsurance?: number; // التأمين
+  expenseOther?: number; // مصاريف أخرى
 }
 
 export interface AgencySettings {

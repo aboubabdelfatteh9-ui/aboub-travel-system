@@ -50,7 +50,9 @@ import {
   DollarSign,
   UserPlus2,
   ShieldAlert,
-  RefreshCw
+  RefreshCw,
+  Check,
+  TrendingUp
 } from 'lucide-react';
 
 // Color shade generator helpers for dynamic theme styling
@@ -97,6 +99,185 @@ const DEFAULT_EMPLOYEES: Employee[] = [
   { id: 'emp-3', username: 'agent_touggourt', name: 'بلال تبسبستي', role: 'Agent', branchId: 'branch-touggourt', branchName: 'فرع تقرت الرئيسي' },
   { id: 'emp-4', username: 'agent_ouargla', name: 'ليلى هلالي', role: 'Agent', branchId: 'branch-ouargla', branchName: 'فرع ورقلة' }
 ];
+
+interface TripProfitDetailEditorProps {
+  trip: Trip;
+  customers: Customer[];
+  onSaveExpenses: (
+    tripId: string,
+    acc: number,
+    trans: number,
+    guide: number,
+    ins: number,
+    other: number
+  ) => Promise<void>;
+  onBack: () => void;
+}
+
+function TripProfitDetailEditor({ trip, customers, onSaveExpenses, onBack }: TripProfitDetailEditorProps) {
+  const [acc, setAcc] = useState(trip.expenseAccommodation || 0);
+  const [trans, setTrans] = useState(trip.expenseTransport || 0);
+  const [guide, setGuide] = useState(trip.expenseGuide || 0);
+  const [ins, setIns] = useState(trip.expenseInsurance || 0);
+  const [other, setOther] = useState(trip.expenseOther || 0);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Synchronize state if trip changes
+  useEffect(() => {
+    setAcc(trip.expenseAccommodation || 0);
+    setTrans(trip.expenseTransport || 0);
+    setGuide(trip.expenseGuide || 0);
+    setIns(trip.expenseInsurance || 0);
+    setOther(trip.expenseOther || 0);
+  }, [trip]);
+
+  const tripCustomers = customers.filter(c => c.tripId === trip.id);
+  const totalSales = tripCustomers.reduce((sum, c) => {
+    if (c.totalPrice !== undefined) return sum + c.totalPrice;
+    return sum + (trip.price * (c.peopleCount || 1));
+  }, 0);
+
+  const expensesSum = acc + trans + guide + ins + other;
+  const netProfit = totalSales - expensesSum;
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onSaveExpenses(trip.id, acc, trans, guide, ins, other);
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="space-y-4 text-right animate-in fade-in duration-200">
+      {/* Header section with Back Button */}
+      <div className="flex items-center justify-between bg-stone-50 p-3 rounded-2xl border border-stone-150">
+        <div>
+          <h4 className="text-xs font-black text-stone-850">{trip.name}</h4>
+          <p className="text-[10px] text-stone-450 font-bold">{trip.destination} • {trip.date}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-3 py-1.5 bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold rounded-xl text-[10px] transition-all cursor-pointer flex items-center gap-1"
+        >
+          <span>← رجوع لقائمة الرحلات</span>
+        </button>
+      </div>
+
+      {/* Earned Money */}
+      <div className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <span className="text-[11px] font-bold text-emerald-800 block">💰 إجمالي المبالغ المكتسبة من الحاجزين (الفلوس لي كسبتها):</span>
+          <span className="text-[10px] text-emerald-600/90 font-bold">عدد المسافرين المسجلين في هذه الرحلة: {tripCustomers.reduce((sum, c) => sum + (c.peopleCount || 0), 0)} مسافر</span>
+        </div>
+        <div className="text-left font-mono">
+          <span className="text-lg font-black text-emerald-700">{totalSales.toLocaleString()} <span className="text-[10px] font-sans font-extrabold text-emerald-600">د.ج</span></span>
+        </div>
+      </div>
+
+      {/* The 5 empty expense fields */}
+      <div className="bg-stone-50/50 p-4 rounded-2xl border border-stone-150 space-y-3">
+        <h5 className="text-[11px] font-black text-stone-700 block">💸 مصاريف ونفقات الرحلة (د.ج):</h5>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-stone-500">🏨 الإقامة</label>
+            <input
+              type="number"
+              value={acc === 0 ? '' : acc}
+              onChange={(e) => setAcc(Number(e.target.value))}
+              placeholder="0"
+              className="w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-xl text-center font-bold text-xs font-mono focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+            />
+          </div>
+          
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-stone-500">🚌 النقل</label>
+            <input
+              type="number"
+              value={trans === 0 ? '' : trans}
+              onChange={(e) => setTrans(Number(e.target.value))}
+              placeholder="0"
+              className="w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-xl text-center font-bold text-xs font-mono focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-stone-500">🚩 المرشد</label>
+            <input
+              type="number"
+              value={guide === 0 ? '' : guide}
+              onChange={(e) => setGuide(Number(e.target.value))}
+              placeholder="0"
+              className="w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-xl text-center font-bold text-xs font-mono focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-stone-500">🛡️ التأمين</label>
+            <input
+              type="number"
+              value={ins === 0 ? '' : ins}
+              onChange={(e) => setIns(Number(e.target.value))}
+              placeholder="0"
+              className="w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-xl text-center font-bold text-xs font-mono focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-1 col-span-2 sm:col-span-1">
+            <label className="block text-[10px] font-bold text-stone-500">⚙️ أخرى</label>
+            <input
+              type="number"
+              value={other === 0 ? '' : other}
+              onChange={(e) => setOther(Number(e.target.value))}
+              placeholder="0"
+              className="w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-xl text-center font-bold text-xs font-mono focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Live Formula */}
+      <div className="bg-amber-50/50 p-3 rounded-2xl border border-amber-100/80 flex flex-col items-center justify-center text-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px] md:text-xs font-bold text-stone-600">
+          <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-lg font-mono">{totalSales.toLocaleString()} د.ج</span>
+          <span className="text-stone-400 font-extrabold">-</span>
+          <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-lg font-mono">({acc.toLocaleString()} + {trans.toLocaleString()} + {guide.toLocaleString()} + {ins.toLocaleString()} + {other.toLocaleString()})</span>
+          <span className="text-stone-400 font-extrabold">=</span>
+          <span className={`px-2 py-0.5 rounded-lg font-mono font-black ${netProfit >= 0 ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+            {netProfit.toLocaleString()} د.ج
+          </span>
+        </div>
+        <p className="text-[9px] text-stone-400 font-bold">
+          * قيمة الأرباح الصافية الحالية تساوي المبلغ الإجمالي المكتسب مطروحاً منه كافة المصاريف المدخلة أعلاه.
+        </p>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-4 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+        >
+          رجوع
+        </button>
+        <button
+          type="button"
+          disabled={isSaving}
+          onClick={handleSave}
+          className="px-5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 text-white font-bold rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs"
+        >
+          {isSaving ? (
+            <span className="block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          ) : (
+            <Check size={12} />
+          )}
+          <span>حفظ المصاريف والأرباح</span>
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   // 1. STATE INITIALIZATION
@@ -210,6 +391,8 @@ export default function App() {
   // Secret triggers
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [secretModalTab, setSecretModalTab] = useState<'branding' | 'profits'>('branding');
+  const [selectedProfitTripId, setSelectedProfitTripId] = useState<string | null>(null);
   const [secretPassword, setSecretPassword] = useState('');
   const [secretError, setSecretError] = useState('');
 
@@ -851,6 +1034,43 @@ export default function App() {
     };
   }, [scopedCustomers, trips, selectedTripFilter]);
 
+  const tripProfitSummary = useMemo(() => {
+    let passengersCount = 0;
+    let totalSales = 0;
+    let totalPaid = 0;
+    let totalCost = 0;
+
+    trips.forEach(t => {
+      const tCusts = customers.filter(c => c.tripId === t.id);
+      const passCount = tCusts.reduce((sum, c) => sum + (c.peopleCount || 0), 0);
+      const sales = tCusts.reduce((sum, c) => {
+        if (c.totalPrice !== undefined) return sum + c.totalPrice;
+        return sum + (t.price * (c.peopleCount || 1));
+      }, 0);
+      const paid = tCusts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+      
+      const acc = t.expenseAccommodation || 0;
+      const trans = t.expenseTransport || 0;
+      const guide = t.expenseGuide || 0;
+      const ins = t.expenseInsurance || 0;
+      const other = t.expenseOther || 0;
+      const tripExpensesTotal = acc + trans + guide + ins + other;
+
+      passengersCount += passCount;
+      totalSales += sales;
+      totalPaid += paid;
+      totalCost += tripExpensesTotal;
+    });
+
+    return {
+      passengersCount,
+      totalSales,
+      totalPaid,
+      totalCost,
+      netProfit: totalSales - totalCost
+    };
+  }, [trips, customers]);
+
   // 6.5 CORPORATE LOGGING HELPER
   const addLog = async (actionType: OperationLog['actionType'], details: string) => {
     // Audit logs are securely recorded on the server automatically.
@@ -1225,6 +1445,49 @@ export default function App() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSaveTripExpenses = async (
+    tripId: string,
+    expenseAccommodation: number,
+    expenseTransport: number,
+    expenseGuide: number,
+    expenseInsurance: number,
+    expenseOther: number
+  ) => {
+    try {
+      const tripToUpdate = trips.find(t => t.id === tripId);
+      if (!tripToUpdate) return;
+      const updatedTrip: Trip = {
+        ...tripToUpdate,
+        expenseAccommodation,
+        expenseTransport,
+        expenseGuide,
+        expenseInsurance,
+        expenseOther
+      };
+      await setDoc(doc(db, 'trips', tripId), updatedTrip);
+      
+      // Update local state
+      setTrips(prev => prev.map(t => t.id === tripId ? updatedTrip : t));
+
+      // Log action
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'update_trip' as const,
+        details: `تحديث مصاريف رحلة "${tripToUpdate.name}": إقامة ${expenseAccommodation.toLocaleString()} د.ج، نقل ${expenseTransport.toLocaleString()} د.ج، مرشد ${expenseGuide.toLocaleString()} د.ج، تأمين ${expenseInsurance.toLocaleString()} د.ج، أخرى ${expenseOther.toLocaleString()} د.ج`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+      showToast('تم حفظ تفاصيل مصاريف الرحلة وتحديث الأرباح بنجاح!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('فشل حفظ مصاريف الرحلة', 'error');
+    }
   };
 
   return (
@@ -3117,10 +3380,10 @@ export default function App() {
       {/* ================= SECRET SETTINGS MODAL ================= */}
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans overflow-y-auto" dir="rtl">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl border border-stone-100 my-8 animate-in fade-in zoom-in-95 duration-150">
+          <div className={`bg-white rounded-3xl w-full ${secretModalTab === 'profits' ? 'max-w-4xl' : 'max-w-xl'} p-6 shadow-2xl border border-stone-100 my-8 animate-in fade-in zoom-in-95 duration-150 transition-all duration-300`}>
             <div className="flex items-center justify-between border-b border-stone-100 pb-3 mb-4">
               <h3 className="font-extrabold text-stone-850 text-xs flex items-center gap-2">
-                ⚙️ لوحة التخصيص السرية وإعدادات الهوية
+                ⚙️ لوحة التخصيص السرية والمالية
               </h3>
               <button
                 type="button"
@@ -3131,190 +3394,337 @@ export default function App() {
               </button>
             </div>
 
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!editWebsiteName.trim()) {
-                  showToast('الرجاء إدخال اسم الموقع العربي', 'error');
-                  return;
-                }
+            {/* Tabs for Secret Dashboard */}
+            <div className="flex border-b border-stone-100 mb-5 gap-4">
+              <button
+                type="button"
+                onClick={() => setSecretModalTab('branding')}
+                className={`pb-2.5 font-extrabold text-xs transition-all relative cursor-pointer ${
+                  secretModalTab === 'branding'
+                    ? 'text-amber-600 font-black border-b-2 border-amber-500'
+                    : 'text-stone-450 hover:text-stone-700'
+                }`}
+              >
+                🎨 هوية الوكالة وتخصيص الألوان
+              </button>
+              <button
+                type="button"
+                onClick={() => setSecretModalTab('profits')}
+                className={`pb-2.5 font-extrabold text-xs transition-all relative cursor-pointer ${
+                  secretModalTab === 'profits'
+                    ? 'text-amber-600 font-black border-b-2 border-amber-500'
+                    : 'text-stone-450 hover:text-stone-700'
+                }`}
+              >
+                📊 أرباح ومداخيل المواسم والرحلات
+              </button>
+            </div>
 
-                try {
-                  const newSettings: AgencySettings = {
-                    websiteName: editWebsiteName.trim(),
-                    websiteEnglishName: editWebsiteEnglishName.trim(),
-                    primaryColor: editPrimaryColor,
-                    primaryColorHover: darkenColor(editPrimaryColor, 0.15),
-                    primaryColorLight: adjustColorBrightness(editPrimaryColor, 0.65),
-                    primaryColorBg: adjustColorBrightness(editPrimaryColor, 0.85),
-                    primaryColorLightest: adjustColorBrightness(editPrimaryColor, 0.95),
-                    websiteLogoUrl: editWebsiteLogoUrl,
-                    receiptLogoUrl: editReceiptLogoUrl,
-                  };
+            {secretModalTab === 'branding' ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!editWebsiteName.trim()) {
+                    showToast('الرجاء إدخال اسم الموقع العربي', 'error');
+                    return;
+                  }
 
-                  await setDoc(doc(db, 'agencySettings', 'default'), newSettings);
-                  
-                  // Also log this change in logs
-                  const logId = `log-${Date.now()}`;
-                  const newLog = {
-                    id: logId,
-                    employeeId: currentEmployee?.id || 'emp-1',
-                    employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
-                    branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
-                    actionType: 'update_settings' as any,
-                    details: `تحديث هوية وتخصيصات الوكالة: تم تغيير اسم الموقع وألوانه وشعارات الهوية.`,
-                    timestamp: new Date().toISOString()
-                  };
-                  await setDoc(doc(db, 'logs', logId), newLog);
+                  try {
+                    const newSettings: AgencySettings = {
+                      websiteName: editWebsiteName.trim(),
+                      websiteEnglishName: editWebsiteEnglishName.trim(),
+                      primaryColor: editPrimaryColor,
+                      primaryColorHover: darkenColor(editPrimaryColor, 0.15),
+                      primaryColorLight: adjustColorBrightness(editPrimaryColor, 0.65),
+                      primaryColorBg: adjustColorBrightness(editPrimaryColor, 0.85),
+                      primaryColorLightest: adjustColorBrightness(editPrimaryColor, 0.95),
+                      websiteLogoUrl: editWebsiteLogoUrl,
+                      receiptLogoUrl: editReceiptLogoUrl,
+                    };
 
-                  setAgencySettings(newSettings);
-                  localStorage.setItem('agencySettings', JSON.stringify(newSettings));
-                  window.dispatchEvent(new Event('agencySettingsChanged'));
+                    await setDoc(doc(db, 'agencySettings', 'default'), newSettings);
+                    
+                    // Also log this change in logs
+                    const logId = `log-${Date.now()}`;
+                    const newLog = {
+                      id: logId,
+                      employeeId: currentEmployee?.id || 'emp-1',
+                      employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+                      branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+                      actionType: 'update_settings' as any,
+                      details: `تحديث هوية وتخصيصات الوكالة: تم تغيير اسم الموقع وألوانه وشعارات الهوية.`,
+                      timestamp: new Date().toISOString()
+                    };
+                    await setDoc(doc(db, 'logs', logId), newLog);
 
-                  setShowSettingsModal(false);
-                  showToast('تم حفظ وتحديث هوية وإعدادات الوكالة بنجاح وتعميمها على كافة الأجهزة!', 'success');
-                } catch (err) {
-                  console.error(err);
-                  showToast('حدث خطأ أثناء حفظ الإعدادات في قاعدة البيانات', 'error');
-                }
-              }}
-              className="space-y-4 text-right"
-            >
-              {/* Name Inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-stone-600">اسم الموقع (بالعربية)</label>
-                  <input
-                    type="text"
-                    value={editWebsiteName}
-                    onChange={(e) => setEditWebsiteName(e.target.value)}
-                    placeholder="مثال: وكالة عبعوب للسياحة والأسفار"
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-stone-600">الاسم بالإنجليزية</label>
-                  <input
-                    type="text"
-                    value={editWebsiteEnglishName}
-                    onChange={(e) => setEditWebsiteEnglishName(e.target.value)}
-                    placeholder="مثال: ABOUB TRAVEL & TOURISM"
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
-                  />
-                </div>
-              </div>
+                    setAgencySettings(newSettings);
+                    localStorage.setItem('agencySettings', JSON.stringify(newSettings));
+                    window.dispatchEvent(new Event('agencySettingsChanged'));
 
-              {/* Dynamic Theme Colors */}
-              <div className="bg-stone-50/60 p-4 rounded-2xl border border-stone-150 space-y-3">
-                <span className="text-xs font-extrabold text-stone-700 block">🎨 اللون الرئيسي للعلامة التجارية</span>
-                <p className="text-[10px] text-stone-450 leading-relaxed font-semibold">
-                  اختر لون العلامة التجارية وسيتكفل النظام تلقائياً بتوليد التدرجات اللونية الفاتحة والداكنة لتطبيقها على جميع الواجهات والأزرار والتأثيرات فوراً.
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="relative w-12 h-10 rounded-xl overflow-hidden border border-stone-200 shrink-0 shadow-xs">
+                    setShowSettingsModal(false);
+                    showToast('تم حفظ وتحديث هوية وإعدادات الوكالة بنجاح وتعميمها على كافة الأجهزة!', 'success');
+                  } catch (err) {
+                    console.error(err);
+                    showToast('حدث خطأ أثناء حفظ الإعدادات في قاعدة البيانات', 'error');
+                  }
+                }}
+                className="space-y-4 text-right"
+              >
+                {/* Name Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-stone-600">اسم الموقع (بالعربية)</label>
                     <input
-                      type="color"
-                      value={editPrimaryColor}
-                      onChange={(e) => setEditPrimaryColor(e.target.value)}
-                      className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer scale-150"
+                      type="text"
+                      value={editWebsiteName}
+                      onChange={(e) => setEditWebsiteName(e.target.value)}
+                      placeholder="مثال: وكالة عبعوب للسياحة والأسفار"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                      required
                     />
                   </div>
-                  <input
-                    type="text"
-                    value={editPrimaryColor}
-                    onChange={(e) => setEditPrimaryColor(e.target.value)}
-                    placeholder="#d97706"
-                    className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Logo Uploads */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Website "ع" Logo */}
-                <div className="border border-stone-150 rounded-2xl p-3 bg-stone-50/30 text-center space-y-2">
-                  <span className="text-[11px] font-extrabold text-stone-700 block">لوجو "حرف ع" في الموقع</span>
-                  <div className="flex items-center justify-center h-14 w-14 mx-auto rounded-xl bg-zinc-950 text-white overflow-hidden shadow-md">
-                    {editWebsiteLogoUrl ? (
-                      <img src={editWebsiteLogoUrl} className="h-full w-full object-cover" alt="Website logo preview" referrerPolicy="no-referrer" />
-                    ) : (
-                      <span className="text-lg font-black font-sans text-amber-400">ع</span>
-                    )}
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-stone-600">الاسم بالإنجليزية</label>
+                    <input
+                      type="text"
+                      value={editWebsiteEnglishName}
+                      onChange={(e) => setEditWebsiteEnglishName(e.target.value)}
+                      placeholder="مثال: ABOUB TRAVEL & TOURISM"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                    />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all font-bold text-[10px] rounded-lg border border-blue-200 cursor-pointer block text-center">
-                      📥 رفع صورة جديدة
+                </div>
+
+                {/* Dynamic Theme Colors */}
+                <div className="bg-stone-50/60 p-4 rounded-2xl border border-stone-150 space-y-3">
+                  <span className="text-xs font-extrabold text-stone-700 block">🎨 اللون الرئيسي للعلامة التجارية</span>
+                  <p className="text-[10px] text-stone-450 leading-relaxed font-semibold">
+                    اختر لون العلامة التجارية وسيتكفل النظام تلقائياً بتوليد التدرجات اللونية الفاتحة والداكنة لتطبيقها على جميع الواجهات والأزرار والتأثيرات فوراً.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-12 h-10 rounded-xl overflow-hidden border border-stone-200 shrink-0 shadow-xs">
                       <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleLogoFileChange(e, 'website')}
-                        className="hidden"
+                        type="color"
+                        value={editPrimaryColor}
+                        onChange={(e) => setEditPrimaryColor(e.target.value)}
+                        className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer scale-150"
                       />
-                    </label>
-                    {editWebsiteLogoUrl && (
+                    </div>
+                    <input
+                      type="text"
+                      value={editPrimaryColor}
+                      onChange={(e) => setEditPrimaryColor(e.target.value)}
+                      placeholder="#d97706"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono font-bold text-stone-850 text-xs focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Logo Uploads */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Website "ع" Logo */}
+                  <div className="border border-stone-150 rounded-2xl p-3 bg-stone-50/30 text-center space-y-2">
+                    <span className="text-[11px] font-extrabold text-stone-700 block">لوجو "حرف ع" في الموقع</span>
+                    <div className="flex items-center justify-center h-14 w-14 mx-auto rounded-xl bg-zinc-950 text-white overflow-hidden shadow-md">
+                      {editWebsiteLogoUrl ? (
+                        <img src={editWebsiteLogoUrl} className="h-full w-full object-cover" alt="Website logo preview" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="text-lg font-black font-sans text-amber-400">ع</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all font-bold text-[10px] rounded-lg border border-blue-200 cursor-pointer block text-center">
+                        📥 رفع صورة جديدة
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleLogoFileChange(e, 'website')}
+                          className="hidden"
+                        />
+                      </label>
+                      {editWebsiteLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditWebsiteLogoUrl('')}
+                          className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 transition-all font-bold text-[10px] rounded-lg border border-red-100 cursor-pointer"
+                        >
+                          ❌ إزالة والعودة للافتراضي
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Receipt Logo */}
+                  <div className="border border-stone-150 rounded-2xl p-3 bg-stone-50/30 text-center space-y-2">
+                    <span className="text-[11px] font-extrabold text-stone-700 block">شعار الوصلات والفواتير المطبوعة</span>
+                    <div className="flex items-center justify-center h-14 w-14 mx-auto rounded-xl bg-stone-100 overflow-hidden shadow-inner border border-stone-150">
+                      {editReceiptLogoUrl ? (
+                        <img src={editReceiptLogoUrl} className="h-full w-full object-contain p-1" alt="Receipt logo preview" referrerPolicy="no-referrer" />
+                      ) : (
+                        <img src="/logo.png" className="h-full w-full object-contain p-1" alt="Receipt logo default" referrerPolicy="no-referrer" />
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all font-bold text-[10px] rounded-lg border border-blue-200 cursor-pointer block text-center">
+                        📥 رفع صورة جديدة
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleLogoFileChange(e, 'receipt')}
+                          className="hidden"
+                        />
+                      </label>
+                      {editReceiptLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditReceiptLogoUrl('')}
+                          className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 transition-all font-bold text-[10px] rounded-lg border border-red-100 cursor-pointer"
+                        >
+                          ❌ إزالة والعودة للافتراضي
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-4 flex items-center justify-end gap-2 border-t border-stone-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowSettingsModal(false)}
+                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    إلغاء التراجع
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>حفظ التعديلات وتعميم الهوية</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              (() => {
+                const selectedTripForProfit = trips.find(t => t.id === selectedProfitTripId);
+                if (selectedProfitTripId && selectedTripForProfit) {
+                  return (
+                    <TripProfitDetailEditor
+                      trip={selectedTripForProfit}
+                      customers={customers}
+                      onSaveExpenses={handleSaveTripExpenses}
+                      onBack={() => setSelectedProfitTripId(null)}
+                    />
+                  );
+                }
+                return (
+                  <div className="space-y-5 text-right">
+                    {/* Dynamic Profits Dashboard */}
+                    <div className="bg-stone-50 p-4 rounded-2xl border border-stone-150">
+                      <h4 className="text-xs font-black text-stone-800 mb-3 flex items-center gap-1.5">
+                        <TrendingUp size={16} className="text-emerald-600" />
+                        <span>ملخص الأرباح والمداخيل لجميع الرحلات</span>
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="bg-white p-3 rounded-xl border border-stone-100 shadow-2xs">
+                          <span className="text-[10px] font-bold text-stone-450 block mb-0.5">إجمالي المبيعات</span>
+                          <span className="text-sm font-black text-stone-850 font-mono font-sans">{(tripProfitSummary.totalSales).toLocaleString()} <span className="text-[9px] font-bold text-stone-500 font-sans">د.ج</span></span>
+                        </div>
+                        <div className="bg-white p-3 rounded-xl border border-stone-100 shadow-2xs">
+                          <span className="text-[10px] font-bold text-stone-450 block mb-0.5">المبالغ المحصلة</span>
+                          <span className="text-sm font-black text-blue-600 font-mono font-sans">{(tripProfitSummary.totalPaid).toLocaleString()} <span className="text-[9px] font-bold text-stone-500 font-sans">د.ج</span></span>
+                        </div>
+                        <div className="bg-white p-3 rounded-xl border border-stone-100 shadow-2xs">
+                          <span className="text-[10px] font-bold text-stone-450 block mb-0.5">صافي الأرباح المقدرة</span>
+                          <span className={`text-sm font-black font-mono font-sans ${tripProfitSummary.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {(tripProfitSummary.netProfit).toLocaleString()} <span className="text-[9px] font-bold text-stone-500 font-sans">د.ج</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-[9px] text-stone-400 mt-2 font-semibold">
+                        * ملاحظة: يتم احتساب صافي الأرباح على أساس (إجمالي المبيعات) مطروحاً منه مجموع نفقات كل رحلة (الإقامة، النقل، المرشد، التأمين، وأخرى). اضغط على أي رحلة أدناه لتعديل وحفظ مصاريفها وتفاصيل أرباحها.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto p-1">
+                      {trips.length === 0 ? (
+                        <div className="col-span-2 py-8 text-center text-stone-400 font-bold bg-stone-50 rounded-2xl border border-stone-150">
+                          لا توجد برامج رحلات مسجلة في النظام حالياً.
+                        </div>
+                      ) : (
+                        trips.map(trip => {
+                          const tripCustomers = customers.filter(c => c.tripId === trip.id);
+                          const totalSales = tripCustomers.reduce((sum, c) => {
+                            if (c.totalPrice !== undefined) return sum + c.totalPrice;
+                            return sum + (trip.price * (c.peopleCount || 1));
+                          }, 0);
+                          const acc = trip.expenseAccommodation || 0;
+                          const trans = trip.expenseTransport || 0;
+                          const guide = trip.expenseGuide || 0;
+                          const ins = trip.expenseInsurance || 0;
+                          const other = trip.expenseOther || 0;
+                          const netProfit = totalSales - (acc + trans + guide + ins + other);
+
+                          return (
+                            <button
+                              key={trip.id}
+                              type="button"
+                              onClick={() => setSelectedProfitTripId(trip.id)}
+                              className="text-right p-3 bg-white border border-stone-200 hover:border-amber-500 hover:bg-stone-50/40 rounded-2xl transition-all cursor-pointer flex flex-col justify-between h-full shadow-2xs group relative overflow-hidden text-stone-850"
+                            >
+                              <div className="w-full">
+                                <div className="flex justify-between items-start gap-2 w-full">
+                                  <h5 className="font-extrabold text-stone-850 group-hover:text-amber-600 text-xs transition-colors">{trip.name}</h5>
+                                  <span className="text-[9px] bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full font-bold shrink-0">
+                                    {trip.destination}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[9px] text-stone-400 font-bold mt-1">
+                                  <span>📅 {trip.date}</span>
+                                  <span>•</span>
+                                  <span>{tripCustomers.reduce((sum, c) => sum + (c.peopleCount || 0), 0)} مسافر</span>
+                                </div>
+                              </div>
+                              
+                              <div className="mt-3 pt-2 border-t border-stone-100 flex items-center justify-between w-full">
+                                <div>
+                                  <span className="text-[9px] text-stone-400 block font-bold">المكتسب (المبيعات)</span>
+                                  <span className="text-[11px] font-extrabold text-stone-700 font-mono">{totalSales.toLocaleString()} د.ج</span>
+                                </div>
+                                <div className="text-left">
+                                  <span className="text-[9px] text-stone-400 block font-bold">صافي الأرباح</span>
+                                  <span className={`text-[11px] font-black font-mono ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {netProfit.toLocaleString()} د.ج
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <span className="absolute left-2 top-2 text-stone-300 group-hover:text-amber-500 transition-colors text-[9px] font-bold">
+                                تعديل ⚙️
+                              </span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer close */}
+                    <div className="pt-4 flex items-center justify-end border-t border-stone-100">
                       <button
                         type="button"
-                        onClick={() => setEditWebsiteLogoUrl('')}
-                        className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 transition-all font-bold text-[10px] rounded-lg border border-red-100 cursor-pointer"
+                        onClick={() => setShowSettingsModal(false)}
+                        className="px-5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
                       >
-                        ❌ إزالة والعودة للافتراضي
+                        إغلاق اللوحة السرية
                       </button>
-                    )}
+                    </div>
                   </div>
-                </div>
-
-                {/* Receipt Logo */}
-                <div className="border border-stone-150 rounded-2xl p-3 bg-stone-50/30 text-center space-y-2">
-                  <span className="text-[11px] font-extrabold text-stone-700 block">شعار الوصلات والفواتير المطبوعة</span>
-                  <div className="flex items-center justify-center h-14 w-14 mx-auto rounded-xl bg-stone-100 overflow-hidden shadow-inner border border-stone-150">
-                    {editReceiptLogoUrl ? (
-                      <img src={editReceiptLogoUrl} className="h-full w-full object-contain p-1" alt="Receipt logo preview" referrerPolicy="no-referrer" />
-                    ) : (
-                      <img src="/logo.png" className="h-full w-full object-contain p-1" alt="Receipt logo default" referrerPolicy="no-referrer" />
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all font-bold text-[10px] rounded-lg border border-blue-200 cursor-pointer block text-center">
-                      📥 رفع صورة جديدة
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleLogoFileChange(e, 'receipt')}
-                        className="hidden"
-                      />
-                    </label>
-                    {editReceiptLogoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setEditReceiptLogoUrl('')}
-                        className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 transition-all font-bold text-[10px] rounded-lg border border-red-100 cursor-pointer"
-                      >
-                        ❌ إزالة والعودة للافتراضي
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="pt-4 flex items-center justify-end gap-2 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={() => setShowSettingsModal(false)}
-                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
-                >
-                  إلغاء التراجع
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>حفظ التعديلات وتعميم الهوية</span>
-                </button>
-              </div>
-            </form>
+                );
+              })()
+            )}
           </div>
         </div>
       )}
@@ -3322,3 +3732,4 @@ export default function App() {
     </div>
   );
 }
+
