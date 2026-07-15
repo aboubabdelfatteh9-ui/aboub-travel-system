@@ -94,6 +94,10 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
   const [issuedBy, setIssuedBy] = useState('');
   const [treasurerTarget, setTreasurerTarget] = useState('أمين مال شركة عبوب للسياحة والأسفار');
   const [totalAgreedAmount, setTotalAgreedAmount] = useState('');
+  const [voucherType, setVoucherType] = useState<'receipt' | 'payment'>('receipt');
+  const [paymentType, setPaymentType] = useState<'partial' | 'full'>('partial');
+  const [remainingPaymentDate, setRemainingPaymentDate] = useState('');
+  const [remainingAmountCustom, setRemainingAmountCustom] = useState('');
   
   // Customization & styling settings
   const [showHelper, setShowHelper] = useState(true);
@@ -182,6 +186,10 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
       setAmountPaid('');
       setAmountInWords('');
       setTotalAgreedAmount('');
+      setVoucherType('receipt');
+      setPaymentType('partial');
+      setRemainingPaymentDate('');
+      setRemainingAmountCustom('');
       const today = new Date();
       setVoucherNo(`.../${today.getFullYear()}`);
     }
@@ -298,6 +306,67 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             <h4 className="text-xs font-black text-stone-800">بيانات وتفاصيل كتابة الوصل</h4>
           </div>
 
+          {/* Voucher Configuration Controls */}
+          <div className="space-y-3 bg-stone-50 p-3.5 rounded-2xl border border-stone-150">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-black text-stone-500">نوع حركة الأموال (نوع الوصل):</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVoucherType('receipt')}
+                  className={`py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center justify-center gap-1.5 ${
+                    voucherType === 'receipt'
+                      ? 'bg-amber-500 text-zinc-950 border-amber-600 shadow-xs'
+                      : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-950"></span>
+                  <span>وصل استلام (قبض)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVoucherType('payment')}
+                  className={`py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center justify-center gap-1.5 ${
+                    voucherType === 'payment'
+                      ? 'bg-red-500 text-white border-red-600 shadow-xs'
+                      : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                  <span>وصل دفع</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-black text-stone-500">طبيعة الدفعة ومقدارها:</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('partial')}
+                  className={`py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                    paymentType === 'partial'
+                      ? 'bg-stone-800 text-white border-stone-900 shadow-xs'
+                      : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                  }`}
+                >
+                  وصل تجزئة (عربون وباقي)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('full')}
+                  className={`py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                    paymentType === 'full'
+                      ? 'bg-stone-800 text-white border-stone-900 shadow-xs'
+                      : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                  }`}
+                >
+                  وصل دفعة كاملة
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="block text-[10px] font-bold text-stone-500">في يوم:</label>
@@ -323,7 +392,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
 
           <div className="grid grid-cols-3 gap-2 items-end">
             <div className="space-y-1 col-span-2">
-              <label className="block text-[10px] font-bold text-stone-500">مبلغ التسديد بالأرقام (د.ج):</label>
+              <label className="block text-[10px] font-bold text-stone-500">
+                {voucherType === 'receipt' ? 'مبلغ التسديد بالأرقام (د.ج):' : 'المبلغ المدفوع بالأرقام (د.ج):'}
+              </label>
               <input
                 type="number"
                 value={amountPaid}
@@ -343,7 +414,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-stone-500">مبلغ التسديد بالحروف:</label>
+            <label className="block text-[10px] font-bold text-stone-500">
+              {voucherType === 'receipt' ? 'مبلغ التسديد بالحروف:' : 'المبلغ المدفوع بالحروف:'}
+            </label>
             <input
               type="text"
               value={amountInWords}
@@ -354,7 +427,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-stone-500">من طرف السيد/ة:</label>
+            <label className="block text-[10px] font-bold text-stone-500">
+              {voucherType === 'receipt' ? 'من طرف السيد/ة:' : 'إلى السيد/ة:'}
+            </label>
             <input
               type="text"
               value={customerName}
@@ -409,7 +484,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-stone-500">الجهة الموجه إليها الوصل (أمين مال):</label>
+            <label className="block text-[10px] font-bold text-stone-500">
+              {voucherType === 'receipt' ? 'الجهة الموجه إليها الوصل (أمين مال):' : 'الجهة الصادر عنها الوصل (أمين مال):'}
+            </label>
             <input
               type="text"
               value={treasurerTarget}
@@ -429,6 +506,31 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
               className="w-full text-xs font-black px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none font-mono"
             />
           </div>
+
+          {paymentType === 'partial' && (
+            <div className="grid grid-cols-2 gap-3 p-3.5 bg-amber-50/50 border border-amber-200/50 rounded-2xl">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-amber-900">تاريخ تكملة باقي دفعة من المال:</label>
+                <input
+                  type="text"
+                  value={remainingPaymentDate}
+                  onChange={(e) => setRemainingPaymentDate(e.target.value)}
+                  placeholder="مثال: 30/08/2026"
+                  className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-amber-900">الباقي المقدر بـ (د.ج):</label>
+                <input
+                  type="text"
+                  value={remainingAmountCustom}
+                  onChange={(e) => setRemainingAmountCustom(e.target.value)}
+                  placeholder={totalAgreedAmount && amountPaid ? (parseFloat(totalAgreedAmount) - parseFloat(amountPaid) >= 0 ? (parseFloat(totalAgreedAmount) - parseFloat(amountPaid)).toString() : '0') : 'مثال: 50000'}
+                  className="w-full text-xs font-black px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none font-mono bg-white"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Interactive Preview in a nice mock paper layout */}
@@ -494,7 +596,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                 {/* Voucher Title */}
                 <div className="flex justify-center my-6">
                   <div className="border-4 border-double border-stone-900 px-10 py-1.5 bg-stone-50/50">
-                    <h3 className="text-base font-black text-stone-900 tracking-widest">وصــــــل اســـتــلام</h3>
+                    <h3 className="text-base font-black text-stone-900 tracking-widest">
+                      {voucherType === 'receipt' ? 'وصــــــل اســـتــلام' : 'وصــــــل دفــــــع'}
+                    </h3>
                   </div>
                 </div>
 
@@ -515,7 +619,12 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                   
                   {/* Amount Paid line */}
                   <div className="flex items-baseline flex-wrap gap-x-2">
-                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">لقد تم تسديد مبلغ:</span>
+                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">
+                      {voucherType === 'receipt' 
+                        ? `لقد تم تسديد مبلغ${paymentType === 'partial' ? ' (عربون)' : ' (كامل)'}:` 
+                        : `لقد تم دفع مبلغ${paymentType === 'partial' ? ' (عربون)' : ' (كامل)'}:`
+                      }
+                    </span>
                     <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-black text-stone-900 font-mono text-sm bg-stone-50/30 rounded-xs">
                       {amountPaid ? `${Number(amountPaid).toLocaleString()} د.ج` : '........................................................................'}
                     </div>
@@ -531,15 +640,45 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
 
                   {/* Of total agreed amount */}
                   <div className="flex items-baseline flex-wrap gap-x-2">
-                    <span className="font-extrabold text-stone-900 min-w-[270px] shrink-0">من المبلغ الإجمالي، والمتفق عليه، والمقدر بـ:</span>
+                    <span className="font-extrabold text-stone-900 min-w-[270px] shrink-0">
+                      {voucherType === 'receipt' 
+                        ? 'من المبلغ الإجمالي المتفق عليه والمقدر بـ:' 
+                        : 'من المبلغ الإجمالي المستحق والمقدر بـ:'
+                      }
+                    </span>
                     <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-black text-stone-900 font-mono text-sm bg-stone-50/30 rounded-xs">
                       {totalAgreedAmount ? `${Number(totalAgreedAmount).toLocaleString()} د.ج` : '............................................................'}
                     </div>
                   </div>
 
+                  {/* Remaining Amount & Completion Date (تجزئة: كل في خانته) */}
+                  {paymentType === 'partial' && (
+                    <div className="grid grid-cols-2 gap-4 my-4 select-none">
+                      <div className="border-2 border-stone-900 bg-stone-50/50 p-3 rounded-lg text-center flex flex-col justify-center items-center shadow-3xs">
+                        <span className="text-[10px] font-black text-stone-800 mb-1 border-b border-stone-300 pb-0.5 px-3">المبلغ المتبقي (الباقي)</span>
+                        <span className="text-xs font-black text-amber-600 font-mono">
+                          {remainingAmountCustom
+                            ? `${Number(remainingAmountCustom).toLocaleString()} د.ج`
+                            : (totalAgreedAmount && amountPaid 
+                                ? `${(parseFloat(totalAgreedAmount) - parseFloat(amountPaid) >= 0 ? parseFloat(totalAgreedAmount) - parseFloat(amountPaid) : 0).toLocaleString()} د.ج` 
+                                : '................... د.ج')
+                          }
+                        </span>
+                      </div>
+                      <div className="border-2 border-stone-900 bg-stone-50/50 p-3 rounded-lg text-center flex flex-col justify-center items-center shadow-3xs">
+                        <span className="text-[10px] font-black text-stone-800 mb-1 border-b border-stone-300 pb-0.5 px-3">تاريخ تسديد باقي دفعة المال</span>
+                        <span className="text-xs font-black text-stone-900">
+                          {remainingPaymentDate || '...................'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Mr/Ms line */}
                   <div className="flex items-baseline flex-wrap gap-x-2 pt-2">
-                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">من طرف السيد/ة:</span>
+                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">
+                      {voucherType === 'receipt' ? 'من طرف السيد/ة:' : 'إلى السيد/ة:'}
+                    </span>
                     <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-extrabold text-stone-900 text-sm">
                       {customerName || '.........................................................................................................................'}
                     </div>
@@ -579,7 +718,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
 
                   {/* Target To (Treasurer) */}
                   <div className="flex items-baseline flex-wrap gap-x-2">
-                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">إلى السيد:</span>
+                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">
+                      {voucherType === 'receipt' ? 'إلى السيد:' : 'من طرف السيد:'}
+                    </span>
                     <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-bold text-stone-800">
                       {treasurerTarget || '.........................................................................................................................'}
                     </div>
@@ -600,7 +741,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                 <div className="text-center space-y-6">
                   <span className="font-black text-xs text-stone-900 border-b border-stone-300 pb-1 px-4">توقيع المعني</span>
                   <div className="h-16 flex items-center justify-center">
-                    <span className="text-[10px] text-stone-300 italic">بصمة أو توقيع المسدد</span>
+                    <span className="text-[10px] text-stone-300 italic">
+                      {voucherType === 'receipt' ? 'بصمة أو توقيع المسدد' : 'بصمة أو توقيع المستلم'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -608,7 +751,6 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
               {/* Fine Print Footer */}
               <div className="relative z-10 border-t border-stone-200 pt-4 mt-8 flex justify-between text-[7.5px] text-stone-400 font-bold select-none leading-none">
                 <span>شركة عبوب للسياحة والأسفار • نسخة حوسبة رقمية</span>
-                <span>تاريخ التوليد: {new Date().toLocaleDateString('ar-DZ')}</span>
               </div>
 
             </div>
@@ -652,7 +794,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
 
           <div className="flex justify-center my-4">
             <div className="border-4 border-double border-stone-900 px-8 py-1 bg-stone-50">
-              <h3 className="text-sm font-black text-stone-900 tracking-widest">وصــــــل اســـتــلام</h3>
+              <h3 className="text-sm font-black text-stone-900 tracking-widest">
+                {voucherType === 'receipt' ? 'وصــــــل اســـتــلام' : 'وصــــــل دفــــــع'}
+              </h3>
             </div>
           </div>
 
@@ -670,7 +814,12 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
           <div className="space-y-3.5 text-stone-950 text-[10px] leading-relaxed">
             
             <div className="flex items-baseline flex-wrap gap-x-2">
-              <span className="font-extrabold min-w-[120px] shrink-0">لقد تم تسديد مبلغ:</span>
+              <span className="font-extrabold min-w-[120px] shrink-0">
+                {voucherType === 'receipt' 
+                  ? `لقد تم تسديد مبلغ${paymentType === 'partial' ? ' (عربون)' : ' (كامل)'}:` 
+                  : `لقد تم دفع مبلغ${paymentType === 'partial' ? ' (عربون)' : ' (كامل)'}:`
+                }
+              </span>
               <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-black text-sm">
                 {amountPaid ? `${Number(amountPaid).toLocaleString()} د.ج` : '........................................................................'}
               </div>
@@ -684,14 +833,44 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
 
             <div className="flex items-baseline flex-wrap gap-x-2">
-              <span className="font-extrabold min-w-[240px] shrink-0">من المبلغ الإجمالي، والمتفق عليه، والمقدر بـ:</span>
+              <span className="font-extrabold min-w-[240px] shrink-0">
+                {voucherType === 'receipt' 
+                  ? 'من المبلغ الإجمالي المتفق عليه والمقدر بـ:' 
+                  : 'من المبلغ الإجمالي المستحق والمقدر بـ:'
+                }
+              </span>
               <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-black text-xs">
                 {totalAgreedAmount ? `${Number(totalAgreedAmount).toLocaleString()} د.ج` : '............................................................'}
               </div>
             </div>
 
+            {/* Remaining Amount & Completion Date (تجزئة: كل في خانته) */}
+            {paymentType === 'partial' && (
+              <div className="grid grid-cols-2 gap-4 my-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem', marginBottom: '1rem' }}>
+                <div className="border-2 border-stone-900 bg-stone-50/50 p-3 rounded-lg text-center flex flex-col justify-center items-center font-bold text-stone-950" style={{ border: '2px solid #1c1917', backgroundColor: '#fafaf9', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <span className="text-[10px] font-black text-stone-900 mb-1 border-b border-stone-300 pb-0.5 px-3" style={{ fontSize: '10px', fontWeight: '900', color: '#1c1917', marginBottom: '0.25rem', borderBottom: '1px solid #d6d3d1', paddingBottom: '0.125rem', paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>المبلغ المتبقي (الباقي)</span>
+                  <span className="text-xs font-black text-stone-950 font-mono" style={{ fontSize: '12px', fontWeight: '900', color: '#1c1917' }}>
+                    {remainingAmountCustom
+                      ? `${Number(remainingAmountCustom).toLocaleString()} د.ج`
+                      : (totalAgreedAmount && amountPaid 
+                          ? `${(parseFloat(totalAgreedAmount) - parseFloat(amountPaid) >= 0 ? parseFloat(totalAgreedAmount) - parseFloat(amountPaid) : 0).toLocaleString()} د.ج` 
+                          : '................... د.ج')
+                    }
+                  </span>
+                </div>
+                <div className="border-2 border-stone-900 bg-stone-50/50 p-3 rounded-lg text-center flex flex-col justify-center items-center font-bold text-stone-950" style={{ border: '2px solid #1c1917', backgroundColor: '#fafaf9', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <span className="text-[10px] font-black text-stone-900 mb-1 border-b border-stone-300 pb-0.5 px-3" style={{ fontSize: '10px', fontWeight: '900', color: '#1c1917', marginBottom: '0.25rem', borderBottom: '1px solid #d6d3d1', paddingBottom: '0.125rem', paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>تاريخ تسديد باقي دفعة المال</span>
+                  <span className="text-xs font-black text-stone-950" style={{ fontSize: '12px', fontWeight: '900', color: '#1c1917' }}>
+                    {remainingPaymentDate || '...................'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-baseline flex-wrap gap-x-2">
-              <span className="font-extrabold min-w-[120px] shrink-0">من طرف السيد/ة:</span>
+              <span className="font-extrabold min-w-[120px] shrink-0">
+                {voucherType === 'receipt' ? 'من طرف السيد/ة:' : 'إلى السيد/ة:'}
+              </span>
               <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-extrabold text-xs">
                 {customerName || '.........................................................................................................................'}
               </div>
@@ -726,7 +905,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
 
             <div className="flex items-baseline flex-wrap gap-x-2">
-              <span className="font-extrabold min-w-[120px] shrink-0">إلى السيد:</span>
+              <span className="font-extrabold min-w-[120px] shrink-0">
+                {voucherType === 'receipt' ? 'إلى السيد:' : 'من طرف السيد:'}
+              </span>
               <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-bold">
                 {treasurerTarget || '.........................................................................................................................'}
               </div>
@@ -745,7 +926,9 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             <div className="text-center space-y-2">
               <span className="font-black text-[9.5px] border-b border-stone-300 pb-0.5 px-3">توقيع المعني</span>
               <div className="h-10 flex items-center justify-center">
-                <span className="text-[7.5px] text-stone-400 italic">البصمة أو التوقيع</span>
+                <span className="text-[7.5px] text-stone-400 italic">
+                  {voucherType === 'receipt' ? 'البصمة أو التوقيع' : 'البصمة أو توقيع المستلم'}
+                </span>
               </div>
             </div>
           </div>
