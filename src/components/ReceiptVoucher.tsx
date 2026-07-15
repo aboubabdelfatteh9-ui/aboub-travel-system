@@ -78,7 +78,7 @@ const tafkeet = (num: number): string => {
     output += convertLessThanThousand(hundredsGroup);
   }
 
-  return output.trim() + ' دينار جزائري لا غير';
+  return output.trim() + ' دينار جزائري';
 };
 
 export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips, agencySettings }) => {
@@ -194,6 +194,33 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
 
   return (
     <div className="p-1 sm:p-4 text-right">
+      {/* Custom styles to hide browser URL/Header/Footer when printing and ensure single A4 page fit */}
+      <style>{`
+        @media print {
+          @page {
+            margin: 0;
+            size: A4 portrait;
+          }
+          body {
+            margin: 1.2cm !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Hide standard elements */
+          header, footer, nav, aside, button, select, input, label, .print\\:hidden {
+            display: none !important;
+          }
+          /* Ensure no page breaks and keep content contained in single page */
+          .print-receipt-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+          }
+        }
+      `}</style>
       
       {/* Top action helper panel - hidden in printing */}
       <div className="bg-stone-50 border border-stone-200 p-4 rounded-3xl mb-6 shadow-sm print:hidden space-y-4">
@@ -278,7 +305,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-stone-500">وصل رقم:</label>
+              <label className="block text-[10px] font-bold text-stone-500">رقم:</label>
               <input
                 type="text"
                 value={voucherNo}
@@ -316,7 +343,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
               type="text"
               value={amountInWords}
               onChange={(e) => setAmountInWords(e.target.value)}
-              placeholder="مثال: مائة وخمسون ألف دينار جزائري لا غير"
+              placeholder="مثال: مائة وخمسون ألف دينار جزائري"
               className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none"
             />
           </div>
@@ -458,7 +485,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                 {/* Date & Voucher No */}
                 <div className="flex justify-between items-center bg-stone-50/80 px-4 py-2 border border-stone-200/60 rounded-xl mb-8 font-sans">
                   <div>
-                    <span className="text-[11px] font-extrabold text-stone-500 ml-1">وصل رقم:</span>
+                    <span className="text-[11px] font-extrabold text-stone-500 ml-1">رقم:</span>
                     <span className="text-xs font-black text-stone-900 font-mono bg-white px-2 py-0.5 border border-stone-150 rounded-md shadow-3xs">{voucherNo || '.................'}</span>
                   </div>
                   <div>
@@ -486,8 +513,16 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                     </div>
                   </div>
 
-                  {/* Mr/Ms line */}
+                  {/* Of total agreed amount */}
                   <div className="flex items-baseline flex-wrap gap-x-2">
+                    <span className="font-extrabold text-stone-900 min-w-[270px] shrink-0">من المبلغ الإجمالي، والمتفق عليه، والمقدر بـ:</span>
+                    <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-black text-stone-900 font-mono text-sm bg-stone-50/30 rounded-xs">
+                      {totalAgreedAmount ? `${Number(totalAgreedAmount).toLocaleString()} د.ج` : '............................................................'}
+                    </div>
+                  </div>
+
+                  {/* Mr/Ms line */}
+                  <div className="flex items-baseline flex-wrap gap-x-2 pt-2">
                     <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">من طرف السيد/ة:</span>
                     <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-extrabold text-stone-900 text-sm">
                       {customerName || '.........................................................................................................................'}
@@ -526,14 +561,6 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                     </div>
                   </div>
 
-                  {/* Of total agreed amount */}
-                  <div className="flex items-baseline flex-wrap gap-x-2 pt-2">
-                    <span className="font-extrabold text-stone-900 min-w-[270px] shrink-0">من المبلغ الإجمالي، والمتفق عليه، والمقدر بـ:</span>
-                    <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-black text-stone-900 font-mono text-sm bg-stone-50/30 rounded-xs">
-                      {totalAgreedAmount ? `${Number(totalAgreedAmount).toLocaleString()} د.ج` : '............................................................'}
-                    </div>
-                  </div>
-
                 </div>
               </div>
 
@@ -567,7 +594,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
       </div>
 
       {/* Pure Print-Only Layout, optimized to fit on standard paper sizes and completely hide browser margins and web elements */}
-      <div className="hidden print:block text-right text-zinc-900 bg-white" style={{ direction: 'rtl' }}>
+      <div className="hidden print:block text-right text-zinc-900 bg-white print-receipt-container" style={{ direction: 'rtl' }}>
         <div className="bg-white w-[100%] mx-auto p-2 relative" style={{ minHeight: 'auto' }}>
           
           <div className="flex justify-between items-start border-b-2 border-stone-900 pb-4 mb-4">
@@ -607,7 +634,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
 
           <div className="flex justify-between items-center bg-stone-50 px-4 py-1.5 border border-stone-200 rounded-lg mb-6 text-[10px]">
             <div>
-              <span className="font-extrabold text-stone-500 ml-1">وصل رقم:</span>
+              <span className="font-extrabold text-stone-500 ml-1">رقم:</span>
               <span className="font-black text-stone-950 font-mono bg-white px-2 py-0.5 border border-stone-150 rounded">{voucherNo || '.................'}</span>
             </div>
             <div>
@@ -616,7 +643,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
           </div>
 
-          <div className="space-y-4 text-stone-950 text-[10.5px] leading-loose">
+          <div className="space-y-3.5 text-stone-950 text-[10px] leading-relaxed">
             
             <div className="flex items-baseline flex-wrap gap-x-2">
               <span className="font-extrabold min-w-[120px] shrink-0">لقد تم تسديد مبلغ:</span>
@@ -629,6 +656,13 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
               <span className="font-extrabold min-w-[120px] shrink-0">بالحروف:</span>
               <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-bold">
                 {amountInWords || '.........................................................................................................................'}
+              </div>
+            </div>
+
+            <div className="flex items-baseline flex-wrap gap-x-2">
+              <span className="font-extrabold min-w-[240px] shrink-0">من المبلغ الإجمالي، والمتفق عليه، والمقدر بـ:</span>
+              <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-black text-xs">
+                {totalAgreedAmount ? `${Number(totalAgreedAmount).toLocaleString()} د.ج` : '............................................................'}
               </div>
             </div>
 
@@ -667,32 +701,25 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
               </div>
             </div>
 
-            <div className="flex items-baseline flex-wrap gap-x-2 pt-2">
-              <span className="font-extrabold min-w-[240px] shrink-0">من المبلغ الإجمالي، والمتفق عليه، والمقدر بـ:</span>
-              <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-black text-xs">
-                {totalAgreedAmount ? `${Number(totalAgreedAmount).toLocaleString()} د.ج` : '............................................................'}
-              </div>
-            </div>
-
           </div>
 
-          <div className="pt-12 grid grid-cols-2 gap-10">
-            <div className="text-center space-y-4">
-              <span className="font-black text-[10px] border-b border-stone-300 pb-0.5 px-3">توقيع أمين مال الشركة</span>
-              <div className="h-12 flex items-center justify-center">
-                <span className="text-[8px] text-stone-400 italic">الختم والتوقيع</span>
+          <div className="pt-6 grid grid-cols-2 gap-10">
+            <div className="text-center space-y-2">
+              <span className="font-black text-[9.5px] border-b border-stone-300 pb-0.5 px-3">توقيع أمين مال الشركة</span>
+              <div className="h-10 flex items-center justify-center">
+                <span className="text-[7.5px] text-stone-400 italic">الختم والتوقيع</span>
               </div>
             </div>
 
-            <div className="text-center space-y-4">
-              <span className="font-black text-[10px] border-b border-stone-300 pb-0.5 px-3">توقيع المعني</span>
-              <div className="h-12 flex items-center justify-center">
-                <span className="text-[8px] text-stone-400 italic">البصمة أو التوقيع</span>
+            <div className="text-center space-y-2">
+              <span className="font-black text-[9.5px] border-b border-stone-300 pb-0.5 px-3">توقيع المعني</span>
+              <div className="h-10 flex items-center justify-center">
+                <span className="text-[7.5px] text-stone-400 italic">البصمة أو التوقيع</span>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-stone-300 pt-2 mt-6 flex justify-between text-[6.5px] text-stone-400 font-bold">
+          <div className="border-t border-stone-300 pt-1.5 mt-4 flex justify-between text-[6px] text-stone-400 font-bold">
             <span>شركة عبوب للسياحة والأسفار • الهاتف: 0667910148 / 0696789633</span>
             <span>تاريخ الطباعة: {new Date().toLocaleDateString('ar-DZ')}</span>
           </div>
