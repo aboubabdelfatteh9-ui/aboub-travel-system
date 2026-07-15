@@ -12,6 +12,7 @@ import { CustomerTable } from './components/CustomerTable';
 import { PrintDocument } from './components/PrintDocument';
 import { TripManifests } from './components/TripManifests';
 import { Login } from './components/Login';
+import { ReceiptVoucher } from './components/ReceiptVoucher';
 import { 
   db, 
   collection, 
@@ -52,7 +53,8 @@ import {
   ShieldAlert,
   RefreshCw,
   Check,
-  TrendingUp
+  TrendingUp,
+  Receipt
 } from 'lucide-react';
 
 // Color shade generator helpers for dynamic theme styling
@@ -312,7 +314,7 @@ export default function App() {
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'manifests' | 'trips' | 'options' | 'admin'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'manifests' | 'trips' | 'options' | 'admin' | 'receipt'>('dashboard');
   const [selectedPrintCustomer, setSelectedPrintCustomer] = useState<Customer | null>(null);
   const [selectedTripFilter, setSelectedTripFilter] = useState<string>('all');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
@@ -1579,6 +1581,19 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setActiveTab('receipt')}
+              id="sidebar-btn-receipt"
+              className={`w-full py-3 px-3.5 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
+                activeTab === 'receipt'
+                  ? 'bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/15 font-black'
+                  : 'text-stone-400 hover:text-stone-200 hover:bg-zinc-900/60'
+              }`}
+            >
+              <Receipt size={14} className="shrink-0" />
+              <span>وصل استلام (مستند)</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('options')}
               id="sidebar-btn-options"
               className={`w-full py-3 px-3.5 rounded-xl transition-all font-bold text-xs cursor-pointer flex items-center justify-start gap-3.5 ${
@@ -1678,6 +1693,16 @@ export default function App() {
             <span>الرحلات</span>
           </button>
           <button
+            onClick={() => setActiveTab('receipt')}
+            id="mobile-tab-receipt"
+            className={`flex-1 py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
+              activeTab === 'receipt' ? 'bg-amber-500 text-zinc-950 font-black shadow-xs' : 'text-stone-400 font-medium'
+            }`}
+          >
+            <Receipt size={11} />
+            <span>وصل استلام</span>
+          </button>
+          <button
             onClick={() => setActiveTab('options')}
             id="mobile-tab-options"
             className={`flex-1 py-1.5 px-1.5 rounded-lg text-[9.5px] font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
@@ -1700,12 +1725,14 @@ export default function App() {
               {activeTab === 'dashboard' && 'لوحة تحكم كشوف الحجوزات والزبائن الفورية'}
               {activeTab === 'manifests' && 'دليل قوائم الركاب ومسافري كشف النقل'}
               {activeTab === 'trips' && 'إدارة البرامج والمواسم السياحية للوكالة'}
+              {activeTab === 'receipt' && 'تحرير وطباعة وصولات الاستلام الرسمية'}
               {activeTab === 'options' && 'نظام النسخ الاحتياطي ومزامنة البيانات'}
             </h2>
             <p className="text-[10px] text-stone-500 font-sans mt-1">
               {activeTab === 'dashboard' && 'تابع الحسابات المالية لملفات العائلات والزبائن مع تصفية مجدولة'}
               {activeTab === 'manifests' && 'توليد قوائم المسافرين الرسمية لجهات النقل والبلدية لولاية تقرت'}
               {activeTab === 'trips' && 'أضف، حدّث أو امسح البرامج السياحية الفعالة أو القادمة للزبائن'}
+              {activeTab === 'receipt' && 'املأ تفاصيل مبالغ زبائنك، قم بالتفقيط الآلي واطبع وصل الاستلام بجودة عالية'}
               {activeTab === 'options' && 'أرسل أو استرجع قاعدة بيانات الحجوزات في جهاز المكتب بخصوصية مطلقة'}
             </p>
           </div>
@@ -1747,7 +1774,7 @@ export default function App() {
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
         
         {/* TAB CONTENTS */}
-        <div className={`tab-container ${activeTab === 'manifests' ? '' : 'print:hidden'}`}>
+        <div className={`tab-container ${(activeTab === 'manifests' || activeTab === 'receipt') ? '' : 'print:hidden'}`}>
           
           {/* TAB 1: CUSTOMERS & RESERVATIONS DASHBOARD */}
           {activeTab === 'dashboard' && (
@@ -2323,6 +2350,15 @@ export default function App() {
                 <strong>💡 تنويه أمني:</strong> تذكر دائماً ألا تمسح ملفات تعريف ارتباط المتصفح (Cache) أو بيانات المتصفح الخاصة لضمان ثبات السجلات. يوصى بشدة بتحميل نسخة احتياطية في نهاية كل أسبوع عمل لحماية وحفظ ملفات زبائن وكالة عبعوب للسياحة والأسفار.
               </div>
             </div>
+          )}
+
+          {/* TAB 3.5: RECEIPT VOUCHER MAKER & PRINTER */}
+          {activeTab === 'receipt' && (
+            <ReceiptVoucher
+              customers={customers}
+              trips={trips}
+              agencySettings={agencySettings}
+            />
           )}
 
           {/* TAB 4: ADVANCED ADMIN & HR CENTER */}
