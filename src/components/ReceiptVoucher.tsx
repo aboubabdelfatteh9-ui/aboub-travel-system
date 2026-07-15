@@ -91,6 +91,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
   const [nationalId, setNationalId] = useState('');
   const [birthDetails, setBirthDetails] = useState('');
   const [issuedAt, setIssuedAt] = useState('');
+  const [issuedBy, setIssuedBy] = useState('');
   const [treasurerTarget, setTreasurerTarget] = useState('أمين مال شركة عبوب للسياحة والأسفار');
   const [totalAgreedAmount, setTotalAgreedAmount] = useState('');
   
@@ -105,9 +106,8 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
     const currentDayName = days[today.getDay()];
     const formattedDate = today.toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' });
     
-    // Set default day and issue dates if empty
+    // Set default day if empty
     setDay(`${currentDayName} ${formattedDate}`);
-    setIssuedAt(`تقرت في ${today.toLocaleDateString('ar-DZ', { year: 'numeric', month: '2-digit', day: '2-digit' })}`);
     
     // Generate a random-like or sequential number
     const randomNum = Math.floor(Math.random() * 900) + 100;
@@ -189,7 +189,12 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
 
   // Launch browser printing
   const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = "";
     window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 100);
   };
 
   return (
@@ -360,17 +365,6 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-stone-500">رقم التعريف الوطني (NIN):</label>
-            <input
-              type="text"
-              value={nationalId}
-              onChange={(e) => setNationalId(e.target.value)}
-              placeholder="مثال: 10123456789012"
-              className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-1">
             <label className="block text-[10px] font-bold text-stone-500">تاريخ ومكان ميلاده:</label>
             <input
               type="text"
@@ -382,12 +376,34 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-stone-500">صادر في (مكان وتاريخ إصدار الوصل):</label>
+            <label className="block text-[10px] font-bold text-stone-500">رقم التعريف الوطني (NIN):</label>
+            <input
+              type="text"
+              value={nationalId}
+              onChange={(e) => setNationalId(e.target.value)}
+              placeholder="مثال: 10123456789012"
+              className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-stone-500">تاريخ إصدار بطاقة التعريف الوطنية (صادر في):</label>
             <input
               type="text"
               value={issuedAt}
               onChange={(e) => setIssuedAt(e.target.value)}
-              placeholder="مثال: تقرت في 15/07/2026"
+              placeholder="مثال: 15/07/2020"
+              className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-stone-500">مكان إصدار بطاقة التعريف الوطنية (بـ):</label>
+            <input
+              type="text"
+              value={issuedBy}
+              onChange={(e) => setIssuedBy(e.target.value)}
+              placeholder="مثال: بلدية تقرت"
               className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none"
             />
           </div>
@@ -529,14 +545,6 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                     </div>
                   </div>
 
-                  {/* National ID line */}
-                  <div className="flex items-baseline flex-wrap gap-x-2">
-                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">رقم التعريف الوطني:</span>
-                    <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-bold font-mono text-zinc-800">
-                      {nationalId || '.........................................................................................................................'}
-                    </div>
-                  </div>
-
                   {/* Birth date & place */}
                   <div className="flex items-baseline flex-wrap gap-x-2">
                     <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">تاريخ ومكان ميلاده:</span>
@@ -545,11 +553,27 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
                     </div>
                   </div>
 
+                  {/* National ID line */}
+                  <div className="flex items-baseline flex-wrap gap-x-2">
+                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">رقم التعريف الوطني:</span>
+                    <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-bold font-mono text-zinc-800">
+                      {nationalId || '.........................................................................................................................'}
+                    </div>
+                  </div>
+
                   {/* Issued at */}
                   <div className="flex items-baseline flex-wrap gap-x-2">
                     <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">صادر في:</span>
                     <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-bold text-zinc-800">
                       {issuedAt || '.........................................................................................................................'}
+                    </div>
+                  </div>
+
+                  {/* Issued by */}
+                  <div className="flex items-baseline flex-wrap gap-x-2">
+                    <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">بـ:</span>
+                    <div className="flex-1 border-b border-dashed border-stone-400 px-2 font-bold text-zinc-800">
+                      {issuedBy || '.........................................................................................................................'}
                     </div>
                   </div>
 
@@ -674,13 +698,6 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
 
             <div className="flex items-baseline flex-wrap gap-x-2">
-              <span className="font-extrabold min-w-[120px] shrink-0">رقم التعريف الوطني:</span>
-              <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-bold font-mono">
-                {nationalId || '.........................................................................................................................'}
-              </div>
-            </div>
-
-            <div className="flex items-baseline flex-wrap gap-x-2">
               <span className="font-extrabold min-w-[120px] shrink-0">تاريخ ومكان ميلاده:</span>
               <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-bold">
                 {birthDetails || '.........................................................................................................................'}
@@ -688,9 +705,23 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
 
             <div className="flex items-baseline flex-wrap gap-x-2">
+              <span className="font-extrabold min-w-[120px] shrink-0">رقم التعريف الوطني:</span>
+              <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-bold font-mono">
+                {nationalId || '.........................................................................................................................'}
+              </div>
+            </div>
+
+            <div className="flex items-baseline flex-wrap gap-x-2">
               <span className="font-extrabold min-w-[120px] shrink-0">صادر في:</span>
               <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-bold">
                 {issuedAt || '.........................................................................................................................'}
+              </div>
+            </div>
+
+            <div className="flex items-baseline flex-wrap gap-x-2">
+              <span className="font-extrabold min-w-[120px] shrink-0">بـ:</span>
+              <div className="flex-1 border-b border-dashed border-stone-500 px-2 font-bold">
+                {issuedBy || '.........................................................................................................................'}
               </div>
             </div>
 
@@ -719,9 +750,8 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
           </div>
 
-          <div className="border-t border-stone-300 pt-1.5 mt-4 flex justify-between text-[6px] text-stone-400 font-bold">
+          <div className="border-t border-stone-300 pt-1.5 mt-4 text-center text-[6.5px] text-stone-400 font-bold">
             <span>شركة عبوب للسياحة والأسفار • الهاتف: 0667910148 / 0696789633</span>
-            <span>تاريخ الطباعة: {new Date().toLocaleDateString('ar-DZ')}</span>
           </div>
 
         </div>
