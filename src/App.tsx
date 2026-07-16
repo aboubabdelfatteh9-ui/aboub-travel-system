@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Customer, Trip, Employee, Branch, OperationLog, AgencySettings } from './types';
+import { Customer, Trip, Employee, Branch, OperationLog, AgencySettings, Receipt } from './types';
 import { defaultTrips } from './data/trips';
 import { Logo } from './components/Logo';
 import { CustomerForm, getRoomOptionsForTrip, getTripPriceLabelsAndDefaults } from './components/CustomerForm';
@@ -54,7 +54,7 @@ import {
   RefreshCw,
   Check,
   TrendingUp,
-  Receipt
+  Receipt as ReceiptIcon
 } from 'lucide-react';
 
 // Color shade generator helpers for dynamic theme styling
@@ -315,6 +315,14 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'manifests' | 'trips' | 'options' | 'admin' | 'receipt'>('dashboard');
+  const [receipts, setReceipts] = useState<Receipt[]>(() => {
+    try {
+      const cached = localStorage.getItem('aboub_receipts');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedPrintCustomer, setSelectedPrintCustomer] = useState<Customer | null>(null);
   const [selectedTripFilter, setSelectedTripFilter] = useState<string>('all');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
@@ -851,6 +859,12 @@ export default function App() {
   }, [logs]);
 
   useEffect(() => {
+    if (receipts.length > 0) {
+      localStorage.setItem('aboub_receipts', JSON.stringify(receipts));
+    }
+  }, [receipts]);
+
+  useEffect(() => {
     if (currentEmployee) {
       localStorage.setItem('aboub_current_employee', JSON.stringify(currentEmployee));
     } else {
@@ -967,12 +981,24 @@ export default function App() {
       console.error('Error listening to logs:', error);
     });
 
+    // 6. Listen to receipts collection
+    const unsubscribeReceipts = onSnapshot(collection(db, 'receipts'), (snap) => {
+      const list: Receipt[] = [];
+      snap.forEach(docSnap => {
+        list.push(docSnap.data() as Receipt);
+      });
+      setReceipts(list);
+    }, (error) => {
+      console.error('Error listening to receipts:', error);
+    });
+
     return () => {
       unsubscribeCustomers();
       unsubscribeTrips();
       unsubscribeBranches();
       unsubscribeEmployees();
       unsubscribeLogs();
+      unsubscribeReceipts();
     };
   }, [currentEmployee]);
 
@@ -1172,6 +1198,60 @@ export default function App() {
     } catch (e) {
       console.error('Failed to delete customer from Firestore:', e);
       showToast('فشل حذف قيد حجز العميل', 'error');
+    }
+  };
+
+  // 9.5 RECEIPT VOUCHER EVENTS
+  const handleSaveReceipt = async (receipt: Receipt) => {
+    try {
+      // Strip undefined properties for Firestore compatibility
+      const cleanReceipt = JSON.parse(JSON.stringify(receipt));
+      await setDoc(doc(db, 'receipts', receipt.id), cleanReceipt);
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'add_customer' as const,
+        details: `قام بحفظ/تحديث وصل مالي رقم ${receipt.voucherNo} للزبون ${receipt.customerName} بقيمة ${receipt.amountPaid.toLocaleString()} دج (${receipt.voucherType === 'receipt' ? 'وصل استلام' : 'وصل دفع'})`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+      showToast('تم حفظ ومزامنة المستند بنجاح في السجلات!', 'success');
+    } catch (e) {
+      console.error('Failed to save receipt in Firestore:', e);
+      showToast('حدث خطأ أثناء حفظ المستند في السجلات', 'error');
+      throw e;
+    }
+  };
+
+  const handleDeleteReceipt = async (receiptId: string) => {
+    try {
+      const receiptToDelete = receipts.find(r => r.id === receiptId);
+      if (!receiptToDelete) {
+        showToast('المستند غير متوفر في السجلات', 'error');
+        return;
+      }
+      await deleteDoc(doc(db, 'receipts', receiptId));
+
+      const logId = `log-${Date.now()}`;
+      const newLog = {
+        id: logId,
+        employeeId: currentEmployee?.id || 'emp-1',
+        employeeName: currentEmployee?.name || 'عبد الفتاح عبعوب',
+        branchName: currentEmployee?.branchName || 'فرع تقرت الرئيسي',
+        actionType: 'delete_customer' as const,
+        details: `قام بحذف الوصل المالي رقم ${receiptToDelete.voucherNo} للزبون ${receiptToDelete.customerName}`,
+        timestamp: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'logs', logId), newLog);
+      showToast('تمت إزالة المستند بنجاح من قاعدة البيانات.', 'success');
+    } catch (e) {
+      console.error('Failed to delete receipt from Firestore:', e);
+      showToast('حدث خطأ أثناء حذف المستند من قاعدة البيانات', 'error');
+      throw e;
     }
   };
 
@@ -1589,7 +1669,7 @@ export default function App() {
                   : 'text-stone-400 hover:text-stone-200 hover:bg-zinc-900/60'
               }`}
             >
-              <Receipt size={14} className="shrink-0" />
+              <ReceiptIcon size={14} className="shrink-0" />
               <span>وصل استلام (مستند)</span>
             </button>
 
@@ -1699,7 +1779,7 @@ export default function App() {
               activeTab === 'receipt' ? 'bg-amber-500 text-zinc-950 font-black shadow-xs' : 'text-stone-400 font-medium'
             }`}
           >
-            <Receipt size={11} />
+            <ReceiptIcon size={11} />
             <span>وصل استلام</span>
           </button>
           <button
@@ -2358,6 +2438,9 @@ export default function App() {
               customers={customers}
               trips={trips}
               agencySettings={agencySettings}
+              receipts={receipts}
+              onSaveReceipt={handleSaveReceipt}
+              onDeleteReceipt={handleDeleteReceipt}
             />
           )}
 
