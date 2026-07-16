@@ -437,6 +437,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
     pricePerPerson: 0,
     role: 'tourist' as 'tourist' | 'organizer' | 'driver',
     paymentStatus: 'paid' as 'paid' | 'partial' | 'unpaid',
+    nationalId: '', // رقم التعريف الوطني
   });
 
   // 2. Added Companions State
@@ -454,6 +455,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
     role: 'tourist' as 'tourist' | 'organizer' | 'driver',
     roomType: '',
     relationship: 'الزوجـة', // Default to first dropdown option 'الزوجـة'
+    nationalId: '', // رقم التعريف الوطني للمرافق
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -645,6 +647,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       role: companionForm.role,
       roomType: companionForm.roomType || (activeOptions[0]?.label || ''),
       relationship: companionForm.relationship,
+      nationalId: companionForm.nationalId.trim(), // Save companion's nationalId
     };
 
     setCompanions(prev => [...prev, newCmp]);
@@ -658,6 +661,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
       role: 'tourist',
       roomType: activeOptions[0]?.label || '',
       relationship: 'الزوجـة', // Default to first dropdown option 'الزوجـة'
+      nationalId: '', // Reset companion's nationalId
     });
   };
 
@@ -701,6 +705,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         companions: bookingType === 'individual' ? [] : companions,
         paymentStatus: formData.paymentStatus,
         bookingType: bookingType,
+        nationalId: formData.nationalId.trim(), // Save customer's nationalId
       });
 
       // Clean Slate reset
@@ -721,6 +726,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
         pricePerPerson: opts[0]?.price || 0,
         role: 'tourist',
         paymentStatus: 'paid',
+        nationalId: '', // Reset customer's nationalId
       });
       setBookingType('individual');
       setCompanions([]);
@@ -994,7 +1000,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label htmlFor="phone" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
                 <Phone size={13} className="text-stone-400" />
@@ -1012,6 +1018,21 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                 }`}
               />
               {errors.phone && <p className="text-[10px] text-rose-600 font-bold mt-1.5">⚠️ {errors.phone}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="nationalId" className="block text-[11px] font-bold text-stone-600 mb-1.5 flex items-center gap-1.5">
+                <span>رقم التعريف الوطني (NIN)</span>
+              </label>
+              <input
+                type="text"
+                id="nationalId"
+                name="nationalId"
+                value={formData.nationalId}
+                onChange={handleChange}
+                placeholder="مثال: 102345678901234567"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 font-mono font-bold text-stone-800 bg-white placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-xs text-left"
+              />
             </div>
 
             <div>
@@ -1212,7 +1233,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                 />
               </div>
 
-              <div className="col-span-2">
+              <div className="col-span-1">
                 <label htmlFor="compRoomType" className="block text-[10px] font-bold text-stone-600 mb-1">إقامة وسكن الفرد المخصص</label>
                 <select
                   id="compRoomType"
@@ -1227,6 +1248,19 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="compNationalId" className="block text-[10px] font-bold text-stone-600 mb-1">رقم التعريف الوطني للمرافق</label>
+                <input
+                  type="text"
+                  id="compNationalId"
+                  name="nationalId"
+                  value={companionForm.nationalId}
+                  onChange={handleCompanionChange}
+                  placeholder="مثال: 102345678901234567"
+                  className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-white font-mono font-bold text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-amber-500/10 text-xs text-left"
+                />
               </div>
 
               {companionError && (

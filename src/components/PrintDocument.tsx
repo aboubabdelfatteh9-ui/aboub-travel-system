@@ -640,6 +640,14 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                         <span className="text-slate-400 block mb-0.5">الصفة الفردية:</span>
                         <strong className="text-slate-900 font-bold">{getRoleArabic(customer.role)}</strong>
                       </div>
+                      {customer.nationalId && (
+                        <div className="col-span-2 pt-1 border-t border-slate-100">
+                          <span className="text-slate-400 block mb-0.5">رقم التعريف الوطني (NIN):</span>
+                          <strong className="text-slate-900 font-mono text-xs tracking-wider bg-white px-2 py-0.5 rounded border border-slate-200/50 inline-block font-black">
+                            {customer.nationalId}
+                          </strong>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -682,7 +690,10 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                               <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-800`}>
                                 {isRealFamily ? "رب العائلة (المسؤول)" : "المسؤول"}
                               </td>
-                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-slate-900`}>{customer.firstName} {customer.lastName}</td>
+                              <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-slate-900`}>
+                                <div>{customer.firstName} {customer.lastName}</div>
+                                {customer.nationalId && <div className="text-[8px] text-slate-400 font-mono mt-0.5">NIN: {customer.nationalId}</div>}
+                              </td>
                               <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>{customer.birthDate} ({customer.birthPlace || 'غير محدد'}) - {ageComputed} سنة</td>
                               <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-slate-600`}>{customer.roomType || 'عرض قياسي موحد'}</td>
                             </tr>
@@ -694,7 +705,10 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
                                 <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-bold text-blue-600`}>
                                   {cmp.relationship === 'wife' || cmp.relationship?.toLowerCase() === 'wife' ? 'زوجة' : (cmp.relationship || 'مرافق')}
                                 </td>
-                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-semibold text-slate-800`}>{cmp.firstName} {cmp.lastName}</td>
+                                <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} font-semibold text-slate-800`}>
+                                  <div>{cmp.firstName} {cmp.lastName}</div>
+                                  {cmp.nationalId && <div className="text-[8px] text-slate-400 font-mono mt-0.5">NIN: {cmp.nationalId}</div>}
+                                </td>
                                 <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'}`}>{cmp.birthDate} ({cmp.birthPlace || 'غير محدد'}) - {calculateAge(cmp.birthDate)} سنة</td>
                                 <td className={`${companionCount > 2 ? 'py-0.5 px-1.5' : 'py-1 px-2.5'} text-slate-500`}>{cmp.roomType || 'عرض قياسي موفر'}</td>
                               </tr>

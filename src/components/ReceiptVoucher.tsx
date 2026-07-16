@@ -4,13 +4,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Customer, Trip, AgencySettings } from '../types';
-import { Printer, Receipt, RotateCcw, Sparkles, Check, ChevronRight, FileText, User, HelpCircle } from 'lucide-react';
+import { Customer, Trip, AgencySettings, Receipt } from '../types';
+import { Printer, Receipt as ReceiptIcon, RotateCcw, Sparkles, Check, ChevronRight, FileText, User, HelpCircle, Search, Trash2, Edit2, Eye, Save } from 'lucide-react';
 
 interface ReceiptVoucherProps {
   customers: Customer[];
   trips: Trip[];
   agencySettings: AgencySettings;
+  receipts: Receipt[];
+  onSaveReceipt: (receipt: Receipt) => Promise<void>;
+  onDeleteReceipt: (receiptId: string) => Promise<void>;
 }
 
 // Arabic Tafkeet (Number to Words) helper for Algerian Dinars
@@ -81,7 +84,14 @@ const tafkeet = (num: number): string => {
   return output.trim() + ' دينار جزائري';
 };
 
-export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips, agencySettings }) => {
+export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ 
+  customers, 
+  trips, 
+  agencySettings, 
+  receipts = [], 
+  onSaveReceipt, 
+  onDeleteReceipt 
+}) => {
   // Main form states matching the template exactly
   const [day, setDay] = useState('');
   const [voucherNo, setVoucherNo] = useState('');
@@ -102,6 +112,13 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
   // Customization & styling settings
   const [showHelper, setShowHelper] = useState(true);
   const [selectedCustId, setSelectedCustId] = useState('');
+
+  // Save/Edit states
+  const [editingReceiptId, setEditingReceiptId] = useState('');
+  const [leftTab, setLeftTab] = useState<'editor' | 'list'>('editor');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'receipt' | 'payment'>('all');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Auto load default values or current date
   useEffect(() => {
@@ -179,6 +196,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
   // Reset to empty template
   const handleReset = () => {
     if (window.confirm('هل أنت متأكد من رغبتك في إفراغ كافة حقول الوصل لبدء كتابة جديدة؟')) {
+      setEditingReceiptId('');
       setSelectedCustId('');
       setCustomerName('');
       setNationalId('');
@@ -192,6 +210,77 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
       setRemainingAmountCustom('');
       const today = new Date();
       setVoucherNo(`.../${today.getFullYear()}`);
+    }
+  };
+
+  // Save/Update receipt in Firestore
+  const handleSave = async () => {
+    if (!customerName.trim()) {
+      alert('الرجاء كتابة اسم العميل أولاً لحفظ الوصل!');
+      return;
+    }
+    if (!amountPaid) {
+      alert('الرجاء كتابة مبلغ التسديد بالأرقام!');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const receiptId = editingReceiptId || `receipt-${Date.now()}`;
+      const receiptData: Receipt = {
+        id: receiptId,
+        day,
+        voucherNo,
+        amountPaid: Number(amountPaid),
+        amountInWords,
+        customerName: customerName.trim(),
+        nationalId: nationalId || '',
+        birthDetails: birthDetails || '',
+        issuedAt: issuedAt || '',
+        issuedBy: issuedBy || '',
+        treasurerTarget,
+        totalAgreedAmount: totalAgreedAmount ? Number(totalAgreedAmount) : undefined,
+        voucherType,
+        paymentType,
+        remainingPaymentDate: remainingPaymentDate || '',
+        remainingAmountCustom: remainingAmountCustom ? Number(remainingAmountCustom) : undefined,
+        selectedCustId: selectedCustId || '',
+        createdAt: new Date().toISOString()
+      };
+
+      await onSaveReceipt(receiptData);
+      setEditingReceiptId(receiptId);
+      alert('تم حفظ ومزامنة المستند بنجاح في السجلات!');
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء حفظ الوصل بقاعدة البيانات');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Load a saved receipt for editing or previewing
+  const handleLoadReceipt = (r: Receipt, onlyPreview = false) => {
+    setDay(r.day || '');
+    setVoucherNo(r.voucherNo || '');
+    setAmountPaid(r.amountPaid ? r.amountPaid.toString() : '');
+    setAmountInWords(r.amountInWords || '');
+    setCustomerName(r.customerName || '');
+    setNationalId(r.nationalId || '');
+    setBirthDetails(r.birthDetails || '');
+    setIssuedAt(r.issuedAt || '');
+    setIssuedBy(r.issuedBy || '');
+    setTreasurerTarget(r.treasurerTarget || '');
+    setTotalAgreedAmount(r.totalAgreedAmount ? r.totalAgreedAmount.toString() : '');
+    setVoucherType(r.voucherType || 'receipt');
+    setPaymentType(r.paymentType || 'partial');
+    setRemainingPaymentDate(r.remainingPaymentDate || '');
+    setRemainingAmountCustom(r.remainingAmountCustom ? r.remainingAmountCustom.toString() : '');
+    setSelectedCustId(r.selectedCustId || '');
+
+    if (!onlyPreview) {
+      setEditingReceiptId(r.id);
+      setLeftTab('editor'); // Switch back to the editor tab so they can edit it
     }
   };
 
@@ -240,7 +329,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-amber-500 text-zinc-950 rounded-2xl shadow-xs">
-              <Receipt size={22} className="stroke-[2.5]" />
+              <ReceiptIcon size={22} className="stroke-[2.5]" />
             </div>
             <div>
               <h3 className="text-sm font-black text-stone-850">مولد طباعة وصولات الاستلام المخصصة</h3>
@@ -248,13 +337,34 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {editingReceiptId && (
+              <button
+                onClick={() => {
+                  setEditingReceiptId('');
+                  alert('تم إلغاء وضع التعديل، الحقول الحالية ستحفظ كوصل جديد عند الضغط على حفظ.');
+                }}
+                className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-xl text-[10px] transition-all flex items-center gap-1 cursor-pointer animate-pulse"
+                title="إلغاء التعديل والحفظ كجديد"
+              >
+                <span>إلغاء التعديل ❌</span>
+              </button>
+            )}
             <button
               onClick={handleReset}
-              className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
               title="إفراغ الحقول وكتابة جديد"
             >
               <RotateCcw size={13} />
               <span>إعادة تهيئة الحقول</span>
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-black rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-600/10"
+              title="حفظ المستند في قاعدة البيانات"
+            >
+              <Save size={13} />
+              <span>{isSaving ? 'جاري الحفظ...' : (editingReceiptId ? 'تحديث الوصل 💾' : 'حفظ الوصل 💾')}</span>
             </button>
             <button
               onClick={handlePrint}
@@ -301,13 +411,49 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
         
         {/* Left Side: Fields Form Editor */}
         <div className="lg:col-span-5 bg-white border border-stone-200 rounded-3xl p-5 shadow-xs space-y-4">
-          <div className="flex items-center gap-1.5 border-b border-stone-100 pb-3">
-            <FileText size={16} className="text-stone-500" />
-            <h4 className="text-xs font-black text-stone-800">بيانات وتفاصيل كتابة الوصل</h4>
+          <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div className="flex items-center gap-1.5">
+              <FileText size={16} className="text-stone-500" />
+              <h4 className="text-xs font-black text-stone-800">بيانات وتفاصيل كتابة الوصل</h4>
+            </div>
+            {editingReceiptId && (
+              <span className="text-[9px] bg-amber-500 text-zinc-950 px-2 py-0.5 rounded-full font-black animate-pulse">
+                وضع التعديل ✏️
+              </span>
+            )}
           </div>
 
-          {/* Voucher Configuration Controls */}
-          <div className="space-y-3 bg-stone-50 p-3.5 rounded-2xl border border-stone-150">
+          {/* Tab Selector */}
+          <div className="flex border-b border-stone-200 gap-2">
+            <button
+              onClick={() => setLeftTab('editor')}
+              className={`flex-1 pb-2.5 text-xs font-black border-b-2 transition-all cursor-pointer ${
+                leftTab === 'editor'
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-stone-400 hover:text-stone-600'
+              }`}
+            >
+              كتابة مستند جديد ✍️
+            </button>
+            <button
+              onClick={() => setLeftTab('list')}
+              className={`flex-1 pb-2.5 text-xs font-black border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                leftTab === 'list'
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-stone-400 hover:text-stone-600'
+              }`}
+            >
+              أرشيف السجلات 📂
+              <span className="bg-stone-100 text-stone-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                {receipts.length}
+              </span>
+            </button>
+          </div>
+
+          {leftTab === 'editor' && (
+            <div className="space-y-4">
+              {/* Voucher Configuration Controls */}
+              <div className="space-y-3 bg-stone-50 p-3.5 rounded-2xl border border-stone-150">
             <div className="space-y-1">
               <label className="block text-[10px] font-black text-stone-500">نوع حركة الأموال (نوع الوصل):</label>
               <div className="grid grid-cols-2 gap-2">
@@ -532,6 +678,158 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
             </div>
           )}
         </div>
+      )}
+
+          {leftTab === 'list' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Search & Filters */}
+              <div className="space-y-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ابحث باسم الزبون أو رقم الوصل..."
+                    className="w-full text-xs font-bold px-9 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none pl-3 text-right"
+                  />
+                  <Search size={14} className="absolute right-3 top-3 text-stone-400" />
+                </div>
+                
+                {/* Type Filter Buttons */}
+                <div className="flex gap-1.5 bg-stone-50 p-1 rounded-xl border border-stone-150">
+                  <button
+                    onClick={() => setFilterType('all')}
+                    className={`flex-1 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                      filterType === 'all'
+                        ? 'bg-white text-stone-900 shadow-3xs border border-stone-200'
+                        : 'text-stone-400 hover:text-stone-600'
+                    }`}
+                  >
+                    الكل
+                  </button>
+                  <button
+                    onClick={() => setFilterType('receipt')}
+                    className={`flex-1 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                      filterType === 'receipt'
+                        ? 'bg-white text-emerald-700 shadow-3xs border border-stone-200'
+                        : 'text-stone-400 hover:text-stone-600'
+                    }`}
+                  >
+                    وصل استلام
+                  </button>
+                  <button
+                    onClick={() => setFilterType('payment')}
+                    className={`flex-1 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                      filterType === 'payment'
+                        ? 'bg-white text-amber-700 shadow-3xs border border-stone-200'
+                        : 'text-stone-400 hover:text-stone-600'
+                    }`}
+                  >
+                    وصل دفع
+                  </button>
+                </div>
+              </div>
+
+              {/* Receipts List */}
+              <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+                {receipts.filter(r => {
+                  const name = r.customerName || '';
+                  const numStr = r.voucherNo || '';
+                  const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                        numStr.toLowerCase().includes(searchQuery.toLowerCase());
+                  const matchesFilter = filterType === 'all' || r.voucherType === filterType;
+                  return matchesSearch && matchesFilter;
+                }).length === 0 ? (
+                  <div className="text-center py-10 bg-stone-50 border border-stone-150 rounded-2xl">
+                    <FileText size={30} className="mx-auto text-stone-300 mb-2" />
+                    <p className="text-xs text-stone-500 font-bold">لا توجد سجلات مطابقة للبحث</p>
+                  </div>
+                ) : (
+                  [...receipts]
+                    .filter(r => {
+                      const name = r.customerName || '';
+                      const numStr = r.voucherNo || '';
+                      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                            numStr.toLowerCase().includes(searchQuery.toLowerCase());
+                      const matchesFilter = filterType === 'all' || r.voucherType === filterType;
+                      return matchesSearch && matchesFilter;
+                    })
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map(r => (
+                      <div 
+                        key={r.id} 
+                        className={`p-3.5 border rounded-2xl hover:shadow-xs transition-all flex flex-col justify-between gap-3 bg-white ${
+                          editingReceiptId === r.id 
+                            ? 'border-amber-500 bg-amber-50/20 shadow-xs' 
+                            : 'border-stone-150'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="text-right">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                                r.voucherType === 'receipt' 
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                                  : 'bg-amber-50 text-amber-700 border border-amber-100'
+                              }`}>
+                                {r.voucherType === 'receipt' ? 'وصل استلام 📥' : 'وصل دفع 📤'}
+                              </span>
+                              <span className="text-[10px] font-mono font-bold text-stone-400">رقم: {r.voucherNo}</span>
+                            </div>
+                            <h5 className="text-xs font-black text-stone-850">{r.customerName}</h5>
+                            <span className="text-[9px] font-semibold text-stone-400 block mt-0.5">{r.day}</span>
+                          </div>
+                          
+                          <div className="text-left font-mono">
+                            <span className="text-xs font-black text-stone-900 block">{r.amountPaid.toLocaleString()} دج</span>
+                            {r.paymentType === 'partial' && (
+                              <span className="text-[9px] font-bold text-amber-600 block mt-0.5">متبقي: {Number(r.remainingAmountCustom || (r.totalAgreedAmount && r.amountPaid ? r.totalAgreedAmount - r.amountPaid : 0)).toLocaleString()} دج</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-stone-100 pt-2.5 mt-1">
+                          <span className="text-[9px] font-semibold text-stone-400">
+                            {new Date(r.createdAt).toLocaleDateString('ar-DZ', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleLoadReceipt(r, true)}
+                              className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title="معاينة الوصل في الطباعة"
+                            >
+                              <Eye size={12} />
+                              <span>معاينة</span>
+                            </button>
+                            <button
+                              onClick={() => handleLoadReceipt(r, false)}
+                              className="p-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title="تعديل هذا الوصل"
+                            >
+                              <Edit2 size={12} />
+                              <span>تعديل</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('هل أنت متأكد من رغبتك في حذف هذا المستند نهائياً من قاعدة البيانات؟ لا يمكن التراجع عن هذه العملية.')) {
+                                  onDeleteReceipt(r.id);
+                                }
+                              }}
+                              className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title="حذف هذا الوصل"
+                            >
+                              <Trash2 size={12} />
+                              <span>حذف</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Right Side: Interactive Preview in a nice mock paper layout */}
         <div className="lg:col-span-7 space-y-4">
@@ -556,7 +854,7 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ customers, trips
               {/* Paper Watermark Ornament (Visual effect on preview, subtle) */}
               <div className="absolute inset-0 pointer-events-none border-[12px] border-double border-amber-500/10 m-3 rounded-xs"></div>
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03]">
-                <Receipt size={300} className="text-stone-900 stroke-[1.5]" />
+                <ReceiptIcon size={300} className="text-stone-900 stroke-[1.5]" />
               </div>
 
               {/* Header Content */}

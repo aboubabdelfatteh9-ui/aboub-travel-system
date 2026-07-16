@@ -13,6 +13,7 @@ export interface Companion {
   role: 'tourist' | 'organizer' | 'driver';
   roomType: string;
   relationship: string; // صلة القرابة (زوجـة، ابن، ابنة، مرافق...)
+  nationalId?: string; // رقم التعريف الوطني
 }
 
 export interface Customer {
@@ -38,6 +39,7 @@ export interface Customer {
   companions: Companion[]; // قائمة كافة أفراد العائلة المرافقين
   paymentStatus: 'paid' | 'partial' | 'unpaid'; // حالة الدفع
   bookingType?: 'individual' | 'family'; // نوع الحجز (فردي أو عائلي)
+  nationalId?: string; // رقم التعريف الوطني
   
   // Auditing details for employees & branches
   employeeId?: string;
@@ -117,4 +119,26 @@ export interface AgencySettings {
   receiptLogoUrl?: string; // base64 or URL
   websiteLogoUrl?: string; // base64 or URL for the letter 'ع'
 }
+
+export interface Receipt {
+  id: string;
+  day: string;
+  voucherNo: string;
+  amountPaid: number;
+  amountInWords: string;
+  customerName: string;
+  nationalId?: string;
+  birthDetails?: string;
+  issuedAt?: string;
+  issuedBy?: string;
+  treasurerTarget: string;
+  totalAgreedAmount?: number;
+  voucherType: 'receipt' | 'payment';
+  paymentType: 'partial' | 'full';
+  remainingPaymentDate?: string;
+  remainingAmountCustom?: number;
+  selectedCustId?: string;
+  createdAt: string;
+}
+
 
