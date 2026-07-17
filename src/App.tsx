@@ -1338,13 +1338,13 @@ export default function App() {
         status: 'active',
         departurePlaceNotes: newTripData.departurePlaceNotes || '',
         isProfessional: !!newTripData.isProfessional,
-        priceSingle: newTripData.priceSingle ? Number(newTripData.priceSingle) : undefined,
-        priceDouble: newTripData.priceDouble ? Number(newTripData.priceDouble) : undefined,
-        priceTriple: newTripData.priceTriple ? Number(newTripData.priceTriple) : undefined,
-        priceQuadruple: newTripData.priceQuadruple ? Number(newTripData.priceQuadruple) : undefined,
-        priceQuintuple: newTripData.priceQuintuple ? Number(newTripData.priceQuintuple) : undefined,
-        priceSextuple: newTripData.priceSextuple ? Number(newTripData.priceSextuple) : undefined,
-        priceChild: newTripData.priceChild ? Number(newTripData.priceChild) : undefined,
+        priceSingle: newTripData.priceSingle !== undefined ? Number(newTripData.priceSingle) : undefined,
+        priceDouble: newTripData.priceDouble !== undefined ? Number(newTripData.priceDouble) : undefined,
+        priceTriple: newTripData.priceTriple !== undefined ? Number(newTripData.priceTriple) : undefined,
+        priceQuadruple: newTripData.priceQuadruple !== undefined ? Number(newTripData.priceQuadruple) : undefined,
+        priceQuintuple: newTripData.priceQuintuple !== undefined ? Number(newTripData.priceQuintuple) : undefined,
+        priceSextuple: newTripData.priceSextuple !== undefined ? Number(newTripData.priceSextuple) : undefined,
+        priceChild: newTripData.priceChild !== undefined ? Number(newTripData.priceChild) : undefined,
         customPrices: newTripData.customPrices || [],
       };
 
@@ -1998,98 +1998,98 @@ export default function App() {
                       </p>
                       <div className="grid grid-cols-2 gap-2 text-[10px]">
                         <div>
-                          <label htmlFor="trip-price-single" className="block font-bold text-slate-600 mb-0.5">غرفة فردية Single</label>
+                          <label htmlFor="trip-price-single" className="block font-bold text-slate-600 mb-0.5">غرفة فردية Single (أكتب 0 ليكون مجاناً)</label>
                           <input
                             type="number"
                             id="trip-price-single"
                             placeholder="مثال: 75000"
-                            value={newTripData.priceSingle || ''}
+                            value={newTripData.priceSingle !== undefined ? newTripData.priceSingle : ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || undefined;
+                              const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                               setNewTripData({ ...newTripData, priceSingle: val });
                             }}
                             className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
                           />
                         </div>
                         <div>
-                          <label htmlFor="trip-price-double" className="block font-bold text-slate-600 mb-0.5">غرفة ثنائية Double</label>
+                          <label htmlFor="trip-price-double" className="block font-bold text-slate-600 mb-0.5">غرفة ثنائية Double (أكتب 0 ليكون مجاناً)</label>
                           <input
                             type="number"
                             id="trip-price-double"
                             placeholder="مثال: 55000"
-                            value={newTripData.priceDouble || ''}
+                            value={newTripData.priceDouble !== undefined ? newTripData.priceDouble : ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || undefined;
+                              const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                               setNewTripData({ ...newTripData, priceDouble: val });
                             }}
                             className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
                           />
                         </div>
                         <div>
-                          <label htmlFor="trip-price-triple" className="block font-bold text-slate-600 mb-0.5">غرفة ثلاثية Triple</label>
+                          <label htmlFor="trip-price-triple" className="block font-bold text-slate-600 mb-0.5">غرفة ثلاثية Triple (أكتب 0 ليكون مجاناً)</label>
                           <input
                             type="number"
                             id="trip-price-triple"
                             placeholder="مثال: 48000"
-                            value={newTripData.priceTriple || ''}
+                            value={newTripData.priceTriple !== undefined ? newTripData.priceTriple : ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || undefined;
+                              const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                               setNewTripData({ ...newTripData, priceTriple: val });
                             }}
                             className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
                           />
                         </div>
                         <div>
-                          <label htmlFor="trip-price-quadruple" className="block font-bold text-slate-600 mb-0.5">غرفة رباعية Quadruple</label>
+                          <label htmlFor="trip-price-quadruple" className="block font-bold text-slate-600 mb-0.5">غرفة رباعية Quadruple (أكتب 0 ليكون مجاناً)</label>
                           <input
                             type="number"
                             id="trip-price-quadruple"
                             placeholder="مثال: 42000"
-                            value={newTripData.priceQuadruple || ''}
+                            value={newTripData.priceQuadruple !== undefined ? newTripData.priceQuadruple : ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || undefined;
+                              const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                               setNewTripData({ ...newTripData, priceQuadruple: val });
                             }}
                             className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
                           />
                         </div>
                         <div>
-                          <label htmlFor="trip-price-quintuple" className="block font-bold text-slate-600 mb-0.5">غرفة خماسية Quintuple</label>
+                          <label htmlFor="trip-price-quintuple" className="block font-bold text-slate-600 mb-0.5">غرفة خماسية Quintuple (أكتب 0 ليكون مجاناً)</label>
                           <input
                             type="number"
                             id="trip-price-quintuple"
                             placeholder="مثال: 38000"
-                            value={newTripData.priceQuintuple || ''}
+                            value={newTripData.priceQuintuple !== undefined ? newTripData.priceQuintuple : ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || undefined;
+                              const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                               setNewTripData({ ...newTripData, priceQuintuple: val });
                             }}
                             className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
                           />
                         </div>
                         <div>
-                          <label htmlFor="trip-price-sextuple" className="block font-bold text-slate-600 mb-0.5">غرفة سداسية Sextuple</label>
+                          <label htmlFor="trip-price-sextuple" className="block font-bold text-slate-600 mb-0.5">غرفة سداسية Sextuple (أكتب 0 ليكون مجاناً)</label>
                           <input
                             type="number"
                             id="trip-price-sextuple"
                             placeholder="مثال: 35000"
-                            value={newTripData.priceSextuple || ''}
+                            value={newTripData.priceSextuple !== undefined ? newTripData.priceSextuple : ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || undefined;
+                              const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                               setNewTripData({ ...newTripData, priceSextuple: val });
                             }}
                             className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
                           />
                         </div>
                         <div className="col-span-2">
-                          <label htmlFor="trip-price-child" className="block font-bold text-slate-600 mb-0.5">سعر الأطفال Child</label>
+                          <label htmlFor="trip-price-child" className="block font-bold text-slate-600 mb-0.5">سعر الأطفال Child (أكتب 0 ليكون مجاناً)</label>
                           <input
                             type="number"
                             id="trip-price-child"
                             placeholder="مثال: 32000"
-                            value={newTripData.priceChild || ''}
+                            value={newTripData.priceChild !== undefined ? newTripData.priceChild : ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || undefined;
+                              const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                               setNewTripData({ ...newTripData, priceChild: val });
                             }}
                             className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -2121,10 +2121,10 @@ export default function App() {
                                 <div className="w-24">
                                   <input
                                     type="number"
-                                    value={cp.price || ''}
+                                    value={cp.price !== undefined && cp.price !== null ? cp.price : ''}
                                     onChange={(e) => {
                                       const updated = [...(newTripData.customPrices || [])];
-                                      updated[idx].price = parseInt(e.target.value) || 0;
+                                      updated[idx].price = e.target.value === '' ? 0 : (parseInt(e.target.value) || 0);
                                       setNewTripData({ ...newTripData, customPrices: updated });
                                     }}
                                     placeholder="السعر دج"
@@ -3168,7 +3168,7 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
                     <div>
                       <label htmlFor="edit-trip-price-single" className="block font-bold text-slate-600 mb-0.5">
-                        {tripLabels.priceSingle.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceSingle.label : 'غرفة فردية Single'}
+                        {tripLabels.priceSingle.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceSingle.label : 'غرفة فردية Single'} (أكتب 0 ليكون مجاناً)
                       </label>
                       <input
                         type="number"
@@ -3176,7 +3176,7 @@ export default function App() {
                         placeholder={tripLabels.priceSingle.defaultVal !== undefined ? `الافتراضي: ${tripLabels.priceSingle.defaultVal}` : 'مثال: 75000'}
                         value={editingTrip.priceSingle ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || undefined;
+                          const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                           setEditingTrip({ ...editingTrip, priceSingle: val });
                         }}
                         className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -3184,7 +3184,7 @@ export default function App() {
                     </div>
                     <div>
                       <label htmlFor="edit-trip-price-double" className="block font-bold text-slate-600 mb-0.5">
-                        {tripLabels.priceDouble.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceDouble.label : 'غرفة ثنائية Double'}
+                        {tripLabels.priceDouble.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceDouble.label : 'غرفة ثنائية Double'} (أكتب 0 ليكون مجاناً)
                       </label>
                       <input
                         type="number"
@@ -3192,7 +3192,7 @@ export default function App() {
                         placeholder={tripLabels.priceDouble.defaultVal !== undefined ? `الافتراضي: ${tripLabels.priceDouble.defaultVal}` : 'مثال: 55000'}
                         value={editingTrip.priceDouble ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || undefined;
+                          const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                           setEditingTrip({ ...editingTrip, priceDouble: val });
                         }}
                         className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -3200,7 +3200,7 @@ export default function App() {
                     </div>
                     <div>
                       <label htmlFor="edit-trip-price-triple" className="block font-bold text-slate-600 mb-0.5">
-                        {tripLabels.priceTriple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceTriple.label : 'غرفة ثلاثية Triple'}
+                        {tripLabels.priceTriple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceTriple.label : 'غرفة ثلاثية Triple'} (أكتب 0 ليكون مجاناً)
                       </label>
                       <input
                         type="number"
@@ -3208,7 +3208,7 @@ export default function App() {
                         placeholder={tripLabels.priceTriple.defaultVal !== undefined ? `الافتراضي: ${tripLabels.priceTriple.defaultVal}` : 'مثال: 48000'}
                         value={editingTrip.priceTriple ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || undefined;
+                          const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                           setEditingTrip({ ...editingTrip, priceTriple: val });
                         }}
                         className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -3216,7 +3216,7 @@ export default function App() {
                     </div>
                     <div>
                       <label htmlFor="edit-trip-price-quadruple" className="block font-bold text-slate-600 mb-0.5">
-                        {tripLabels.priceQuadruple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceQuadruple.label : 'غرفة رباعية Quadruple'}
+                        {tripLabels.priceQuadruple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceQuadruple.label : 'غرفة رباعية Quadruple'} (أكتب 0 ليكون مجاناً)
                       </label>
                       <input
                         type="number"
@@ -3224,7 +3224,7 @@ export default function App() {
                         placeholder={tripLabels.priceQuadruple.defaultVal !== undefined ? `الافتراضي: ${tripLabels.priceQuadruple.defaultVal}` : 'مثال: 42000'}
                         value={editingTrip.priceQuadruple ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || undefined;
+                          const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                           setEditingTrip({ ...editingTrip, priceQuadruple: val });
                         }}
                         className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -3232,7 +3232,7 @@ export default function App() {
                     </div>
                     <div>
                       <label htmlFor="edit-trip-price-quintuple" className="block font-bold text-slate-600 mb-0.5">
-                        {tripLabels.priceQuintuple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceQuintuple.label : 'غرفة خماسية Quintuple'}
+                        {tripLabels.priceQuintuple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceQuintuple.label : 'غرفة خماسية Quintuple'} (أكتب 0 ليكون مجاناً)
                       </label>
                       <input
                         type="number"
@@ -3240,7 +3240,7 @@ export default function App() {
                         placeholder={tripLabels.priceQuintuple.defaultVal !== undefined ? `الافتراضي: ${tripLabels.priceQuintuple.defaultVal}` : 'مثال: 38000'}
                         value={editingTrip.priceQuintuple ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || undefined;
+                          const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                           setEditingTrip({ ...editingTrip, priceQuintuple: val });
                         }}
                         className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -3248,7 +3248,7 @@ export default function App() {
                     </div>
                     <div>
                       <label htmlFor="edit-trip-price-sextuple" className="block font-bold text-slate-600 mb-0.5">
-                        {tripLabels.priceSextuple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceSextuple.label : 'غرفة سداسية Sextuple'}
+                        {tripLabels.priceSextuple.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceSextuple.label : 'غرفة سداسية Sextuple'} (أكتب 0 ليكون مجاناً)
                       </label>
                       <input
                         type="number"
@@ -3256,7 +3256,7 @@ export default function App() {
                         placeholder={tripLabels.priceSextuple.defaultVal !== undefined ? `الافتراضي: ${tripLabels.priceSextuple.defaultVal}` : 'مثال: 35000'}
                         value={editingTrip.priceSextuple ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || undefined;
+                          const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                           setEditingTrip({ ...editingTrip, priceSextuple: val });
                         }}
                         className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -3264,7 +3264,7 @@ export default function App() {
                     </div>
                     <div className="col-span-2">
                       <label htmlFor="edit-trip-price-child" className="block font-bold text-slate-600 mb-0.5">
-                        {tripLabels.priceChild.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceChild.label : 'سعر الأطفال Child'}
+                        {tripLabels.priceChild.label !== 'غير مستخدم في هذا العرض' ? tripLabels.priceChild.label : 'سعر الأطفال Child'} (أكتب 0 ليكون مجاناً)
                       </label>
                       <input
                         type="number"
@@ -3272,7 +3272,7 @@ export default function App() {
                         placeholder={tripLabels.priceChild.defaultVal !== undefined ? `الافتراضي: ${tripLabels.priceChild.defaultVal}` : 'مثال: 32000'}
                         value={editingTrip.priceChild ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || undefined;
+                          const val = e.target.value === '' ? undefined : (parseInt(e.target.value) || 0);
                           setEditingTrip({ ...editingTrip, priceChild: val });
                         }}
                         className="w-full px-2 py-1.5 border border-slate-200 bg-white rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-stone-800"
@@ -3304,10 +3304,10 @@ export default function App() {
                             <div className="w-24">
                               <input
                                 type="number"
-                                value={cp.price || ''}
+                                value={cp.price !== undefined && cp.price !== null ? cp.price : ''}
                                 onChange={(e) => {
                                   const updated = [...(editingTrip.customPrices || [])];
-                                  updated[idx].price = parseInt(e.target.value) || 0;
+                                  updated[idx].price = e.target.value === '' ? 0 : (parseInt(e.target.value) || 0);
                                   setEditingTrip({ ...editingTrip, customPrices: updated });
                                 }}
                                 placeholder="السعر دج"

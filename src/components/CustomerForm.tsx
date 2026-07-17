@@ -331,49 +331,49 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
         if (tripObj.priceDouble !== undefined) {
           customOpts.push({
             value: 'double',
-            label: `غرفة ثنائية Double (${tripObj.priceDouble.toLocaleString('ar-DZ')} دج/شخص)`,
+            label: `غرفة ثنائية Double (${tripObj.priceDouble === 0 ? 'مجانًا' : `${tripObj.priceDouble.toLocaleString('ar-DZ')} دج/شخص`})`,
             price: tripObj.priceDouble
           });
         }
         if (tripObj.priceTriple !== undefined) {
           customOpts.push({
             value: 'triple',
-            label: `غرفة ثلاثية Triple (${tripObj.priceTriple.toLocaleString('ar-DZ')} دج/شخص)`,
+            label: `غرفة ثلاثية Triple (${tripObj.priceTriple === 0 ? 'مجانًا' : `${tripObj.priceTriple.toLocaleString('ar-DZ')} دج/شخص`})`,
             price: tripObj.priceTriple
           });
         }
         if (tripObj.priceQuadruple !== undefined) {
           customOpts.push({
             value: 'quadruple',
-            label: `غرفة رباعية Quadruple (${tripObj.priceQuadruple.toLocaleString('ar-DZ')} دج/شخص)`,
+            label: `غرفة رباعية Quadruple (${tripObj.priceQuadruple === 0 ? 'مجانًا' : `${tripObj.priceQuadruple.toLocaleString('ar-DZ')} دج/شخص`})`,
             price: tripObj.priceQuadruple
           });
         }
         if (tripObj.priceQuintuple !== undefined) {
           customOpts.push({
             value: 'quintuple',
-            label: `غرفة خماسية Quintuple (${tripObj.priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`,
+            label: `غرفة خماسية Quintuple (${tripObj.priceQuintuple === 0 ? 'مجانًا' : `${tripObj.priceQuintuple.toLocaleString('ar-DZ')} دج/شخص`})`,
             price: tripObj.priceQuintuple
           });
         }
         if (tripObj.priceSextuple !== undefined) {
           customOpts.push({
             value: 'sextuple',
-            label: `غرفة سداسية Sextuple (${tripObj.priceSextuple.toLocaleString('ar-DZ')} دج/شخص)`,
+            label: `غرفة سداسية Sextuple (${tripObj.priceSextuple === 0 ? 'مجانًا' : `${tripObj.priceSextuple.toLocaleString('ar-DZ')} دج/شخص`})`,
             price: tripObj.priceSextuple
           });
         }
         if (tripObj.priceSingle !== undefined) {
           customOpts.push({
             value: 'single',
-            label: `غرفة فردية Single (${tripObj.priceSingle.toLocaleString('ar-DZ')} دج/شخص)`,
+            label: `غرفة فردية Single (${tripObj.priceSingle === 0 ? 'مجانًا' : `${tripObj.priceSingle.toLocaleString('ar-DZ')} دج/شخص`})`,
             price: tripObj.priceSingle
           });
         }
         if (tripObj.priceChild !== undefined) {
           customOpts.push({
             value: 'child_custom',
-            label: `سعر الأطفال Child (${tripObj.priceChild.toLocaleString('ar-DZ')} دج)`,
+            label: `سعر الأطفال Child (${tripObj.priceChild === 0 ? 'مجانًا' : `${tripObj.priceChild.toLocaleString('ar-DZ')} دج`})`,
             price: tripObj.priceChild
           });
         }
@@ -381,7 +381,7 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
       
       customOpts.push({
         value: 'child_under_2_custom',
-        label: 'طفل أقل من سنتين (مجاناً - 0 دج)',
+        label: 'طفل أقل من سنتين (مجانًا)',
         price: 0
       });
 
@@ -391,7 +391,7 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
           if (!customOpts.some(opt => opt.value === `custom_${cp.id}`)) {
             customOpts.push({
               value: `custom_${cp.id}`,
-              label: `${cp.label} (${cp.price.toLocaleString('ar-DZ')} دج)`,
+              label: `${cp.label} (${cp.price === 0 ? 'مجانًا' : `${cp.price.toLocaleString('ar-DZ')} دج`})`,
               price: cp.price
             });
           }
@@ -424,10 +424,11 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
     extraKeys.forEach(({ key, value, label }) => {
       if (!excludedKeys.includes(key) && tripObj[key] !== undefined) {
         if (!options.some(opt => opt.value === value)) {
+          const val = tripObj[key] as number;
           options.push({
             value,
-            label: `${label} (${(tripObj[key] as number).toLocaleString('ar-DZ')} دج/شخص)`,
-            price: tripObj[key] as number
+            label: `${label} (${val === 0 ? 'مجانًا' : `${val.toLocaleString('ar-DZ')} دج/شخص`})`,
+            price: val
           });
         }
       }
@@ -439,7 +440,7 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
         if (!options.some(opt => opt.value === `custom_${cp.id}`)) {
           options.push({
             value: `custom_${cp.id}`,
-            label: `${cp.label} (${cp.price.toLocaleString('ar-DZ')} دج)`,
+            label: `${cp.label} (${cp.price === 0 ? 'مجانًا' : `${cp.price.toLocaleString('ar-DZ')} دج`})`,
             price: cp.price
           });
         }
@@ -1145,7 +1146,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
               >
                 {activeOptions.map((opt, i) => (
                   <option key={i} value={opt.label}>
-                    {opt.label} ({(opt.price).toLocaleString('ar-DZ')} د.ج)
+                    {opt.label} {opt.price === 0 ? '' : `(${(opt.price).toLocaleString('ar-DZ')} د.ج)`}
                   </option>
                 ))}
               </select>
@@ -1280,7 +1281,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                 >
                   {activeOptions.map((opt, i) => (
                     <option key={i} value={opt.label}>
-                      {opt.label} ({(opt.price).toLocaleString('ar-DZ')} د.ج)
+                      {opt.label} {opt.price === 0 ? '' : `(${(opt.price).toLocaleString('ar-DZ')} د.ج)`}
                     </option>
                   ))}
                 </select>
@@ -1345,7 +1346,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                           <td className="py-2.5 px-3 font-mono text-stone-500">{cmp.age} سنة ({cmp.birthPlace})</td>
                           <td className="py-2.5 px-3 text-stone-600">
                             <span className="block truncate max-w-[125px] font-sans">{cmp.roomType}</span>
-                            <span className="font-extrabold text-emerald-600 font-mono text-[9px]">{roomPrice.toLocaleString('ar-DZ')} دج</span>
+                            <span className="font-extrabold text-emerald-600 font-sans text-[9px]">{roomPrice === 0 ? 'مجانًا' : `${roomPrice.toLocaleString('ar-DZ')} دج`}</span>
                           </td>
                           <td className="py-2.5 px-3 text-center">
                             <button
