@@ -89,6 +89,26 @@ function darkenColor(hex: string, percent: number): string {
   return rgbToHex(r, g, b);
 }
 
+function cleanForFirestore(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanForFirestore(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    Object.keys(obj).forEach(key => {
+      const val = obj[key];
+      if (val !== undefined) {
+        cleaned[key] = cleanForFirestore(val);
+      }
+    });
+    return cleaned;
+  }
+  return obj;
+}
+
 const DEFAULT_BRANCHES: Branch[] = [
   { id: 'branch-touggourt', name: 'فرع تقرت الرئيسي', location: 'حي عياد تبسبست، تقرت' },
   { id: 'branch-algiers', name: 'فرع الجزائر العاصمة', location: 'شارع ديدوش مراد، الجزائر العاصمة' },
@@ -1126,7 +1146,7 @@ export default function App() {
       } as Customer;
 
       // Write to Firestore in the cloud
-      await setDoc(doc(db, 'customers', generatedId), completeCustomer);
+      await setDoc(doc(db, 'customers', generatedId), cleanForFirestore(completeCustomer));
 
       let tripName = 'غير معروفة';
       const trip = trips.find(t => t.id === newCust.tripId);
@@ -1154,7 +1174,7 @@ export default function App() {
   // 8. CORE EVENT: UPDATE MEMBER
   const handleUpdateCustomer = async (updatedCust: Customer) => {
     try {
-      await setDoc(doc(db, 'customers', updatedCust.id), updatedCust);
+      await setDoc(doc(db, 'customers', updatedCust.id), cleanForFirestore(updatedCust));
       
       const logId = `log-${Date.now()}`;
       const newLog = {
@@ -1348,7 +1368,7 @@ export default function App() {
         customPrices: newTripData.customPrices || [],
       };
 
-      await setDoc(doc(db, 'trips', generatedId), createdTrip);
+      await setDoc(doc(db, 'trips', generatedId), cleanForFirestore(createdTrip));
       
       const logId = `log-${Date.now()}`;
       const newLog = {
@@ -1403,7 +1423,7 @@ export default function App() {
       
       // Soft-delete by setting status to 'deleted'
       const deletedTrip = { ...targetTrip, status: 'deleted' as const };
-      await setDoc(doc(db, 'trips', tripId), deletedTrip);
+      await setDoc(doc(db, 'trips', tripId), cleanForFirestore(deletedTrip));
       
       const logId = `log-${Date.now()}`;
       const newLog = {
@@ -1432,7 +1452,7 @@ export default function App() {
     }
 
     try {
-      await setDoc(doc(db, 'trips', editingTrip.id), editingTrip);
+      await setDoc(doc(db, 'trips', editingTrip.id), cleanForFirestore(editingTrip));
       
       const logId = `log-${Date.now()}`;
       const newLog = {
@@ -1554,7 +1574,7 @@ export default function App() {
         expenseInsurance,
         expenseOther
       };
-      await setDoc(doc(db, 'trips', tripId), updatedTrip);
+      await setDoc(doc(db, 'trips', tripId), cleanForFirestore(updatedTrip));
       
       // Update local state
       setTrips(prev => prev.map(t => t.id === tripId ? updatedTrip : t));
