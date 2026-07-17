@@ -304,13 +304,13 @@ export default function App() {
         if (missingDefaults.length > 0) {
           const merged = [...parsed, ...missingDefaults];
           localStorage.setItem('aboub_trips', JSON.stringify(merged));
-          return merged;
+          return merged.filter(t => t.status !== 'deleted');
         }
-        return parsed;
+        return parsed.filter(t => t.status !== 'deleted');
       }
-      return defaultTrips;
+      return defaultTrips.filter(t => t.status !== 'deleted');
     } catch {
-      return defaultTrips;
+      return defaultTrips.filter(t => t.status !== 'deleted');
     }
   });
 
@@ -325,6 +325,7 @@ export default function App() {
   });
   const [selectedPrintCustomer, setSelectedPrintCustomer] = useState<Customer | null>(null);
   const [selectedTripFilter, setSelectedTripFilter] = useState<string>('all');
+  const [tripStatusFilter, setTripStatusFilter] = useState<'all' | 'active' | 'upcoming' | 'suspended' | 'completed'>('all');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   
   // CORPORATE ACCESS & TRACKING STATES
@@ -747,13 +748,13 @@ export default function App() {
         );
         if (missingDefaults.length > 0) {
           const merged = [...parsed, ...missingDefaults];
-          setTrips(merged);
+          setTrips(merged.filter(t => t.status !== 'deleted'));
           localStorage.setItem('aboub_trips', JSON.stringify(merged));
         } else {
-          setTrips(parsed);
+          setTrips(parsed.filter(t => t.status !== 'deleted'));
         }
       } else {
-        setTrips(defaultTrips);
+        setTrips(defaultTrips.filter(t => t.status !== 'deleted'));
         localStorage.setItem('aboub_trips', JSON.stringify(defaultTrips));
       }
 
@@ -779,10 +780,10 @@ export default function App() {
           );
           if (missingDefaults.length > 0) {
             const merged = [...fetchedTrips, ...missingDefaults];
-            setTrips(merged);
+            setTrips(merged.filter(t => t.status !== 'deleted'));
             localStorage.setItem('aboub_trips', JSON.stringify(merged));
           } else {
-            setTrips(fetchedTrips);
+            setTrips(fetchedTrips.filter(t => t.status !== 'deleted'));
           }
 
           setBranches(result.data.branches || []);
@@ -921,20 +922,22 @@ export default function App() {
       snap.forEach(docSnap => {
         list.push(docSnap.data() as Trip);
       });
+      let merged: Trip[] = [];
       if (list.length > 0) {
         // Sync any missing default itineraries
         const missingDefaults = defaultTrips.filter(
           dt => !list.some(pt => pt.id === dt.id)
         );
         if (missingDefaults.length > 0) {
-          const merged = [...list, ...missingDefaults];
-          setTrips(merged);
+          merged = [...list, ...missingDefaults];
         } else {
-          setTrips(list);
+          merged = list;
         }
       } else {
-        setTrips(defaultTrips);
+        merged = defaultTrips;
       }
+      // Filter out 'deleted' trips so they don't appear in the application
+      setTrips(merged.filter(t => t.status !== 'deleted'));
     }, (error) => {
       console.error('Error listening to trips:', error);
     });
@@ -1397,7 +1400,10 @@ export default function App() {
         showToast('البرنامج السياحي غير متوفر', 'error');
         return;
       }
-      await deleteDoc(doc(db, 'trips', tripId));
+      
+      // Soft-delete by setting status to 'deleted'
+      const deletedTrip = { ...targetTrip, status: 'deleted' as const };
+      await setDoc(doc(db, 'trips', tripId), deletedTrip);
       
       const logId = `log-${Date.now()}`;
       const newLog = {
@@ -2232,25 +2238,102 @@ export default function App() {
 
               {/* Programs and Active Tours list (8 / 12 spans) */}
               <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200 p-6">
-                <h3 className="font-sans font-bold text-slate-800 text-base mb-1">برامج الرحلات النشطة للوكالة</h3>
-                <p className="text-xs text-slate-400 font-sans mb-4">قائمة رحلات الطيران والعمرة التي يمكنك تسكين الزبائن عليها حالياً:</p>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="font-sans font-bold text-slate-800 text-base mb-1">برامج الرحلات والبرامج السياحية للوكالة</h3>
+                    <p className="text-xs text-slate-400 font-sans">إدارة وحجز رحلات الطيران، العمرة، والبرامج السياحية المختلفة للوكالة:</p>
+                  </div>
+                </div>
+
+                {/* Trip Status Filter Tabs */}
+                <div className="flex flex-wrap gap-1.5 mb-5 bg-slate-100 p-1 rounded-xl border border-slate-200/50 font-sans">
+                  <button
+                    type="button"
+                    onClick={() => setTripStatusFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-[10px] transition-all cursor-pointer ${
+                      tripStatusFilter === 'all'
+                        ? 'bg-white text-slate-800 shadow-xs border border-slate-200'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    عرض الكل ({trips.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTripStatusFilter('active')}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-[10px] transition-all cursor-pointer ${
+                      tripStatusFilter === 'active'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-emerald-600 hover:bg-emerald-50/50'
+                    }`}
+                  >
+                    نشطة حالياً ({trips.filter(t => t.status === 'active').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTripStatusFilter('upcoming')}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-[10px] transition-all cursor-pointer ${
+                      tripStatusFilter === 'upcoming'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-blue-600 hover:bg-blue-50/50'
+                    }`}
+                  >
+                    قادمة قريباً ({trips.filter(t => t.status === 'upcoming').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTripStatusFilter('suspended')}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-[10px] transition-all cursor-pointer ${
+                      tripStatusFilter === 'suspended'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'text-rose-600 hover:bg-rose-50/50'
+                    }`}
+                  >
+                    معلّقة ({trips.filter(t => t.status === 'suspended').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTripStatusFilter('completed')}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-[10px] transition-all cursor-pointer ${
+                      tripStatusFilter === 'completed'
+                        ? 'bg-stone-600 text-white shadow-xs'
+                        : 'text-stone-500 hover:bg-stone-200/50'
+                    }`}
+                  >
+                    مكتملة / منتهية ({trips.filter(t => t.status === 'completed').length})
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {trips.map((tour) => {
-                    const bookedClientsCount = customers.filter(c => c.tripId === tour.id).length;
-                    return (
-                      <div key={tour.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between hover:bg-slate-50 transition-colors">
-                        <div>
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono">
-                              {tour.duration}
-                            </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              tour.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                            }`}>
-                              {tour.status === 'active' ? 'فعّالة حالياً' : 'قادمة قريباً'}
-                            </span>
-                          </div>
+                  {trips
+                    .filter((tour) => tripStatusFilter === 'all' || tour.status === tripStatusFilter)
+                    .map((tour) => {
+                      const bookedClientsCount = customers.filter(c => c.tripId === tour.id).length;
+                      return (
+                        <div key={tour.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between hover:bg-slate-50 transition-colors">
+                          <div>
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono">
+                                {tour.duration}
+                              </span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                tour.status === 'active'
+                                  ? 'bg-emerald-50 text-emerald-600'
+                                  : tour.status === 'upcoming'
+                                  ? 'bg-blue-50 text-blue-600'
+                                  : tour.status === 'suspended'
+                                  ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                                  : 'bg-stone-100 text-stone-600'
+                              }`}>
+                                {tour.status === 'active'
+                                  ? 'فعّالة حالياً'
+                                  : tour.status === 'upcoming'
+                                  ? 'قادمة قريباً'
+                                  : tour.status === 'suspended'
+                                  ? 'معلّقة مؤقتاً'
+                                  : 'مكتملة / منتهية'}
+                              </span>
+                            </div>
 
                           <h4 className="font-sans font-bold text-slate-800 text-sm mt-3 leading-snug">
                             {tour.name}
@@ -2977,11 +3060,12 @@ export default function App() {
                   <select
                     id="edit-trip-status"
                     value={editingTrip.status}
-                    onChange={(e) => setEditingTrip({ ...editingTrip, status: e.target.value as 'active' | 'completed' | 'upcoming' })}
+                    onChange={(e) => setEditingTrip({ ...editingTrip, status: e.target.value as 'active' | 'completed' | 'upcoming' | 'suspended' })}
                     className="w-full px-2.5 py-2 border border-stone-200 bg-white rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/80 cursor-pointer font-sans text-right"
                   >
                     <option value="active">فعّالة حالياً (نشطة)</option>
                     <option value="upcoming">قادمة قريباً</option>
+                    <option value="suspended">معلّقة / موقوفة مؤقتاً</option>
                     <option value="completed">مكتملة / منتهية</option>
                   </select>
                 </div>

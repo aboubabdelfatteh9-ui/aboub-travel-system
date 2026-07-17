@@ -135,6 +135,18 @@ export const getBaseTripPriceLabelsAndDefaults = (tripId: string): TripPriceConf
       priceBase: { label: 'السعر الأساسي للرحلة (دج)', defaultVal: 199000, disabled: false }
     };
   }
+  if (tripId === 'trip-west-algeria-2026') {
+    return {
+      priceSingle: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceDouble: { label: 'غرفة ثنائية Double (دج/شخص)', defaultVal: 29000, disabled: false },
+      priceTriple: { label: 'غرفة ثلاثية Triple (دج/شخص)', defaultVal: 28000, disabled: false },
+      priceQuadruple: { label: 'غرفة رباعية Quadruple (دج/شخص)', defaultVal: 27000, disabled: false },
+      priceQuintuple: { label: 'غرفة خماسية Quintuple (دج/شخص)', defaultVal: 26000, disabled: false },
+      priceSextuple: { label: 'غير مستخدم في هذا العرض', defaultVal: undefined, disabled: true },
+      priceChild: { label: 'سعر طفل أقل من 10 سنوات (بدون سرير) (دج)', defaultVal: 18000, disabled: false },
+      priceBase: { label: 'السعر الأساسي الموحد (غرفة خماسية) (دج)', defaultVal: 26000, disabled: false }
+    };
+  }
   
   // Fallback for custom trips
   return {
@@ -272,6 +284,22 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
       { value: 'hotel_stay', label: `إقامة فندقية راقية (${priceHotel.toLocaleString('ar-DZ')} دج/شخص)`, price: priceHotel },
       { value: 'child_3_10', label: `طفل من 3 إلى 10 سنوات (مقعد فقط - ${priceChild.toLocaleString('ar-DZ')} دج)`, price: priceChild },
       { value: 'child_under_2', label: 'طفل أقل من سنتين (مجاناً - 0 دج)', price: 0 }
+    ];
+    excludedKeys = ['priceSingle', 'priceDouble', 'priceTriple', 'priceQuadruple', 'priceQuintuple', 'priceChild'];
+  } else if (tId === 'trip-west-algeria-2026') {
+    const priceQuintuple = tripObj?.priceQuintuple ?? 26000;
+    const priceQuad = tripObj?.priceQuadruple ?? 27000;
+    const priceTriple = tripObj?.priceTriple ?? 28000;
+    const priceDouble = tripObj?.priceDouble ?? 29000;
+    const priceChild = tripObj?.priceChild ?? 18000;
+
+    options = [
+      { value: 'quintuple', label: `غرفة خماسية Quintuple (${priceQuintuple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceQuintuple },
+      { value: 'quadruple', label: `غرفة رباعية Quadruple (${priceQuad.toLocaleString('ar-DZ')} دج/شخص)`, price: priceQuad },
+      { value: 'triple', label: `غرفة ثلاثية Triple (${priceTriple.toLocaleString('ar-DZ')} دج/شخص)`, price: priceTriple },
+      { value: 'double', label: `غرفة ثنائية Double (${priceDouble.toLocaleString('ar-DZ')} دج/شخص)`, price: priceDouble },
+      { value: 'child_under_10', label: `طفل أقل من 10 سنوات (بدون سرير - ${priceChild.toLocaleString('ar-DZ')} دج)`, price: priceChild },
+      { value: 'child_under_3', label: 'طفل أقل من 3 سنوات (مجانًا - 0 دج)', price: 0 }
     ];
     excludedKeys = ['priceSingle', 'priceDouble', 'priceTriple', 'priceQuadruple', 'priceQuintuple', 'priceChild'];
   } else {
@@ -423,6 +451,8 @@ export const getRoomOptionsForTrip = (tId: string, basePrice: number, tripObj?: 
 };
 
 export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer }) => {
+  const activeFallbackTrip = trips.find(t => t.status === 'active') || trips.find(t => t.status === 'upcoming') || trips[0];
+  
   // 1. Leader (Main responsible person) Form State
   const [formData, setFormData] = useState({
     firstName: '',
@@ -430,8 +460,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
     birthDate: '',
     birthPlace: '',
     phone: '',
-    tripId: trips[0]?.id || '',
-    departureDate: trips[0]?.date || '',
+    tripId: activeFallbackTrip?.id || '',
+    departureDate: activeFallbackTrip?.date || '',
     notes: '',
     roomType: '',
     pricePerPerson: 0,
@@ -464,7 +494,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
   const [paidAmount, setPaidAmount] = useState<string>('');
   const [remainingAmount, setRemainingAmount] = useState<string>('');
 
-  const activeSelectedTrip = trips.find(t => t.id === formData.tripId) || trips[0];
+  const activeSelectedTrip = trips.find(t => t.id === formData.tripId) || activeFallbackTrip || trips[0];
   const activeOptions = activeSelectedTrip ? getRoomOptionsForTrip(activeSelectedTrip.id, activeSelectedTrip.price, activeSelectedTrip) : [];
 
   // Helper inside to determine room price for helper
@@ -477,8 +507,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
   // Sync apartment selection options and defaults on trip change for lead and companion
   useEffect(() => {
     if (trips.length > 0) {
-      const selectedTripId = formData.tripId || trips[0].id;
-      const tripObj = trips.find(t => t.id === selectedTripId) || trips[0];
+      const selectedTripId = formData.tripId || activeFallbackTrip?.id || trips[0].id;
+      const tripObj = trips.find(t => t.id === selectedTripId) || activeFallbackTrip || trips[0];
       const opts = getRoomOptionsForTrip(tripObj.id, tripObj.price, tripObj);
       
       setFormData(prev => {
@@ -1067,11 +1097,17 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ trips, onAddCustomer
                   errors.tripId ? 'border-rose-400 bg-rose-50/15' : 'border-stone-200'
                 }`}
               >
-                {trips.map((trip) => (
-                  <option key={trip.id} value={trip.id}>
-                    ✈️ {trip.name}
-                  </option>
-                ))}
+                {trips
+                  .filter(trip => 
+                    trip.status === 'active' || 
+                    trip.status === 'upcoming' || 
+                    trip.id === formData.tripId
+                  )
+                  .map((trip) => (
+                    <option key={trip.id} value={trip.id}>
+                      ✈️ {trip.name} {trip.status === 'suspended' ? ' (معلّقة)' : trip.status === 'completed' ? ' (مكتملة)' : ''}
+                    </option>
+                  ))}
               </select>
             </div>
 

@@ -89,7 +89,7 @@ export interface Trip {
   duration: string;
   date: string;
   dates?: string[]; // تواريخ الانطلاق المتعددة للرحلة
-  status: 'active' | 'completed' | 'upcoming';
+  status: 'active' | 'completed' | 'upcoming' | 'suspended' | 'deleted';
   departurePlaceNotes?: string; // تفاصيل مكان الانطلاق ونقاط التجمع والوصول
   isProfessional?: boolean; // هل هي رحلة احترافية (لها تفاصيل أسعار) أم عادية (سعر موحد)
   priceSingle?: number; // سعر الغرفة الفردية
