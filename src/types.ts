@@ -138,6 +138,8 @@ export interface Receipt {
   remainingPaymentDate?: string;
   remainingAmountCustom?: number;
   selectedCustId?: string;
+  tripName?: string;
+  departureDate?: string;
   createdAt: string;
 }
 

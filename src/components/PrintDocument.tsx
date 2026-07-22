@@ -110,9 +110,14 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ customer, customer
 
   // Calculate potential departure date in Arabic
   const departureDateToUse = customer.departureDate || trip.date;
-  const formattedDepartureDate = departureDateToUse !== 'غير محدد' && departureDateToUse
-    ? new Date(departureDateToUse).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' })
-    : 'غير محدد';
+  const formattedDepartureDate = (() => {
+    if (!departureDateToUse || departureDateToUse === 'غير محدد') return 'غير محدد';
+    const parsed = new Date(departureDateToUse);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    return departureDateToUse;
+  })();
 
   const ageComputed = customer.age || calculateAge(customer.birthDate);
   const companionCount = (customer.companions || []).length;

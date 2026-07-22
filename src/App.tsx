@@ -1452,8 +1452,20 @@ export default function App() {
     }
 
     try {
+      const oldTrip = trips.find(t => t.id === editingTrip.id);
       await setDoc(doc(db, 'trips', editingTrip.id), cleanForFirestore(editingTrip));
       
+      // If trip date changed, update departure date for customers on this trip
+      if (oldTrip && oldTrip.date !== editingTrip.date) {
+        const tripCustomers = customers.filter(c => c.tripId === editingTrip.id);
+        for (const cust of tripCustomers) {
+          if (!cust.departureDate || cust.departureDate === oldTrip.date) {
+            const updatedCust = { ...cust, departureDate: editingTrip.date };
+            await setDoc(doc(db, 'customers', cust.id), cleanForFirestore(updatedCust));
+          }
+        }
+      }
+
       const logId = `log-${Date.now()}`;
       const newLog = {
         id: logId,
@@ -2544,6 +2556,7 @@ export default function App() {
               receipts={receipts}
               onSaveReceipt={handleSaveReceipt}
               onDeleteReceipt={handleDeleteReceipt}
+              onUpdateCustomer={handleUpdateCustomer}
             />
           )}
 

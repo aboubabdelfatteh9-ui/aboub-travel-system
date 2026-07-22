@@ -14,6 +14,7 @@ interface ReceiptVoucherProps {
   receipts: Receipt[];
   onSaveReceipt: (receipt: Receipt) => Promise<void>;
   onDeleteReceipt: (receiptId: string) => Promise<void>;
+  onUpdateCustomer?: (customer: Customer) => Promise<void> | void;
 }
 
 // Arabic Tafkeet (Number to Words) helper for Algerian Dinars
@@ -90,7 +91,8 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
   agencySettings, 
   receipts = [], 
   onSaveReceipt, 
-  onDeleteReceipt 
+  onDeleteReceipt,
+  onUpdateCustomer
 }) => {
   // Main form states matching the template exactly
   const [day, setDay] = useState('');
@@ -108,6 +110,8 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
   const [paymentType, setPaymentType] = useState<'partial' | 'full'>('partial');
   const [remainingPaymentDate, setRemainingPaymentDate] = useState('');
   const [remainingAmountCustom, setRemainingAmountCustom] = useState('');
+  const [tripName, setTripName] = useState('');
+  const [departureDate, setDepartureDate] = useState('');
   
   // Customization & styling settings
   const [showHelper, setShowHelper] = useState(true);
@@ -172,8 +176,11 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
     }
 
     // Total agreed amount
-    // Get associated trip price
+    // Get associated trip price and departure date
     const tripObj = trips.find(t => t.id === cust.tripId);
+    setTripName(tripObj ? tripObj.name : '');
+    setDepartureDate(cust.departureDate || (tripObj ? tripObj.date : ''));
+
     const totalPrice = cust.totalPrice !== undefined 
       ? cust.totalPrice 
       : (cust.pricePerPerson || (tripObj ? tripObj.price : 0));
@@ -204,6 +211,8 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
       setAmountPaid('');
       setAmountInWords('');
       setTotalAgreedAmount('');
+      setTripName('');
+      setDepartureDate('');
       setVoucherType('receipt');
       setPaymentType('partial');
       setRemainingPaymentDate('');
@@ -245,10 +254,24 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
         remainingPaymentDate: remainingPaymentDate || '',
         remainingAmountCustom: remainingAmountCustom ? Number(remainingAmountCustom) : undefined,
         selectedCustId: selectedCustId || '',
+        tripName: tripName || '',
+        departureDate: departureDate || '',
         createdAt: new Date().toISOString()
       };
 
       await onSaveReceipt(receiptData);
+
+      // If a customer is linked and departureDate changed, update customer record
+      if (selectedCustId && onUpdateCustomer) {
+        const cust = customers.find(c => c.id === selectedCustId);
+        if (cust && cust.departureDate !== departureDate) {
+          await onUpdateCustomer({
+            ...cust,
+            departureDate: departureDate
+          });
+        }
+      }
+
       setEditingReceiptId(receiptId);
       alert('تم حفظ ومزامنة المستند بنجاح في السجلات!');
     } catch (err) {
@@ -272,6 +295,8 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
     setIssuedBy(r.issuedBy || '');
     setTreasurerTarget(r.treasurerTarget || '');
     setTotalAgreedAmount(r.totalAgreedAmount ? r.totalAgreedAmount.toString() : '');
+    setTripName(r.tripName || '');
+    setDepartureDate(r.departureDate || '');
     setVoucherType(r.voucherType || 'receipt');
     setPaymentType(r.paymentType || 'partial');
     setRemainingPaymentDate(r.remainingPaymentDate || '');
@@ -583,6 +608,29 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
               placeholder="مثال: عبد الفتاح عبعوب"
               className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-stone-500">اسم البرنامج / الرحلة:</label>
+              <input
+                type="text"
+                value={tripName}
+                onChange={(e) => setTripName(e.target.value)}
+                placeholder="مثال: رحلة تيميمون الصحراوية"
+                className="w-full text-xs font-bold px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-stone-500">تاريخ الانطلاق المحدد للوصل:</label>
+              <input
+                type="text"
+                value={departureDate}
+                onChange={(e) => setDepartureDate(e.target.value)}
+                placeholder="مثال: 15 جويلية 2026"
+                className="w-full text-xs font-black px-3 py-2 border border-stone-200 rounded-xl focus:border-amber-500 focus:outline-none font-mono text-blue-700 bg-blue-50/30"
+              />
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -982,6 +1030,20 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
                     </div>
                   </div>
 
+                  {/* Trip Name & Departure Date lines */}
+                  {(tripName || departureDate) && (
+                    <div className="grid grid-cols-2 gap-3 bg-blue-50/70 p-2.5 rounded-xl border border-blue-200/60 text-xs my-1 select-none">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 block">بخصوص برنامج الرحلة:</span>
+                        <span className="font-extrabold text-slate-900">{tripName || 'غير محدد'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 block">تاريخ الانطلاق المرتقب:</span>
+                        <span className="font-black text-blue-700 font-mono">{departureDate || 'غير محدد'}</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Birth date & place */}
                   <div className="flex items-baseline flex-wrap gap-x-2">
                     <span className="font-extrabold text-stone-900 min-w-[130px] shrink-0">تاريخ ومكان ميلاده:</span>
@@ -1173,6 +1235,19 @@ export const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
                 {customerName || '.........................................................................................................................'}
               </div>
             </div>
+
+            {(tripName || departureDate) && (
+              <div className="grid grid-cols-2 gap-4 my-2 p-2 border border-stone-300 rounded bg-stone-50/30" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <span className="font-bold text-[10px] text-stone-600 block">بخصوص برنامج الرحلة:</span>
+                  <span className="font-extrabold text-xs text-stone-900">{tripName || 'غير محدد'}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[10px] text-stone-600 block">تاريخ الانطلاق المرتقب:</span>
+                  <span className="font-black text-xs text-blue-800 font-mono">{departureDate || 'غير محدد'}</span>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-baseline flex-wrap gap-x-2">
               <span className="font-extrabold min-w-[120px] shrink-0">تاريخ ومكان ميلاده:</span>

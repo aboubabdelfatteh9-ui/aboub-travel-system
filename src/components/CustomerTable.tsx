@@ -836,18 +836,20 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                 </div>
                 <div>
                   <label htmlFor="edit-departureDate" className="block text-[10px] font-bold text-stone-600 mb-1">تاريخ المغادرة المحدد</label>
-                  <select
+                  <input
+                    type="text"
                     id="edit-departureDate"
+                    list="edit-trip-dates-list"
                     value={editingCustomer.departureDate || (editingTripObj ? editingTripObj.date : '')}
                     onChange={(e) => setEditingCustomer({ ...editingCustomer, departureDate: e.target.value })}
-                    className="w-full px-2.5 py-2 border border-stone-200 bg-white rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 cursor-pointer font-sans"
-                  >
+                    placeholder="اختر أو اكتب تاريخ المغادرة..."
+                    className="w-full px-2.5 py-2 border border-stone-200 bg-white rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 font-sans"
+                  />
+                  <datalist id="edit-trip-dates-list">
                     {editingTripObj && Array.from(new Set([editingTripObj.date, ...(editingTripObj.dates || [])])).filter(Boolean).map((d, i) => (
-                      <option key={i} value={d}>
-                        {d}
-                      </option>
+                      <option key={i} value={d} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
                 <div>
                   <label htmlFor="edit-roomType" className="block text-[10px] font-bold text-stone-600 mb-1">الإقامة الفندقية</label>
