@@ -743,8 +743,8 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                 </div>
               </div>
 
-              {/* Phone, birth info, role */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-[#FAF8F5]/80 p-3.5 rounded-xl border border-stone-200/60">
+              {/* Phone, birth info, national ID, role */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-[#FAF8F5]/80 p-3.5 rounded-xl border border-stone-200/60">
                 <div className="col-span-2 md:col-span-1">
                   <label htmlFor="edit-phone" className="block text-[10px] font-bold text-stone-600 mb-1">رقم الهاتف</label>
                   <input
@@ -776,6 +776,17 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                     onChange={(e) => setEditingCustomer({ ...editingCustomer, birthDate: e.target.value })}
                     className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-medium focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-stone-800"
                     required
+                  />
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="edit-nationalId" className="block text-[10px] font-bold text-stone-600 mb-1">رقم التعريف الوطني (NIN)</label>
+                  <input
+                    type="text"
+                    id="edit-nationalId"
+                    value={editingCustomer.nationalId || ''}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, nationalId: e.target.value })}
+                    placeholder="اختياري"
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono text-left focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/80 transition-all text-stone-800"
                   />
                 </div>
                 <div className="col-span-2 md:col-span-1">
@@ -977,7 +988,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                          <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                             <div className="col-span-2 md:col-span-1">
                               <label className="block text-[9px] font-bold text-stone-500 mb-0.5">تاريخ الميلاد</label>
                               <input
@@ -1004,6 +1015,20 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                                 }}
                                 className="w-full px-2 py-1 border border-stone-200 rounded text-xs bg-white text-stone-800"
                                 required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-stone-500 mb-0.5">رقم التعريف الوطني</label>
+                              <input
+                                type="text"
+                                value={comp.nationalId || ''}
+                                onChange={(e) => {
+                                  const updated = [...editingCustomer.companions];
+                                  updated[index] = { ...comp, nationalId: e.target.value };
+                                  setEditingCustomer({ ...editingCustomer, companions: updated });
+                                }}
+                                placeholder="اختياري"
+                                className="w-full px-2 py-1 border border-stone-200 rounded text-xs bg-white text-stone-800 font-mono text-left"
                               />
                             </div>
                             <div>

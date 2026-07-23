@@ -448,14 +448,13 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
                     <th className="py-2.5 px-3 border-l border-b border-slate-950 text-center w-12 bg-slate-100">N°</th>
                     <th className="py-2.5 px-4 border-l border-b border-slate-950 bg-slate-100">الاســم واللقــب الكامل</th>
                     <th className="py-2.5 px-4 border-l border-b border-slate-950 bg-slate-100">تاريخ ومكان الميلاد الكامل</th>
-                    <th className="py-2.5 px-4 border-l border-b border-slate-950 bg-slate-100">رقم التعريف الوطني (NIN)</th>
                     <th className="py-2.5 px-4 border-b border-slate-950 bg-slate-100">الصفة / المرافق</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-950 text-slate-800 font-medium">
                   {flatPassengers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400 italic">
+                      <td colSpan={4} className="py-8 text-center text-slate-400 italic">
                         لا يوجد ركاب مسجلين على هذا البرنامج السياحي بعد.
                       </td>
                     </tr>
@@ -476,13 +475,8 @@ export function TripManifests({ customers, trips }: TripManifestsProps) {
                         <td className="py-2 px-4 border-l border-b border-slate-950 font-mono text-[11px] text-slate-950">
                           {formatBirthInfo(p.birthDate, p.birthPlace)}
                         </td>
-
-                        {/* 4. National ID Number */}
-                        <td className="py-2 px-4 border-l border-b border-slate-950 font-mono text-[11px] text-slate-950">
-                          {p.nationalId || <span className="text-slate-400 font-sans text-[10px] italic">غير مسجل</span>}
-                        </td>
                         
-                        {/* 5. Relationship or individual Role */}
+                        {/* 4. Relationship or individual Role */}
                         <td className="py-2 px-4 border-b border-slate-950 text-slate-950 font-bold">
                           <span className={p.isLeader ? getRolePrintClass(p.role) : 'text-slate-900 font-bold'}>
                             {getRoleArabic(p.role, p.isLeader, p.relationship)}
